@@ -69,6 +69,69 @@ recommendations by projected impact and computes `projectedRisk`.
 Agents are designed to run continuously (scheduled via Supabase cron / Edge
 Functions in production) and write `agent_runs` audit records.
 
+## Discovery pipeline (`src/lib/discovery/`)
+
+Where the footprint becomes real. Each connector implements `DiscoverySource`
+(`scan(input) → { exposures, threats, log }`). `runDiscovery()` executes sources
+with `Promise.allSettled` (failure isolation), then dedupes findings by a
+content signature (`dedupeKey`) against the known footprint and within the
+batch, returning only genuinely new items.
+
+- `BreachConnector` checks each subject email against breach DBs — HaveIBeenPwned
+  when `HIBP_API_KEY` is set, otherwise a deterministic offline simulator so it
+  runs and tests with zero keys. Severity is classified from exposed data
+  classes; critical breaches also raise an acute `credential_leak` threat.
+- `POST /api/discover` runs the pipeline for the primary subject and persists new
+  findings via the data source when live. The "Run discovery scan" button on the
+  Exposure Inventory page triggers it and refreshes server data.
+- **Entity resolution** (`entity-resolution.ts`) clusters near-duplicate
+  exposures that denote one real-world entity (same listing seen by two layers,
+  same article via search + news) using a union-find over a conservative
+  same-category match (URL host or token-Jaccard). The pipeline collapses
+  intra-batch duplicates and drops candidates already in the footprint; the
+  Exposure Inventory shows one row per entity with merged source counts.
+
+## Scheduler — always-on monitoring (`src/lib/scheduler/`)
+
+`runScheduledCycle(store)` drives 24/7 protection: for every subject across all
+tenants it runs discovery, persists new findings, runs the agent orchestrator,
+refreshes recommendations, writes an audit run + activity + score snapshots, and
+raises notifications for new critical threats. It depends on a `SchedulerStore`
+interface (not Supabase directly), so it is unit-tested with an in-memory store
+and runs live via `SupabaseSchedulerStore` (service-role, multi-tenant).
+
+It is exposed at `/api/cron`, guarded by `CRON_SECRET`, and triggered by Supabase
+pg_cron → `scheduled-protect` Edge Function, Vercel Cron, or any external
+scheduler. Crucially it reuses the same `protect()`, `runDiscovery()` and scoring
+as interactive flows — scheduled and on-demand runs share one code path.
+
+## Data-access layer (`src/lib/data/`)
+
+Pages and API routes depend on a `DataSource` interface, never on Supabase or
+the demo arrays directly:
+
+- `getDataSource()` returns `SupabaseDataSource` when configured **and** signed
+  in, else `DemoDataSource`.
+- `SupabaseDataSource` issues RLS-scoped queries; row→domain translation lives
+  in pure, unit-tested `mappers.ts`.
+- `DemoDataSource` serves the deterministic dataset; mutations are no-ops.
+- This gives graceful degradation (always explorable) and a single seam to
+  swap persistence.
+
+The suite modules (ReputationOS / ExecutiveOS / BusinessOS / legal / reporting)
+go through `getModuleData()` (`src/lib/data/modules.ts`), which is also
+live-aware: signed in + configured → RLS-scoped reads across the 0002 tables
+(mapped by pure functions in `module-mappers.ts`); otherwise the deterministic
+mock. Per-table query failures degrade to empty rather than breaking the page.
+`supabase/seed.sql` populates every suite table for a signed-up user.
+
+## Auth & sessions
+
+- Email + password via Supabase, with server actions (`src/app/auth/actions.ts`).
+- `middleware.ts` refreshes the session on every request and guards
+  `/dashboard`; in demo mode (no keys) it is a pass-through.
+- Mutations are server actions that call the data source and `revalidatePath`.
+
 ## Security & multi-tenancy
 
 - Row-level security on every table keyed to `auth.uid()`.

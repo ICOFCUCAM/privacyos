@@ -1,8 +1,11 @@
 import { Card, RiskBadge, Pill } from "@/components/ui";
-import { demoThreats } from "@/lib/data/demo";
+import { getDataSource } from "@/lib/data";
 import { timeAgo, titleCase } from "@/lib/ui";
+import { acknowledgeThreatAction } from "@/app/dashboard/actions";
 
-export default function ThreatsPage() {
+export default async function ThreatsPage() {
+  const ds = await getDataSource();
+  const { threats } = await ds.getDataset();
   return (
     <div className="space-y-6">
       <div>
@@ -13,7 +16,7 @@ export default function ThreatsPage() {
       </div>
 
       <div className="space-y-3">
-        {demoThreats.map((t) => (
+        {threats.map((t) => (
           <Card key={t.id} className="flex items-start gap-4">
             <RiskBadge level={t.riskLevel} />
             <div className="min-w-0 flex-1">
@@ -32,6 +35,17 @@ export default function ThreatsPage() {
                 <span className="text-xs text-slate-500">{timeAgo(t.detectedAt)}</span>
               </div>
             </div>
+            {!t.acknowledged && (
+              <form action={acknowledgeThreatAction}>
+                <input type="hidden" name="id" value={t.id} />
+                <button
+                  type="submit"
+                  className="shrink-0 self-center rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:bg-bg-elevated"
+                >
+                  Acknowledge
+                </button>
+              </form>
+            )}
           </Card>
         ))}
       </div>

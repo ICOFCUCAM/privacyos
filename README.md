@@ -24,12 +24,31 @@ $100M product, but a coherent architecture you can build the rest on top of.
 | Proprietary 5-axis risk scoring engine | ✅ unit-tested |
 | AI agent orchestration layer (8 specialized agents) | ✅ unit-tested |
 | Pluggable LLM provider (Claude / OpenAI / deterministic mock) | ✅ |
-| `POST /api/protect` flagship "Protect me" endpoint | ✅ |
-| Supabase schema (multi-tenant, RLS) + migrations | ✅ |
+| `POST /api/protect` flagship "Protect me" endpoint (persists runs when live) | ✅ |
+| Discovery pipeline + breach-check connector (HIBP / offline sim) | ✅ unit-tested |
+| Supabase schema (multi-tenant, RLS) + migrations + seed | ✅ |
+| Supabase auth (email + password), session middleware, route guard | ✅ |
+| Data-access layer with live ⇄ demo auto-switch | ✅ unit-tested |
 | Demo dataset so everything runs with **zero config** | ✅ |
 
-See [`ARCHITECTURE.md`](./ARCHITECTURE.md) for the design and
-[`ROADMAP.md`](./ROADMAP.md) for what comes next.
+See [`ARCHITECTURE.md`](./ARCHITECTURE.md) for the design,
+[`ROADMAP.md`](./ROADMAP.md) for what comes next, and
+[`CAPABILITY_MATRIX.md`](./CAPABILITY_MATRIX.md) for the full feature audit.
+
+### Product suites
+
+PrivacyOS is organized into four suites, all navigable in the dashboard:
+
+- **PrivacyOS** — exposure inventory, threat feed, cases, AI recommendations
+- **ReputationOS** — mentions, sentiment trend, defamation tracking, SEO recovery
+- **ExecutiveOS** — incidents (deepfake/impersonation/doxxing), family, travel risk
+- **BusinessOS** — domains, employee exposure, credential leaks, third-party risk
+- **Automation** — AI agents, legal document generator, reporting engine, alerts
+
+Six scoring axes (`src/lib/scoring/scores.ts`), six discovery layers
+(`src/lib/discovery/`), a legal engine (`src/lib/legal/`) exporting six document
+types via `GET /api/legal`, and a reporting engine (`src/lib/reports/`) producing
+seven print-ready reports via `GET /api/reports/[type]`.
 
 ---
 
@@ -61,6 +80,50 @@ curl -X POST http://localhost:3000/api/protect
 # → { riskBefore, projectedRisk, recommendations[], agentStates[], log[] }
 ```
 
+## Discovery (finding real exposures)
+
+The discovery pipeline scans external surfaces and feeds new exposures/threats
+into the footprint. The first connector checks emails against breach databases
+(HaveIBeenPwned when `HIBP_API_KEY` is set, otherwise a deterministic offline
+simulator). Trigger it from the **Exposure Inventory** page ("Run discovery
+scan") or via the API:
+
+```bash
+curl -X POST http://localhost:3000/api/discover
+# → { newExposures, newThreats, exposures[], threats[], log[], persisted }
+```
+
+New connectors implement the `DiscoverySource` interface
+(`src/lib/discovery/source.ts`); the pipeline runs them concurrently, isolates
+failures, and dedupes findings against the known footprint.
+
+## Data-broker removal automation
+
+The **Broker Removals** dashboard files opt-outs against a broker registry
+(`src/lib/brokers/`) and tracks each through a removal state machine
+(`removal_requested → in_progress → removed → monitoring`) with recurring
+reappearance re-checks at a 30/60/90-day cadence; reappeared listings are
+auto-re-filed. The scheduled cycle advances every due removal autonomously, so
+the 24/7 monitor keeps removals progressing without user action.
+
+## Always-on monitoring (scheduled runs)
+
+`POST/GET /api/cron` runs the full protection cycle across **all tenants** using
+the service-role client: discovery → agent orchestration → scoring → persistence
+(new exposures/threats, refreshed recommendations, `agent_runs`, `agent_actions`,
+`score_snapshots`, and critical-threat notifications). It reuses the exact same
+orchestrator/discovery/scoring as interactive runs, so they never drift
+(`src/lib/scheduler/`).
+
+Guard it with `CRON_SECRET` (callers send `Authorization: Bearer <secret>`).
+Trigger it any of three ways:
+
+- **Supabase**: deploy the `scheduled-protect` Edge Function and schedule it with
+  `supabase/migrations/0003_cron.sql` (pg_cron + pg_net, every 6h).
+- **Vercel Cron**: `vercel.json` is preconfigured (Vercel sets the bearer when
+  `CRON_SECRET` is set).
+- **Anything else**: `curl -X POST -H "Authorization: Bearer $CRON_SECRET" $APP_URL/api/cron`.
+
 ## Tech stack
 
 - **Frontend:** Next.js (App Router), TypeScript, Tailwind CSS
@@ -69,8 +132,26 @@ curl -X POST http://localhost:3000/api/protect
   orchestrator
 - **Architecture:** cloud-native, multi-tenant, enterprise-grade security
 
-## Connecting Supabase
+## Connecting Supabase (go live)
 
-1. Create a project and copy the URL + anon key into `.env.local`.
-2. Apply `supabase/migrations/0001_init.sql` (Supabase CLI or SQL editor).
-3. The app auto-detects configuration and switches from demo to live data.
+1. Create a project and copy the URL + anon key (and the service-role key, for
+   the scheduler) into `.env.local`.
+2. Apply the migrations in order: `0001_init.sql`, `0002_suites.sql`,
+   `0003_cron.sql` (Supabase CLI or SQL editor).
+3. Run the app, visit `/login`, and **sign up** (email/password) — or use
+   **SSO**. To enable Google/Microsoft: turn the providers on in Supabase
+   (Authentication → Providers), set the provider client IDs/secrets, set
+   `NEXT_PUBLIC_SITE_URL`, and add `<site>/auth/callback` as an allowed redirect.
+4. You're routed through **in-app onboarding** to create your first protected
+   subject and run an initial scan — no SQL required. (Prefer a fully populated
+   demo? Run `supabase/seed.sql` instead.)
+5. The app auto-detects the session and switches from demo to live, RLS-scoped
+   data. Sign-in is required for `/dashboard`; signed-out users still get the
+   demo experience.
+
+### How live ⇄ demo switching works
+
+`getDataSource()` (`src/lib/data/index.ts`) returns the live `SupabaseDataSource`
+only when Supabase is configured **and** a user is signed in; otherwise the
+`DemoDataSource`. Every dashboard page and the `/api/protect` route depend on
+this interface, never on Supabase or the demo arrays directly.
