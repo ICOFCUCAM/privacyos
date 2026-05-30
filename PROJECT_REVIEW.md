@@ -18,16 +18,17 @@ deterministic demo dataset.
 
 | Metric | Value |
 | --- | --- |
-| Commits (feature history) | 14 |
-| Source files (ts/tsx) | 100 |
+| Commits (feature history) | 15 |
+| Source files (ts/tsx) | 100+ |
 | Lines of source | ~8,000 |
-| Unit test files / tests | 10 / **45** |
+| Unit/integration tests | 12 files / **57** |
+| E2E specs (Playwright, CI) | 4 |
 | Database tables | 28 (3 migrations) |
 | Dashboard pages | 22 |
 | API routes | 5 |
 | Supabase Edge Functions | 1 |
 
-Quality gates on every commit: `tsc --noEmit` clean · `vitest` 45/45 green ·
+Quality gates on every commit: `tsc --noEmit` clean · `vitest` 57/57 green ·
 `next build` succeeds (~27 routes).
 
 ## 2. Build history (what shipped, in order)
@@ -107,11 +108,14 @@ All four suites and the autonomous agent layer are implemented and operational
 | Scheduler cycle | 3 |
 | Data mappers / module mappers | 3 / 3 |
 | Audit helpers | 3 |
+| Certificate-transparency connector | 5 |
+| **Route-handler integration** (`api/routes.test.ts`) | 7 |
 
-The strategy targets pure domain logic (scoring, state machines, clustering,
-orchestration) where correctness matters and IO is abstracted behind
-interfaces. Gaps worth closing next: route-handler integration tests and a
-component/E2E layer (Playwright) for the auth → onboarding → dashboard flow.
+Plus a **Playwright E2E** suite (`e2e/smoke.spec.ts`, 4 specs) covering landing,
+dashboard overview, suite navigation, and a live "Protect me" run via
+`npm run test:e2e`. The strategy targets pure domain logic (scoring, state
+machines, clustering, orchestration) plus the route contracts, with IO behind
+interfaces.
 
 ## 6. Deployment checklist
 
@@ -149,9 +153,15 @@ component/E2E layer (Playwright) for the auth → onboarding → dashboard flow.
 
 ## 7. Known limitations / honest status
 
-- **Discovery connectors are mock-backed** (except the breach connector, which
-  calls HIBP when `HIBP_API_KEY` is set). Real search/news/social/dark-web APIs
-  plug in behind `DiscoverySource` and need keys + network egress.
+- **Discovery connectors are mostly mock-backed.** Two hit real external
+  sources: the breach connector (HIBP, when `HIBP_API_KEY` is set) and the
+  **Certificate Transparency connector** (crt.sh, keyless) which discovers
+  exposed subdomains and degrades to a deterministic fallback when egress is
+  blocked. The remaining search/news/social/dark-web layers are mock providers
+  behind the same `DiscoverySource` interface.
+- **E2E requires a browser install** (`npx playwright install chromium`), which
+  was blocked in the build sandbox; the specs and config run in CI. The unit +
+  route integration suite (57 tests) runs everywhere.
 - **PDF reports** are print-ready HTML (browser Save-as-PDF); a server-side PDF
   renderer can drop in behind `renderReport`.
 - **OAuth round-trip** requires a configured Supabase project with providers

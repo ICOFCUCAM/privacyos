@@ -16,6 +16,7 @@ import {
 } from "./source";
 import { dedupeExposures, removeKnownEntities } from "./entity-resolution";
 import { BreachConnector } from "./breach-connector";
+import { CertTransparencyConnector } from "./cert-transparency-connector";
 import {
   DarkWebConnector,
   DomainConnector,
@@ -32,6 +33,7 @@ export function defaultDiscoverySources(): DiscoverySource[] {
     new NewsConnector(),
     new SocialConnector(),
     new DomainConnector(),
+    new CertTransparencyConnector(),
     new DarkWebConnector(),
   ];
 }
