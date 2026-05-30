@@ -57,7 +57,7 @@ export default function LandingPage() {
         </p>
         <div className="mt-10 flex items-center justify-center gap-4">
           <Link
-            href="/dashboard"
+            href="/dashboard/assistant"
             className="inline-flex items-center gap-2 rounded-lg bg-brand px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand/90"
           >
             Protect me <ArrowRight className="h-4 w-4" />
