@@ -23,10 +23,10 @@ exception when others then
   null; -- not yet scheduled
 end$$;
 
--- Run the protection cycle every 6 hours.
+-- Run the protection cycle daily.
 select cron.schedule(
   'privacyos-scheduled-protect',
-  '0 */6 * * *',
+  '0 6 * * *',
   $$
     select net.http_post(
       url     := current_setting('app.cron_url', true),

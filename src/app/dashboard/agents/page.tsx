@@ -44,7 +44,7 @@ export default async function AgentsPage() {
           <div>
             <p className="text-sm font-semibold text-white">Continuous monitoring active</p>
             <p className="text-xs text-slate-400">
-              The agent fleet runs autonomously every 6 hours · last run {agentActions[0] ? timeAgo(agentActions[0].createdAt) : "—"}
+              The agent fleet runs autonomously every day · last run {agentActions[0] ? timeAgo(agentActions[0].createdAt) : "—"}
             </p>
           </div>
         </div>
