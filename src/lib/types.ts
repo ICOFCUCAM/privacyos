@@ -166,3 +166,22 @@ export interface Recommendation {
   impact: number;
   actionLabel: string;
 }
+
+/** A single event in a removal request's lifecycle (stored as jsonb). */
+export interface RemovalEvent {
+  at: string;
+  status: ExposureStatus;
+  note: string;
+}
+
+/** A data-broker opt-out request and its tracked lifecycle. */
+export interface RemovalRequest {
+  id: string;
+  subjectId: string;
+  exposureId?: string;
+  brokerName: string;
+  status: ExposureStatus;
+  submittedAt: string;
+  nextCheckAt?: string;
+  history: RemovalEvent[];
+}

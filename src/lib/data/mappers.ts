@@ -126,3 +126,16 @@ export function aggregateAgentStates(runRows: any[]): AgentState[] {
     };
   });
 }
+
+export function mapRemoval(row: any): import("@/lib/types").RemovalRequest {
+  return {
+    id: row.id,
+    subjectId: row.subject_id,
+    exposureId: row.exposure_id ?? undefined,
+    brokerName: row.broker_name,
+    status: row.status,
+    submittedAt: row.submitted_at,
+    nextCheckAt: row.next_check_at ?? undefined,
+    history: Array.isArray(row.history) ? row.history : [],
+  };
+}

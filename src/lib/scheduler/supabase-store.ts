@@ -5,13 +5,15 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Exposure, Recommendation, Threat } from "@/lib/types";
+import type { Exposure, Recommendation, RemovalRequest, Threat } from "@/lib/types";
 import type { ProtectOutcome } from "@/lib/agents/orchestrator";
-import { mapExposure, mapSubject, mapThreat } from "@/lib/data/mappers";
+import { mapExposure, mapRemoval, mapSubject, mapThreat } from "@/lib/data/mappers";
+import { isRemovalDue } from "@/lib/brokers/removal";
 import type {
   Footprint,
   NewAgentAction,
   NewNotification,
+  OwnedRemoval,
   ScoreEntry,
   SchedulerStore,
 } from "./store";
@@ -149,5 +151,24 @@ export class SupabaseSchedulerStore implements SchedulerStore {
         risk_level: n.riskLevel ?? null,
       })),
     );
+  }
+
+  async listDueRemovals(now: string): Promise<OwnedRemoval[]> {
+    const { data } = await this.db.from("removal_requests").select("*");
+    return (data ?? [])
+      .map((row) => ({ userId: row.user_id as string, request: mapRemoval(row) }))
+      .filter((o) => isRemovalDue(o.request, now));
+  }
+
+  async saveRemoval(_userId: string, request: RemovalRequest): Promise<void> {
+    await this.db
+      .from("removal_requests")
+      .update({
+        status: request.status,
+        submitted_at: request.submittedAt,
+        next_check_at: request.nextCheckAt ?? null,
+        history: request.history,
+      })
+      .eq("id", request.id);
   }
 }

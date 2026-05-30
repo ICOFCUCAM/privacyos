@@ -12,6 +12,7 @@ import type {
   Case,
   Exposure,
   Recommendation,
+  RemovalRequest,
   RiskScore,
   Subject,
   Threat,
@@ -51,4 +52,11 @@ export interface DataSource {
 
   /** Persist newly discovered exposures + threats from the discovery pipeline. */
   persistDiscovery(finding: DiscoveryFinding): Promise<void>;
+
+  /** Data-broker removal requests for the primary subject. */
+  listRemovals(): Promise<RemovalRequest[]>;
+  /** File a new opt-out request with a broker. */
+  createRemoval(brokerName: string, exposureId?: string): Promise<void>;
+  /** Advance a removal request by one workflow tick (process / re-check). */
+  recheckRemoval(id: string): Promise<void>;
 }

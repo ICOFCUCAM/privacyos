@@ -4,9 +4,12 @@ import type {
   Footprint,
   NewAgentAction,
   NewNotification,
+  OwnedRemoval,
   ScoreEntry,
   SchedulerStore,
 } from "./store";
+import type { RemovalRequest } from "@/lib/types";
+import { createRemoval, isRemovalDue } from "@/lib/brokers/removal";
 import { MockProvider } from "@/lib/agents/llm/provider";
 import type { DiscoverySource } from "@/lib/discovery/source";
 import type { Exposure, Recommendation, Subject, Threat } from "@/lib/types";
@@ -25,16 +28,28 @@ function subject(id: string, userId: string): Subject {
 }
 
 class MemoryStore implements SchedulerStore {
-  constructor(private footprints: Footprint[]) {}
+  constructor(
+    private footprints: Footprint[],
+    public removals: RemovalRequest[] = [],
+  ) {}
   discovered: { exposures: Exposure[]; threats: Threat[] }[] = [];
   recs: Recommendation[][] = [];
   runs: ProtectOutcome[] = [];
   actions: NewAgentAction[][] = [];
   scores: ScoreEntry[][] = [];
   notifications: NewNotification[][] = [];
+  savedRemovals: RemovalRequest[] = [];
 
   async listFootprints() {
     return this.footprints;
+  }
+  async listDueRemovals(now: string): Promise<OwnedRemoval[]> {
+    return this.removals
+      .filter((r) => isRemovalDue(r, now))
+      .map((request) => ({ userId: "u1", request }));
+  }
+  async saveRemoval(_u: string, request: RemovalRequest) {
+    this.savedRemovals.push(request);
   }
   async saveDiscovered(_u: string, exposures: Exposure[], threats: Threat[]) {
     this.discovered.push({ exposures, threats });
@@ -101,6 +116,21 @@ describe("runScheduledCycle", () => {
     expect(store.scores[0].map((s) => s.kind)).toEqual(["privacy", "identity", "overall"]);
     // critical threat raised a notification
     expect(store.notifications[0][0].riskLevel).toBe("critical");
+  });
+
+  it("advances due data-broker removals autonomously", async () => {
+    const removal: RemovalRequest = {
+      id: "rem1",
+      ...createRemoval("Spokeo", { subjectId: "a", now: new Date(0).toISOString() }),
+    };
+    const store = new MemoryStore(
+      [{ userId: "u1", subject: subject("a", "u1"), exposures: [], threats: [] }],
+      [removal],
+    );
+    const summary = await runScheduledCycle(store, { sources: [], provider: new MockProvider() });
+    expect(summary.removalsAdvanced).toBe(1);
+    // requested → in_progress on this tick
+    expect(store.savedRemovals[0].status).toBe("in_progress");
   });
 
   it("raises the overall score after a critical discovery", async () => {

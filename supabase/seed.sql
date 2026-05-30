@@ -142,5 +142,15 @@ begin
     (uid, sid, 'deepfake',   'monitor',     'Assembled evidence package for synthetic image.',    'completed', now() - interval '1 day'),
     (uid, sid, 'reputation', 'analyze',     'Sentiment sweep across 6 channels; net trend -0.18.', 'completed', now() - interval '2 days');
 
+  insert into removal_requests (user_id, subject_id, broker_name, status, submitted_at, next_check_at, history) values
+    (uid, sid, 'Spokeo',       'monitoring',        now() - interval '40 days', now() - interval '-20 days',
+      '[{"at":"t0","status":"removal_requested","note":"Opt-out filed with Spokeo."},{"at":"t1","status":"removed","note":"Listing removed."},{"at":"t2","status":"monitoring","note":"Re-check passed. Next in 60 days."}]'::jsonb),
+    (uid, sid, 'WhitePages',   'in_progress',       now() - interval '5 days',  null,
+      '[{"at":"t0","status":"removal_requested","note":"Opt-out filed with WhitePages."},{"at":"t1","status":"in_progress","note":"Broker acknowledged the request."}]'::jsonb),
+    (uid, sid, 'MyLife',       'reappeared',        now() - interval '70 days', now(),
+      '[{"at":"t0","status":"removal_requested","note":"Opt-out filed."},{"at":"t1","status":"removed","note":"Listing removed."},{"at":"t2","status":"reappeared","note":"Listing reappeared — re-filing opt-out."}]'::jsonb),
+    (uid, sid, 'BeenVerified', 'removed',           now() - interval '50 days', now() + interval '10 days',
+      '[{"at":"t0","status":"removal_requested","note":"Opt-out filed with BeenVerified."},{"at":"t1","status":"removed","note":"Listing removed. First reappearance re-check in 30 days."}]'::jsonb);
+
   raise notice 'Seeded PrivacyOS demo + suite data for user %', uid;
 end$$;

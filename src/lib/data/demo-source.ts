@@ -4,13 +4,14 @@
  * in demo mode), so the UI stays interactive without persisting.
  */
 
-import type { Subject } from "@/lib/types";
+import type { RemovalRequest, Subject } from "@/lib/types";
 import type { DataSource, PrivacyDataSet } from "./source";
 import {
   demoAgents,
   demoCases,
   demoExposures,
   demoRecommendations,
+  demoRemovals,
   demoRiskScore,
   demoSubject,
   demoThreats,
@@ -49,5 +50,17 @@ export class DemoDataSource implements DataSource {
 
   async persistDiscovery(): Promise<void> {
     // no-op in demo mode — findings are returned to the caller, not stored
+  }
+
+  async listRemovals(): Promise<RemovalRequest[]> {
+    return demoRemovals;
+  }
+
+  async createRemoval(): Promise<void> {
+    // no-op in demo mode
+  }
+
+  async recheckRemoval(): Promise<void> {
+    // no-op in demo mode
   }
 }

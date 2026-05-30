@@ -97,6 +97,15 @@ New connectors implement the `DiscoverySource` interface
 (`src/lib/discovery/source.ts`); the pipeline runs them concurrently, isolates
 failures, and dedupes findings against the known footprint.
 
+## Data-broker removal automation
+
+The **Broker Removals** dashboard files opt-outs against a broker registry
+(`src/lib/brokers/`) and tracks each through a removal state machine
+(`removal_requested → in_progress → removed → monitoring`) with recurring
+reappearance re-checks at a 30/60/90-day cadence; reappeared listings are
+auto-re-filed. The scheduled cycle advances every due removal autonomously, so
+the 24/7 monitor keeps removals progressing without user action.
+
 ## Always-on monitoring (scheduled runs)
 
 `POST/GET /api/cron` runs the full protection cycle across **all tenants** using

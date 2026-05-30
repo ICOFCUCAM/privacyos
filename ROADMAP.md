@@ -41,8 +41,9 @@ sequences the path to a production, category-defining platform.
 - ✅ `POST /api/discover` + "Run discovery scan" UI; persists when live
 - Next connectors: data-broker search/crawlers, search APIs, social platforms,
   archive.org
-- Data-broker opt-out automation per broker (forms, email, API) with
-  30/60/90-day reappearance re-checks
+- ✅ Data-broker opt-out automation: broker registry, removal state machine with
+  30/60/90-day reappearance re-checks (unit-tested), Broker Removals dashboard,
+  and autonomous progression of due removals in the scheduled cycle
 - Entity resolution to dedupe exposures across sources
 
 ## Phase 4 — Intelligence depth

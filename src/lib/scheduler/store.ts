@@ -15,6 +15,7 @@ import type {
 import type {
   Exposure,
   Recommendation,
+  RemovalRequest,
   RiskLevel,
   Subject,
   Threat,
@@ -52,7 +53,14 @@ export interface ScheduledRunSummary {
   newExposures: number;
   newThreats: number;
   recommendations: number;
+  removalsAdvanced: number;
   ranAt: string;
+}
+
+/** A removal request paired with its owning tenant. */
+export interface OwnedRemoval {
+  userId: string;
+  request: RemovalRequest;
 }
 
 export interface SchedulerStore {
@@ -70,4 +78,8 @@ export interface SchedulerStore {
   recordScores(userId: string, subjectId: string, scores: ScoreEntry[]): Promise<void>;
   /** Raise notifications (e.g. for new critical threats). */
   addNotifications(userId: string, notifs: NewNotification[]): Promise<void>;
+  /** Removal requests due for processing / a re-check at `now`. */
+  listDueRemovals(now: string): Promise<OwnedRemoval[]>;
+  /** Persist an advanced removal request. */
+  saveRemoval(userId: string, request: RemovalRequest): Promise<void>;
 }

@@ -5,16 +5,18 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Subject } from "@/lib/types";
+import type { RemovalRequest, Subject } from "@/lib/types";
 import type { ProtectOutcome } from "@/lib/agents/orchestrator";
 import type { DiscoveryFinding } from "@/lib/discovery/source";
 import { computeRiskScore } from "@/lib/scoring/risk-score";
+import { advanceRemoval, createRemoval, shouldReappear } from "@/lib/brokers/removal";
 import type { DataSource, PrivacyDataSet } from "./source";
 import {
   aggregateAgentStates,
   mapCase,
   mapExposure,
   mapRecommendation,
+  mapRemoval,
   mapSubject,
   mapThreat,
 } from "./mappers";
@@ -128,5 +130,48 @@ export class SupabaseDataSource implements DataSource {
       const { error } = await this.db.from("threats").insert(rows);
       if (error) throw error;
     }
+  }
+
+  async listRemovals(): Promise<RemovalRequest[]> {
+    const { data, error } = await this.db
+      .from("removal_requests")
+      .select("*")
+      .order("submitted_at", { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(mapRemoval);
+  }
+
+  async createRemoval(brokerName: string, exposureId?: string): Promise<void> {
+    const subject = await this.getPrimarySubject();
+    if (!subject) throw new Error("No subject to file a removal for.");
+    const req = createRemoval(brokerName, { subjectId: subject.id, exposureId });
+    const { error } = await this.db.from("removal_requests").insert({
+      subject_id: req.subjectId,
+      exposure_id: req.exposureId ?? null,
+      broker_name: req.brokerName,
+      status: req.status,
+      submitted_at: req.submittedAt,
+      next_check_at: req.nextCheckAt ?? null,
+      history: req.history,
+    });
+    if (error) throw error;
+  }
+
+  async recheckRemoval(id: string): Promise<void> {
+    const { data, error } = await this.db.from("removal_requests").select("*").eq("id", id).single();
+    if (error) throw error;
+    const next = advanceRemoval(mapRemoval(data), {
+      reappeared: shouldReappear(data.broker_name),
+    });
+    const { error: upErr } = await this.db
+      .from("removal_requests")
+      .update({
+        status: next.status,
+        submitted_at: next.submittedAt,
+        next_check_at: next.nextCheckAt ?? null,
+        history: next.history,
+      })
+      .eq("id", id);
+    if (upErr) throw upErr;
   }
 }

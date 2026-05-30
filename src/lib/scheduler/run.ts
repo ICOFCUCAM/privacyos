@@ -15,6 +15,7 @@ import type { LLMProvider } from "@/lib/agents/llm/provider";
 import { runDiscovery } from "@/lib/discovery/pipeline";
 import type { DiscoverySource } from "@/lib/discovery/source";
 import { computeRiskScore } from "@/lib/scoring/risk-score";
+import { advanceRemoval, shouldReappear } from "@/lib/brokers/removal";
 import type {
   NewAgentAction,
   NewNotification,
@@ -107,11 +108,22 @@ export async function runScheduledCycle(
     recommendations += outcome.recommendations.length;
   }
 
+  // 7. Advance any data-broker removals that are due (autonomous 30/60/90 re-checks).
+  const now = new Date().toISOString();
+  const due = await store.listDueRemovals(now);
+  let removalsAdvanced = 0;
+  for (const { userId, request } of due) {
+    const next = advanceRemoval(request, { now, reappeared: shouldReappear(request.brokerName) });
+    await store.saveRemoval(userId, next);
+    removalsAdvanced += 1;
+  }
+
   return {
     subjectsProcessed: footprints.length,
     newExposures,
     newThreats,
     recommendations,
+    removalsAdvanced,
     ranAt: new Date().toISOString(),
   };
 }

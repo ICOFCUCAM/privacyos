@@ -155,3 +155,43 @@ export const demoRiskScore = computeRiskScore(demoExposures, demoThreats, [
 ]);
 // Make the last trend point reflect the computed live score.
 demoRiskScore.trend[demoRiskScore.trend.length - 1].overall = demoRiskScore.overall;
+
+export const demoRemovals: import("@/lib/types").RemovalRequest[] = [
+  {
+    id: "rem_1", subjectId: demoSubject.id, exposureId: "exp_1", brokerName: "Spokeo",
+    status: "monitoring", submittedAt: iso(40), nextCheckAt: iso(-20),
+    history: [
+      { at: iso(40), status: "removal_requested", note: "Opt-out filed with Spokeo." },
+      { at: iso(38), status: "in_progress", note: "Broker acknowledged the request; processing removal." },
+      { at: iso(33), status: "removed", note: "Listing removed. First reappearance re-check in 30 days." },
+      { at: iso(3), status: "monitoring", note: "Re-check passed — still removed. Next re-check in 60 days." },
+    ],
+  },
+  {
+    id: "rem_2", subjectId: demoSubject.id, exposureId: "exp_3", brokerName: "WhitePages",
+    status: "in_progress", submittedAt: iso(5),
+    history: [
+      { at: iso(5), status: "removal_requested", note: "Opt-out filed with WhitePages." },
+      { at: iso(2), status: "in_progress", note: "Broker acknowledged the request; processing removal." },
+    ],
+  },
+  {
+    id: "rem_3", subjectId: demoSubject.id, brokerName: "MyLife",
+    status: "reappeared", submittedAt: iso(70), nextCheckAt: iso(0),
+    history: [
+      { at: iso(70), status: "removal_requested", note: "Opt-out filed with MyLife." },
+      { at: iso(66), status: "in_progress", note: "Broker acknowledged the request." },
+      { at: iso(60), status: "removed", note: "Listing removed." },
+      { at: iso(2), status: "reappeared", note: "Listing reappeared — re-filing opt-out." },
+    ],
+  },
+  {
+    id: "rem_4", subjectId: demoSubject.id, exposureId: "exp_8", brokerName: "BeenVerified",
+    status: "removed", submittedAt: iso(50), nextCheckAt: iso(10),
+    history: [
+      { at: iso(50), status: "removal_requested", note: "Opt-out filed with BeenVerified." },
+      { at: iso(47), status: "in_progress", note: "Broker acknowledged the request." },
+      { at: iso(44), status: "removed", note: "Listing removed. First reappearance re-check in 30 days." },
+    ],
+  },
+];
