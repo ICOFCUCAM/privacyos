@@ -119,7 +119,7 @@ Guard it with `CRON_SECRET` (callers send `Authorization: Bearer <secret>`).
 Trigger it any of three ways:
 
 - **Supabase**: deploy the `scheduled-protect` Edge Function and schedule it with
-  `supabase/migrations/0003_cron.sql` (pg_cron + pg_net, every 6h).
+  `supabase/migrations/0003_cron.sql` (pg_cron + pg_net, daily).
 - **Vercel Cron**: `vercel.json` is preconfigured (Vercel sets the bearer when
   `CRON_SECRET` is set).
 - **Anything else**: `curl -X POST -H "Authorization: Bearer $CRON_SECRET" $APP_URL/api/cron`.
