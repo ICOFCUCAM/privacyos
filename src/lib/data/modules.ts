@@ -182,9 +182,13 @@ export async function getModuleData(): Promise<ModuleData> {
   if (!isSupabaseConfigured()) return mockModuleData();
   const db = await getSupabaseServerClient();
   if (!db) return mockModuleData();
-  const {
-    data: { user },
-  } = await db.auth.getUser();
+  let user;
+  try {
+    const res = await db.auth.getUser();
+    user = res.data.user;
+  } catch {
+    return mockModuleData();
+  }
   if (!user) return mockModuleData();
 
   // RLS scopes every table to the current user, so no explicit user filter.
