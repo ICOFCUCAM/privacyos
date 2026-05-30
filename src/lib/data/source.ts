@@ -17,6 +17,7 @@ import type {
   Threat,
 } from "@/lib/types";
 import type { ProtectOutcome } from "@/lib/agents/orchestrator";
+import type { DiscoveryFinding } from "@/lib/discovery/source";
 
 /** Everything the dashboard needs for one subject, in one bundle. */
 export interface PrivacyDataSet {
@@ -47,4 +48,7 @@ export interface DataSource {
 
   /** Persist the results of an orchestrator run (audit log + new recommendations). */
   persistProtectRun(outcome: ProtectOutcome): Promise<void>;
+
+  /** Persist newly discovered exposures + threats from the discovery pipeline. */
+  persistDiscovery(finding: DiscoveryFinding): Promise<void>;
 }

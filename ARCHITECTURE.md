@@ -69,6 +69,22 @@ recommendations by projected impact and computes `projectedRisk`.
 Agents are designed to run continuously (scheduled via Supabase cron / Edge
 Functions in production) and write `agent_runs` audit records.
 
+## Discovery pipeline (`src/lib/discovery/`)
+
+Where the footprint becomes real. Each connector implements `DiscoverySource`
+(`scan(input) → { exposures, threats, log }`). `runDiscovery()` executes sources
+with `Promise.allSettled` (failure isolation), then dedupes findings by a
+content signature (`dedupeKey`) against the known footprint and within the
+batch, returning only genuinely new items.
+
+- `BreachConnector` checks each subject email against breach DBs — HaveIBeenPwned
+  when `HIBP_API_KEY` is set, otherwise a deterministic offline simulator so it
+  runs and tests with zero keys. Severity is classified from exposed data
+  classes; critical breaches also raise an acute `credential_leak` threat.
+- `POST /api/discover` runs the pipeline for the primary subject and persists new
+  findings via the data source when live. The "Run discovery scan" button on the
+  Exposure Inventory page triggers it and refreshes server data.
+
 ## Data-access layer (`src/lib/data/`)
 
 Pages and API routes depend on a `DataSource` interface, never on Supabase or

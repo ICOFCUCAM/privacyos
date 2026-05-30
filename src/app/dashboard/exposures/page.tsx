@@ -1,4 +1,5 @@
 import { Card, RiskBadge, Pill } from "@/components/ui";
+import { ScanButton } from "@/components/scan-button";
 import { getDataSource } from "@/lib/data";
 import { timeAgo, titleCase } from "@/lib/ui";
 
@@ -6,11 +7,14 @@ export default async function ExposuresPage() {
   const { exposures } = await (await getDataSource()).getDataset();
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Exposure Inventory</h1>
-        <p className="mt-1 text-sm text-slate-400">
-          Every discoverable exposure connected to you, classified by risk and remediation status.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Exposure Inventory</h1>
+          <p className="mt-1 text-sm text-slate-400">
+            Every discoverable exposure connected to you, classified by risk and remediation status.
+          </p>
+        </div>
+        <ScanButton />
       </div>
 
       <Card className="p-0">

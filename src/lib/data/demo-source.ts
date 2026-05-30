@@ -46,4 +46,8 @@ export class DemoDataSource implements DataSource {
   async persistProtectRun(): Promise<void> {
     // no-op in demo mode — results are returned to the caller, not stored
   }
+
+  async persistDiscovery(): Promise<void> {
+    // no-op in demo mode — findings are returned to the caller, not stored
+  }
 }

@@ -25,6 +25,7 @@ $100M product, but a coherent architecture you can build the rest on top of.
 | AI agent orchestration layer (8 specialized agents) | ✅ unit-tested |
 | Pluggable LLM provider (Claude / OpenAI / deterministic mock) | ✅ |
 | `POST /api/protect` flagship "Protect me" endpoint (persists runs when live) | ✅ |
+| Discovery pipeline + breach-check connector (HIBP / offline sim) | ✅ unit-tested |
 | Supabase schema (multi-tenant, RLS) + migrations + seed | ✅ |
 | Supabase auth (email + password), session middleware, route guard | ✅ |
 | Data-access layer with live ⇄ demo auto-switch | ✅ unit-tested |
@@ -62,6 +63,23 @@ concurrently over their footprint, returning prioritized recommendations.
 curl -X POST http://localhost:3000/api/protect
 # → { riskBefore, projectedRisk, recommendations[], agentStates[], log[] }
 ```
+
+## Discovery (finding real exposures)
+
+The discovery pipeline scans external surfaces and feeds new exposures/threats
+into the footprint. The first connector checks emails against breach databases
+(HaveIBeenPwned when `HIBP_API_KEY` is set, otherwise a deterministic offline
+simulator). Trigger it from the **Exposure Inventory** page ("Run discovery
+scan") or via the API:
+
+```bash
+curl -X POST http://localhost:3000/api/discover
+# → { newExposures, newThreats, exposures[], threats[], log[], persisted }
+```
+
+New connectors implement the `DiscoverySource` interface
+(`src/lib/discovery/source.ts`); the pipeline runs them concurrently, isolates
+failures, and dedupes findings against the known footprint.
 
 ## Tech stack
 

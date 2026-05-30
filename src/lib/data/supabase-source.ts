@@ -7,6 +7,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Subject } from "@/lib/types";
 import type { ProtectOutcome } from "@/lib/agents/orchestrator";
+import type { DiscoveryFinding } from "@/lib/discovery/source";
 import { computeRiskScore } from "@/lib/scoring/risk-score";
 import type { DataSource, PrivacyDataSet } from "./source";
 import {
@@ -92,6 +93,40 @@ export class SupabaseDataSource implements DataSource {
       }));
       const { error: recErr } = await this.db.from("recommendations").insert(recRows);
       if (recErr) throw recErr;
+    }
+  }
+
+  async persistDiscovery(finding: DiscoveryFinding): Promise<void> {
+    if (finding.exposures.length > 0) {
+      const rows = finding.exposures.map((e) => ({
+        subject_id: e.subjectId,
+        category: e.category,
+        source: e.source,
+        source_name: e.sourceName,
+        url: e.url ?? null,
+        snippet: e.snippet,
+        risk_level: e.riskLevel,
+        risk_score: e.riskScore,
+        status: e.status,
+        discovered_at: e.discoveredAt,
+        last_seen_at: e.lastSeenAt,
+      }));
+      const { error } = await this.db.from("exposures").insert(rows);
+      if (error) throw error;
+    }
+    if (finding.threats.length > 0) {
+      const rows = finding.threats.map((t) => ({
+        subject_id: t.subjectId,
+        kind: t.kind,
+        title: t.title,
+        detail: t.detail,
+        risk_level: t.riskLevel,
+        source: t.source,
+        detected_at: t.detectedAt,
+        acknowledged: t.acknowledged,
+      }));
+      const { error } = await this.db.from("threats").insert(rows);
+      if (error) throw error;
     }
   }
 }

@@ -27,9 +27,14 @@ sequences the path to a production, category-defining platform.
 - Supabase Edge Functions to run agents on a schedule (cron)
 - `risk_snapshots` table to power real score trend charts
 
-## Phase 3 — Real discovery connectors
-- `DiscoverySource` interface + connectors: search APIs, broker crawlers,
-  breach feeds (HIBP-style), social platforms, archive.org
+## Phase 3 — Real discovery connectors 🚧
+- ✅ `DiscoverySource` interface + concurrent pipeline with failure isolation
+  and content-based dedupe against the known footprint (unit-tested)
+- ✅ Breach-database connector (HaveIBeenPwned + deterministic offline
+  simulator), severity classification, exposure + acute-threat emission
+- ✅ `POST /api/discover` + "Run discovery scan" UI; persists when live
+- Next connectors: data-broker search/crawlers, search APIs, social platforms,
+  archive.org
 - Data-broker opt-out automation per broker (forms, email, API) with
   30/60/90-day reappearance re-checks
 - Entity resolution to dedupe exposures across sources
