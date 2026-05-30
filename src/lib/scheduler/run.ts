@@ -16,6 +16,7 @@ import { runDiscovery } from "@/lib/discovery/pipeline";
 import type { DiscoverySource } from "@/lib/discovery/source";
 import { computeRiskScore } from "@/lib/scoring/risk-score";
 import { advanceRemoval, shouldReappear } from "@/lib/brokers/removal";
+import { collectReputation, type MentionSource } from "@/lib/reputation/collect";
 import type {
   NewAgentAction,
   NewNotification,
@@ -28,6 +29,8 @@ export interface SchedulerDeps {
   sources?: DiscoverySource[];
   /** Override the LLM provider (defaults to env-resolved / mock). */
   provider?: LLMProvider;
+  /** Override the reputation mention source (tests inject deterministic ones). */
+  reputationSource?: MentionSource;
 }
 
 export async function runScheduledCycle(
@@ -38,6 +41,7 @@ export async function runScheduledCycle(
   let newExposures = 0;
   let newThreats = 0;
   let recommendations = 0;
+  let mentionsCollected = 0;
 
   for (const fp of footprints) {
     // 1. Discover — only genuinely new findings come back (deduped).
@@ -103,6 +107,28 @@ export async function runScheduledCycle(
       await store.addNotifications(fp.userId, notifs);
     }
 
+    // 7. Refresh ReputationOS: collect news mentions + sentiment for this subject.
+    try {
+      const rep = await collectReputation(fp.subject, deps.reputationSource);
+      await store.saveReputation(fp.userId, fp.subject.id, {
+        mentions: rep.mentions,
+        sentimentByDay: rep.sentimentByDay,
+      });
+      const negatives = rep.mentions.filter((m) => m.sentiment === "negative").length;
+      await store.recordActions(fp.userId, fp.subject.id, [
+        {
+          agent: "reputation",
+          kind: "monitor",
+          summary: `Reputation sweep: ${rep.mentions.length} mention(s), ${negatives} negative.`,
+          status: "completed",
+        },
+      ]);
+      mentionsCollected += rep.mentions.length;
+    } catch (err) {
+      // Reputation collection is best-effort; never fail the whole cycle.
+      console.error("[privacyos] reputation collection failed:", err);
+    }
+
     newExposures += finding.exposures.length;
     newThreats += finding.threats.length;
     recommendations += outcome.recommendations.length;
@@ -124,6 +150,7 @@ export async function runScheduledCycle(
     newThreats,
     recommendations,
     removalsAdvanced,
+    mentionsCollected,
     ranAt: new Date().toISOString(),
   };
 }
