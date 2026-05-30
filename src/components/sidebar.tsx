@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Shield, LayoutDashboard, Radar, ShieldAlert, Star, FolderKanban,
   Bot, Building2, Users, Crown, FileText, Sparkles, LogOut,
-  Globe, Plane, UserCog, Network, Scale, Bell, Siren, MessageSquareHeart, Trash2,
+  Globe, Plane, UserCog, Network, Scale, Bell, Siren, MessageSquareHeart, Trash2, ScrollText,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/ui";
@@ -56,6 +56,7 @@ const navGroups: { group: string; items: NavItem[] }[] = [
       { href: "/dashboard/agents", label: "AI Agents", icon: Bot },
       { href: "/dashboard/legal", label: "Legal Automation", icon: Scale },
       { href: "/dashboard/reports", label: "Reports", icon: FileText },
+      { href: "/dashboard/audit", label: "Audit Log", icon: ScrollText },
       { href: "/dashboard/notifications", label: "Notifications", icon: Bell },
     ],
   },

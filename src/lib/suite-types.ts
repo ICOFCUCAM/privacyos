@@ -217,3 +217,14 @@ export interface AgentAction {
   status: string;
   createdAt: string;
 }
+
+/* ── Audit log ───────────────────────────────────────────────────────────── */
+export interface AuditLogEntry {
+  id: string;
+  actor: string;
+  action: string;
+  entity?: string;
+  entityId?: string;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+}

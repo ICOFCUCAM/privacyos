@@ -6,6 +6,7 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getDataSource } from "@/lib/data";
 import { mapSubject } from "@/lib/data/mappers";
 import { runDiscovery } from "@/lib/discovery/pipeline";
+import { recordAudit } from "@/lib/audit/audit";
 
 export interface OnboardingState {
   error?: string;
@@ -57,6 +58,8 @@ export async function createSubject(
     .single();
 
   if (error) return { error: error.message };
+
+  await recordAudit({ action: "subject.created", entity: "subject", entityId: row?.id, metadata: { name: displayName } });
 
   if (runScan && row) {
     // Best-effort first scan — never block onboarding on it.
