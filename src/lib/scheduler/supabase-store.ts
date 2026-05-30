@@ -14,6 +14,7 @@ import type {
   NewAgentAction,
   NewNotification,
   OwnedRemoval,
+  ReputationData,
   ScoreEntry,
   SchedulerStore,
 } from "./store";
@@ -170,5 +171,41 @@ export class SupabaseSchedulerStore implements SchedulerStore {
         history: request.history,
       })
       .eq("id", request.id);
+  }
+
+  async saveReputation(userId: string, subjectId: string, data: ReputationData): Promise<void> {
+    // Replace prior mentions + sentiment for an idempotent refresh.
+    await this.db.from("mentions").delete().eq("subject_id", subjectId);
+    if (data.mentions.length > 0) {
+      await this.db.from("mentions").insert(
+        data.mentions.map((m) => ({
+          user_id: userId,
+          subject_id: subjectId,
+          channel: m.channel,
+          source_name: m.sourceName,
+          url: m.url ?? null,
+          title: m.title,
+          excerpt: m.excerpt,
+          sentiment: m.sentiment,
+          sentiment_score: m.sentimentScore,
+          is_defamatory: m.isDefamatory,
+          detected_at: m.detectedAt,
+        })),
+      );
+    }
+    await this.db.from("sentiment_records").delete().eq("subject_id", subjectId);
+    if (data.sentimentByDay.length > 0) {
+      await this.db.from("sentiment_records").insert(
+        data.sentimentByDay.map((d) => ({
+          user_id: userId,
+          subject_id: subjectId,
+          recorded_on: d.date,
+          positive: d.positive,
+          neutral: d.neutral,
+          negative: d.negative,
+          net_score: d.netScore,
+        })),
+      );
+    }
   }
 }

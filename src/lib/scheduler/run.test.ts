@@ -5,9 +5,11 @@ import type {
   NewAgentAction,
   NewNotification,
   OwnedRemoval,
+  ReputationData,
   ScoreEntry,
   SchedulerStore,
 } from "./store";
+import type { MentionSource } from "@/lib/reputation/collect";
 import type { RemovalRequest } from "@/lib/types";
 import { createRemoval, isRemovalDue } from "@/lib/brokers/removal";
 import { MockProvider } from "@/lib/agents/llm/provider";
@@ -39,6 +41,7 @@ class MemoryStore implements SchedulerStore {
   scores: ScoreEntry[][] = [];
   notifications: NewNotification[][] = [];
   savedRemovals: RemovalRequest[] = [];
+  reputation: ReputationData[] = [];
 
   async listFootprints() {
     return this.footprints;
@@ -69,7 +72,23 @@ class MemoryStore implements SchedulerStore {
   async addNotifications(_u: string, notifs: NewNotification[]) {
     this.notifications.push(notifs);
   }
+  async saveReputation(_u: string, _s: string, data: ReputationData) {
+    this.reputation.push(data);
+  }
 }
+
+// Deterministic reputation source for tests (no network).
+const repSource: MentionSource = {
+  async fetch() {
+    return {
+      live: false,
+      mentions: [
+        { channel: "news", sourceName: "x.com", url: "r1", title: "Acme wins award", excerpt: "Acme wins award", detectedAt: "2026-01-02T00:00:00Z" },
+        { channel: "news", sourceName: "y.com", url: "r2", title: "Acme faces lawsuit and scandal", excerpt: "Acme faces lawsuit and scandal", detectedAt: "2026-01-02T01:00:00Z" },
+      ],
+    };
+  },
+};
 
 // A deterministic source that always yields one fresh critical threat.
 const critSource: DiscoverySource = {
@@ -105,6 +124,7 @@ describe("runScheduledCycle", () => {
     const summary = await runScheduledCycle(store, {
       sources: [critSource],
       provider: new MockProvider(),
+      reputationSource: repSource,
     });
 
     expect(summary.subjectsProcessed).toBe(2);
@@ -118,6 +138,23 @@ describe("runScheduledCycle", () => {
     expect(store.notifications[0][0].riskLevel).toBe("critical");
   });
 
+  it("collects reputation mentions + sentiment each cycle", async () => {
+    const store = new MemoryStore([
+      { userId: "u1", subject: subject("a", "u1"), exposures: [], threats: [] },
+    ]);
+    const summary = await runScheduledCycle(store, {
+      sources: [],
+      provider: new MockProvider(),
+      reputationSource: repSource,
+    });
+    expect(summary.mentionsCollected).toBe(2);
+    expect(store.reputation[0].mentions).toHaveLength(2);
+    expect(store.reputation[0].sentimentByDay.length).toBeGreaterThan(0);
+    // sentiment was actually computed (not seeded)
+    expect(store.reputation[0].mentions.some((m) => m.sentiment === "positive")).toBe(true);
+    expect(store.reputation[0].mentions.some((m) => m.sentiment === "negative")).toBe(true);
+  });
+
   it("advances due data-broker removals autonomously", async () => {
     const removal: RemovalRequest = {
       id: "rem1",
@@ -127,7 +164,7 @@ describe("runScheduledCycle", () => {
       [{ userId: "u1", subject: subject("a", "u1"), exposures: [], threats: [] }],
       [removal],
     );
-    const summary = await runScheduledCycle(store, { sources: [], provider: new MockProvider() });
+    const summary = await runScheduledCycle(store, { sources: [], provider: new MockProvider(), reputationSource: repSource });
     expect(summary.removalsAdvanced).toBe(1);
     // requested → in_progress on this tick
     expect(store.savedRemovals[0].status).toBe("in_progress");
@@ -137,7 +174,7 @@ describe("runScheduledCycle", () => {
     const store = new MemoryStore([
       { userId: "u1", subject: subject("a", "u1"), exposures: [], threats: [] },
     ]);
-    await runScheduledCycle(store, { sources: [critSource], provider: new MockProvider() });
+    await runScheduledCycle(store, { sources: [critSource], provider: new MockProvider(), reputationSource: repSource });
     const overall = store.scores[0].find((s) => s.kind === "overall")!;
     expect(overall.value).toBeGreaterThan(0);
   });

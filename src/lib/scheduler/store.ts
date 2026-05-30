@@ -9,8 +9,10 @@
 
 import type {
   AgentActionKind,
+  Mention,
   NotificationKind,
   ScoreKind,
+  SentimentDay,
 } from "@/lib/suite-types";
 import type {
   Exposure,
@@ -54,7 +56,14 @@ export interface ScheduledRunSummary {
   newThreats: number;
   recommendations: number;
   removalsAdvanced: number;
+  mentionsCollected: number;
   ranAt: string;
+}
+
+/** Reputation collection output ready to persist. */
+export interface ReputationData {
+  mentions: Omit<Mention, "id" | "subjectId">[];
+  sentimentByDay: SentimentDay[];
 }
 
 /** A removal request paired with its owning tenant. */
@@ -82,4 +91,6 @@ export interface SchedulerStore {
   listDueRemovals(now: string): Promise<OwnedRemoval[]>;
   /** Persist an advanced removal request. */
   saveRemoval(userId: string, request: RemovalRequest): Promise<void>;
+  /** Replace the subject's mentions + sentiment series from a reputation scan. */
+  saveReputation(userId: string, subjectId: string, data: ReputationData): Promise<void>;
 }
