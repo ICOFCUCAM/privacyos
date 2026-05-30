@@ -1,4 +1,5 @@
 import { Card, DataBadge, RiskBadge, Pill, SectionTitle, StatCard, SentimentBars } from "@/components/ui";
+import { ReputationScanButton } from "@/components/reputation-scan-button";
 import { getDataSource } from "@/lib/data";
 import { getModuleData } from "@/lib/data/modules";
 import { reputationScore } from "@/lib/scoring/scores";
@@ -31,7 +32,10 @@ export default async function ReputationPage() {
             Search visibility, brand & news monitoring, sentiment analysis, defamation tracking and SEO recovery for {subject.displayName}.
           </p>
         </div>
-        <DataBadge live={moduleData.live} />
+        <div className="flex flex-col items-end gap-2">
+          <DataBadge live={moduleData.live} />
+          <ReputationScanButton />
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
