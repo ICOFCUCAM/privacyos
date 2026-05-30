@@ -12,10 +12,15 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  // Demo mode: no auth configured — let everything through.
-  if (!url || !key) return NextResponse.next({ request });
+  // Expose the current path to server components (for plan-gating in the layout).
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-pathname", request.nextUrl.pathname);
+  const nextOpts = { request: { headers: requestHeaders } };
 
-  let response = NextResponse.next({ request });
+  // Demo mode: no auth configured — let everything through.
+  if (!url || !key) return NextResponse.next(nextOpts);
+
+  let response = NextResponse.next(nextOpts);
 
   const supabase = createServerClient(url, key, {
     cookies: {
@@ -24,7 +29,7 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
         toSet: { name: string; value: string; options?: Record<string, unknown> }[],
       ) => {
         toSet.forEach(({ name, value }) => request.cookies.set(name, value));
-        response = NextResponse.next({ request });
+        response = NextResponse.next(nextOpts);
         toSet.forEach(({ name, value, options }) =>
           response.cookies.set(name, value, options as never),
         );
