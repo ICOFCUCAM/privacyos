@@ -30,12 +30,20 @@ export default function LandingPage() {
           <Shield className="h-6 w-6 text-brand" />
           <span className="text-lg font-bold text-white">PrivacyOS</span>
         </div>
-        <Link
-          href="/dashboard"
-          className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90"
-        >
-          Open Dashboard
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/pricing"
+            className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-200 transition hover:bg-bg-elevated"
+          >
+            Pricing
+          </Link>
+          <Link
+            href="/dashboard"
+            className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90"
+          >
+            Open Dashboard
+          </Link>
+        </div>
       </header>
 
       <section className="mx-auto max-w-4xl px-6 py-24 text-center">
