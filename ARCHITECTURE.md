@@ -69,6 +69,26 @@ recommendations by projected impact and computes `projectedRisk`.
 Agents are designed to run continuously (scheduled via Supabase cron / Edge
 Functions in production) and write `agent_runs` audit records.
 
+## Data-access layer (`src/lib/data/`)
+
+Pages and API routes depend on a `DataSource` interface, never on Supabase or
+the demo arrays directly:
+
+- `getDataSource()` returns `SupabaseDataSource` when configured **and** signed
+  in, else `DemoDataSource`.
+- `SupabaseDataSource` issues RLS-scoped queries; row→domain translation lives
+  in pure, unit-tested `mappers.ts`.
+- `DemoDataSource` serves the deterministic dataset; mutations are no-ops.
+- This gives graceful degradation (always explorable) and a single seam to
+  swap persistence.
+
+## Auth & sessions
+
+- Email + password via Supabase, with server actions (`src/app/auth/actions.ts`).
+- `middleware.ts` refreshes the session on every request and guards
+  `/dashboard`; in demo mode (no keys) it is a pass-through.
+- Mutations are server actions that call the data source and `revalidatePath`.
+
 ## Security & multi-tenancy
 
 - Row-level security on every table keyed to `auth.uid()`.

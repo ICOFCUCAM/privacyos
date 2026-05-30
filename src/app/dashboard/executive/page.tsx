@@ -1,13 +1,14 @@
 import { Crown } from "lucide-react";
 import { Card, RiskBadge, SectionTitle, StatCard } from "@/components/ui";
-import { demoExposures, demoThreats } from "@/lib/data/demo";
+import { getDataSource } from "@/lib/data";
 import { titleCase } from "@/lib/ui";
 
-export default function ExecutivePage() {
-  const physical = demoThreats.filter((t) =>
+export default async function ExecutivePage() {
+  const { exposures, threats } = await (await getDataSource()).getDataset();
+  const physical = threats.filter((t) =>
     ["doxxing", "location_exposure"].includes(t.kind),
   );
-  const addresses = demoExposures.filter((e) => e.category === "address");
+  const addresses = exposures.filter((e) => e.category === "address");
 
   return (
     <div className="space-y-6">
@@ -24,7 +25,7 @@ export default function ExecutivePage() {
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="Physical-security alerts" value={physical.length} accent="text-risk-critical" />
         <StatCard label="Address exposures" value={addresses.length} accent="text-risk-high" />
-        <StatCard label="Family exposures" value={demoExposures.filter((e) => e.category === "family").length} />
+        <StatCard label="Family exposures" value={exposures.filter((e) => e.category === "family").length} />
         <StatCard label="Protection tier" value="Executive" accent="text-brand-fg" />
       </div>
 

@@ -1,9 +1,10 @@
 import { Card, RiskBadge, SectionTitle, StatCard } from "@/components/ui";
-import { demoExposures } from "@/lib/data/demo";
+import { getDataSource } from "@/lib/data";
 import { timeAgo } from "@/lib/ui";
 
-export default function ReputationPage() {
-  const mentions = demoExposures.filter((e) =>
+export default async function ReputationPage() {
+  const { exposures } = await (await getDataSource()).getDataset();
+  const mentions = exposures.filter((e) =>
     ["news", "social_media", "forum"].includes(e.source),
   );
 

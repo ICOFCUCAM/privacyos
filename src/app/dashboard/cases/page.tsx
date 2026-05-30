@@ -1,8 +1,9 @@
 import { Card, RiskBadge, Pill } from "@/components/ui";
-import { demoCases } from "@/lib/data/demo";
+import { getDataSource } from "@/lib/data";
 import { timeAgo, titleCase } from "@/lib/ui";
 
-export default function CasesPage() {
+export default async function CasesPage() {
+  const { cases } = await (await getDataSource()).getDataset();
   const columns: { key: string; label: string }[] = [
     { key: "open", label: "Open" },
     { key: "in_progress", label: "In Progress" },
@@ -21,7 +22,7 @@ export default function CasesPage() {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         {columns.map((col) => {
-          const items = demoCases.filter(
+          const items = cases.filter(
             (c) => c.status === col.key || (col.key === "in_progress" && c.status === "escalated"),
           );
           return (

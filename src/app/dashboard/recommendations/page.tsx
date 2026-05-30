@@ -1,10 +1,12 @@
 import { Sparkles } from "lucide-react";
 import { Card, RiskBadge, Pill } from "@/components/ui";
-import { demoRecommendations } from "@/lib/data/demo";
+import { getDataSource } from "@/lib/data";
 import { titleCase } from "@/lib/ui";
+import { approveRecommendationAction } from "@/app/dashboard/actions";
 
-export default function RecommendationsPage() {
-  const totalImpact = demoRecommendations.reduce((s, r) => s + r.impact, 0);
+export default async function RecommendationsPage() {
+  const { recommendations } = await (await getDataSource()).getDataset();
+  const totalImpact = recommendations.reduce((s, r) => s + r.impact, 0);
 
   return (
     <div className="space-y-6">
@@ -22,7 +24,7 @@ export default function RecommendationsPage() {
       </div>
 
       <div className="space-y-3">
-        {demoRecommendations.map((r) => (
+        {recommendations.map((r) => (
           <Card key={r.id} className="flex items-start gap-4">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand/15">
               <Sparkles className="h-4 w-4 text-brand" />
@@ -38,9 +40,15 @@ export default function RecommendationsPage() {
                 <Pill>−{r.impact} pts</Pill>
               </div>
             </div>
-            <button className="shrink-0 self-center rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90">
-              {r.actionLabel}
-            </button>
+            <form action={approveRecommendationAction} className="shrink-0 self-center">
+              <input type="hidden" name="id" value={r.id} />
+              <button
+                type="submit"
+                className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90"
+              >
+                {r.actionLabel}
+              </button>
+            </form>
           </Card>
         ))}
       </div>

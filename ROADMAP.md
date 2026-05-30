@@ -12,11 +12,20 @@ sequences the path to a production, category-defining platform.
 - Supabase schema with multi-tenant RLS
 - Zero-config demo dataset + `POST /api/protect`
 
-## Phase 2 — Live backend & auth
-- Wire Supabase auth (email + SSO), onboarding to create a `subject`
-- Replace demo data accessors with RLS-scoped queries
-- Server actions / route handlers for case + recommendation mutations
+## Phase 2 — Live backend & auth ✅
+- Supabase email + password auth, session-refresh middleware, `/dashboard`
+  route guard, sign-out
+- Data-access layer (`DataSource`) with RLS-scoped Supabase queries and an
+  automatic live ⇄ demo fallback; row→domain mappers (unit-tested)
+- Server actions for threat-acknowledge + recommendation-approve mutations
+- `/api/protect` reads from the data source and persists runs to `agent_runs`
+  + recommendations when live; seed script for a realistic footprint
+
+### Phase 2 follow-ups (next)
+- SSO providers (Google/Microsoft) + onboarding flow to create the first
+  `subject` in-app (instead of seed)
 - Supabase Edge Functions to run agents on a schedule (cron)
+- `risk_snapshots` table to power real score trend charts
 
 ## Phase 3 — Real discovery connectors
 - `DiscoverySource` interface + connectors: search APIs, broker crawlers,

@@ -1,17 +1,17 @@
 import { NextResponse } from "next/server";
 import { protect } from "@/lib/agents/orchestrator";
-import {
-  demoExposures,
-  demoSubject,
-  demoThreats,
-} from "@/lib/data/demo";
+import { getDataSource } from "@/lib/data";
 
 /**
- * POST /api/protect — runs the full agent orchestration cycle for a subject.
+ * POST /api/protect — runs the full agent orchestration cycle for the current
+ * user's primary subject.
  *
- * Body (all optional): { only?: AgentKind[] }. With no Supabase configured this
- * runs against the demo subject so the flagship "Protect me" flow is callable
- * out of the box. The LLM provider is auto-resolved from env (mock by default).
+ * Reads the subject + footprint from the active data source (live Supabase when
+ * signed in, otherwise the demo dataset), runs all agents, and — when live —
+ * persists the run to `agent_runs` and the resulting recommendations. The LLM
+ * provider is auto-resolved from env (deterministic mock by default).
+ *
+ * Body (optional): { only?: AgentKind[] }.
  */
 export async function POST(req: Request) {
   let only: string[] | undefined;
@@ -22,14 +22,21 @@ export async function POST(req: Request) {
     // No body — run all agents.
   }
 
+  const ds = await getDataSource();
+  const data = await ds.getDataset();
+
   const outcome = await protect({
-    subject: demoSubject,
-    exposures: demoExposures,
-    threats: demoThreats,
+    subject: data.subject,
+    exposures: data.exposures,
+    threats: data.threats,
     only: only as never,
   });
 
-  return NextResponse.json(outcome);
+  if (ds.live) {
+    await ds.persistProtectRun(outcome);
+  }
+
+  return NextResponse.json({ persisted: ds.live, ...outcome });
 }
 
 export async function GET() {

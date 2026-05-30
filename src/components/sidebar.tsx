@@ -4,9 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Shield, LayoutDashboard, Radar, ShieldAlert, Star, FolderKanban,
-  Bot, Building2, Users, Crown, FileText, Sparkles,
+  Bot, Building2, Users, Crown, FileText, Sparkles, LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/ui";
+import { signOut } from "@/app/auth/actions";
 
 const nav = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
@@ -22,8 +23,21 @@ const nav = [
   { href: "/dashboard/reports", label: "Reports", icon: FileText },
 ];
 
-export function Sidebar() {
+export function Sidebar({
+  subjectName,
+  live,
+}: {
+  subjectName?: string;
+  live?: boolean;
+}) {
   const pathname = usePathname();
+  const name = subjectName ?? "Demo Subject";
+  const initials =
+    name
+      .split(" ")
+      .map((n) => n[0])
+      .slice(0, 2)
+      .join("") || "PO";
   return (
     <aside className="hidden w-64 shrink-0 border-r border-border bg-bg-subtle/60 lg:flex lg:flex-col">
       <Link href="/" className="flex items-center gap-2 px-5 py-5">
@@ -56,12 +70,25 @@ export function Sidebar() {
       <div className="border-t border-border p-4">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-muted text-sm font-semibold text-brand-fg">
-            JV
+            {initials}
           </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-white">Jordan Vance</p>
-            <p className="truncate text-xs text-slate-500">Executive plan</p>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-white">{name}</p>
+            <p className="truncate text-xs text-slate-500">
+              {live ? "Executive plan" : "Demo mode"}
+            </p>
           </div>
+          {live && (
+            <form action={signOut}>
+              <button
+                type="submit"
+                title="Sign out"
+                className="rounded-md p-1.5 text-slate-500 transition hover:bg-bg-elevated hover:text-white"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </form>
+          )}
         </div>
       </div>
     </aside>

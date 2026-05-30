@@ -1,8 +1,9 @@
 import { Card, RiskBadge, Pill } from "@/components/ui";
-import { demoExposures } from "@/lib/data/demo";
+import { getDataSource } from "@/lib/data";
 import { timeAgo, titleCase } from "@/lib/ui";
 
-export default function ExposuresPage() {
+export default async function ExposuresPage() {
+  const { exposures } = await (await getDataSource()).getDataset();
   return (
     <div className="space-y-6">
       <div>
@@ -26,7 +27,7 @@ export default function ExposuresPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {demoExposures.map((e) => (
+              {exposures.map((e) => (
                 <tr key={e.id} className="hover:bg-bg-elevated/50">
                   <td className="max-w-xs px-5 py-3">
                     <p className="font-medium text-white">{e.sourceName}</p>

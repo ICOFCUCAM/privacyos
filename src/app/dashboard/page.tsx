@@ -8,22 +8,17 @@ import {
   SectionTitle,
   StatCard,
 } from "@/components/ui";
-import {
-  demoAgents,
-  demoCases,
-  demoExposures,
-  demoRecommendations,
-  demoRiskScore,
-  demoThreats,
-} from "@/lib/data/demo";
+import { getDataSource } from "@/lib/data";
 import { scoreToLevel } from "@/lib/scoring/risk-score";
 import { timeAgo, titleCase } from "@/lib/ui";
 
-export default function OverviewPage() {
-  const score = demoRiskScore;
-  const activeThreats = demoThreats.filter((t) => !t.acknowledged);
-  const openCases = demoCases.filter((c) => c.status !== "resolved");
-  const runningAgents = demoAgents.filter((a) => a.status === "running");
+export default async function OverviewPage() {
+  const ds = await getDataSource();
+  const data = await ds.getDataset();
+  const score = data.riskScore;
+  const activeThreats = data.threats.filter((t) => !t.acknowledged);
+  const openCases = data.cases.filter((c) => c.status !== "resolved");
+  const runningAgents = data.agents.filter((a) => a.status === "running");
 
   return (
     <div className="space-y-6">
@@ -67,7 +62,7 @@ export default function OverviewPage() {
       {/* Stat row */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="Active threats" value={activeThreats.length} accent="text-risk-critical" hint="Unacknowledged" />
-        <StatCard label="Exposures tracked" value={demoExposures.length} hint={`${demoExposures.filter((e) => e.status === "removed").length} removed`} />
+        <StatCard label="Exposures tracked" value={data.exposures.length} hint={`${data.exposures.filter((e) => e.status === "removed").length} removed`} />
         <StatCard label="Open cases" value={openCases.length} hint="Across all agents" />
         <StatCard label="Agents online" value={`${runningAgents.length}/8`} accent="text-risk-low" hint="24/7 monitoring" />
       </div>
@@ -84,7 +79,7 @@ export default function OverviewPage() {
             }
           />
           <ul className="space-y-3">
-            {demoThreats.slice(0, 4).map((t) => (
+            {data.threats.slice(0, 4).map((t) => (
               <li key={t.id} className="flex items-start gap-3">
                 <RiskBadge level={t.riskLevel} />
                 <div className="min-w-0 flex-1">
@@ -108,7 +103,7 @@ export default function OverviewPage() {
             }
           />
           <ul className="space-y-3">
-            {demoRecommendations.slice(0, 4).map((r) => (
+            {data.recommendations.slice(0, 4).map((r) => (
               <li key={r.id} className="flex items-start gap-3">
                 <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
                 <div className="min-w-0 flex-1">

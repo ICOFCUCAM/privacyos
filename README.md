@@ -24,8 +24,10 @@ $100M product, but a coherent architecture you can build the rest on top of.
 | Proprietary 5-axis risk scoring engine | ✅ unit-tested |
 | AI agent orchestration layer (8 specialized agents) | ✅ unit-tested |
 | Pluggable LLM provider (Claude / OpenAI / deterministic mock) | ✅ |
-| `POST /api/protect` flagship "Protect me" endpoint | ✅ |
-| Supabase schema (multi-tenant, RLS) + migrations | ✅ |
+| `POST /api/protect` flagship "Protect me" endpoint (persists runs when live) | ✅ |
+| Supabase schema (multi-tenant, RLS) + migrations + seed | ✅ |
+| Supabase auth (email + password), session middleware, route guard | ✅ |
+| Data-access layer with live ⇄ demo auto-switch | ✅ unit-tested |
 | Demo dataset so everything runs with **zero config** | ✅ |
 
 See [`ARCHITECTURE.md`](./ARCHITECTURE.md) for the design and
@@ -69,8 +71,19 @@ curl -X POST http://localhost:3000/api/protect
   orchestrator
 - **Architecture:** cloud-native, multi-tenant, enterprise-grade security
 
-## Connecting Supabase
+## Connecting Supabase (go live)
 
 1. Create a project and copy the URL + anon key into `.env.local`.
 2. Apply `supabase/migrations/0001_init.sql` (Supabase CLI or SQL editor).
-3. The app auto-detects configuration and switches from demo to live data.
+3. Run the app, visit `/login`, and **sign up** an account.
+4. Run `supabase/seed.sql` to populate a realistic footprint for that account.
+5. The app auto-detects the session and switches from demo to live, RLS-scoped
+   data. Sign-in is required for `/dashboard`; signed-out users still get the
+   demo experience.
+
+### How live ⇄ demo switching works
+
+`getDataSource()` (`src/lib/data/index.ts`) returns the live `SupabaseDataSource`
+only when Supabase is configured **and** a user is signed in; otherwise the
+`DemoDataSource`. Every dashboard page and the `/api/protect` route depend on
+this interface, never on Supabase or the demo arrays directly.

@@ -1,5 +1,5 @@
 import { Card } from "@/components/ui";
-import { demoAgents } from "@/lib/data/demo";
+import { getDataSource } from "@/lib/data";
 import { cn, timeAgo } from "@/lib/ui";
 import type { AgentStatus } from "@/lib/types";
 
@@ -10,7 +10,8 @@ const statusStyle: Record<AgentStatus, string> = {
   error: "bg-risk-critical/15 text-risk-critical ring-risk-critical/30",
 };
 
-export default function AgentsPage() {
+export default async function AgentsPage() {
+  const { agents } = await (await getDataSource()).getDataset();
   return (
     <div className="space-y-6">
       <div>
@@ -21,7 +22,7 @@ export default function AgentsPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {demoAgents.map((a) => (
+        {agents.map((a) => (
           <Card key={a.kind} className="space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="font-semibold text-white">{a.name}</h2>
