@@ -29,7 +29,8 @@ sequences the path to a production, category-defining platform.
 - ✅ Scheduled agent runs: `runScheduledCycle` + `/api/cron` (CRON_SECRET),
   `scheduled-protect` Edge Function, pg_cron migration (0003) and Vercel Cron —
   24/7 monitoring writing runs, actions, score snapshots and notifications
-- `score_snapshots`-backed trend charts (table + writes exist; wire the read)
+- ✅ `score_snapshots`-backed trend charts: live-aware `getScoreHistory()` +
+  Overview "Risk score trend" (overall/privacy/identity), fed by scheduled runs
 
 ## Phase 3 — Real discovery connectors 🚧
 - ✅ `DiscoverySource` interface + concurrent pipeline with failure isolation

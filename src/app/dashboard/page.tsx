@@ -10,6 +10,8 @@ import {
 } from "@/components/ui";
 import { getDataSource } from "@/lib/data";
 import { getModuleData } from "@/lib/data/modules";
+import { getScoreHistory } from "@/lib/data/scores";
+import { ScoreTrendCard } from "@/components/score-trend";
 import { computeScoreSet } from "@/lib/scoring/scores";
 import { scoreToLevel } from "@/lib/scoring/risk-score";
 import { cn, timeAgo, titleCase } from "@/lib/ui";
@@ -18,6 +20,7 @@ export default async function OverviewPage() {
   const ds = await getDataSource();
   const data = await ds.getDataset();
   const mod = await getModuleData();
+  const scoreHistory = await getScoreHistory();
   const score = data.riskScore;
   const scores = computeScoreSet({
     risk: score,
@@ -93,6 +96,12 @@ export default async function OverviewPage() {
           })}
         </div>
       </Card>
+
+      {/* Score trend */}
+      <ScoreTrendCard
+        history={scoreHistory}
+        current={{ overall: scores.overall, privacy: scores.privacy, identity: scores.identity }}
+      />
 
       {/* Stat row */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
