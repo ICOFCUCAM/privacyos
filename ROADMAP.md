@@ -44,7 +44,8 @@ sequences the path to a production, category-defining platform.
 - ✅ Data-broker opt-out automation: broker registry, removal state machine with
   30/60/90-day reappearance re-checks (unit-tested), Broker Removals dashboard,
   and autonomous progression of due removals in the scheduled cycle
-- Entity resolution to dedupe exposures across sources
+- ✅ Entity resolution: union-find clustering of near-duplicate exposures across
+  sources (unit-tested), integrated into the pipeline + Exposure Inventory
 
 ## Phase 4 — Intelligence depth
 - LLM-backed sentiment + classification for reputation monitoring

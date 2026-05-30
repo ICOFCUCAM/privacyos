@@ -84,6 +84,12 @@ batch, returning only genuinely new items.
 - `POST /api/discover` runs the pipeline for the primary subject and persists new
   findings via the data source when live. The "Run discovery scan" button on the
   Exposure Inventory page triggers it and refreshes server data.
+- **Entity resolution** (`entity-resolution.ts`) clusters near-duplicate
+  exposures that denote one real-world entity (same listing seen by two layers,
+  same article via search + news) using a union-find over a conservative
+  same-category match (URL host or token-Jaccard). The pipeline collapses
+  intra-batch duplicates and drops candidates already in the footprint; the
+  Exposure Inventory shows one row per entity with merged source counts.
 
 ## Scheduler — always-on monitoring (`src/lib/scheduler/`)
 
