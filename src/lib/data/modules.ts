@@ -136,6 +136,8 @@ export const agentActions: AgentAction[] = [
 ];
 
 export interface ModuleData {
+  /** True when these rows came from live Supabase (vs. the sample dataset). */
+  live: boolean;
   mentions: Mention[];
   sentimentTrend: SentimentDay[];
   incidents: Incident[];
@@ -154,6 +156,7 @@ export interface ModuleData {
 /** The deterministic mock dataset (used when not signed in / unconfigured). */
 export function mockModuleData(): ModuleData {
   return {
+    live: false,
     mentions,
     sentimentTrend,
     incidents,
@@ -217,6 +220,7 @@ export async function getModuleData(): Promise<ModuleData> {
   const domainsById = new Map<string, string>(domainRows.map((d) => [d.id, d.domain]));
 
   return {
+    live: true,
     mentions: (mentionsRes.data ?? []).map(mapMention),
     sentimentTrend: (sentimentRes.data ?? []).map(mapSentimentDay),
     incidents: (incidentsRes.data ?? []).map(mapIncident),

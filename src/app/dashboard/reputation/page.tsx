@@ -1,4 +1,4 @@
-import { Card, RiskBadge, Pill, SectionTitle, StatCard, SentimentBars } from "@/components/ui";
+import { Card, DataBadge, RiskBadge, Pill, SectionTitle, StatCard, SentimentBars } from "@/components/ui";
 import { getDataSource } from "@/lib/data";
 import { getModuleData } from "@/lib/data/modules";
 import { reputationScore } from "@/lib/scoring/scores";
@@ -15,7 +15,8 @@ const sentColor: Record<SentimentLabel, string> = {
 
 export default async function ReputationPage() {
   const { subject } = await (await getDataSource()).getDataset();
-  const { mentions, sentimentTrend } = await getModuleData();
+  const moduleData = await getModuleData();
+  const { mentions, sentimentTrend } = moduleData;
   const repScore = reputationScore(mentions);
   const negatives = mentions.filter((m) => m.sentiment === "negative");
   const defamatory = mentions.filter((m) => m.isDefamatory);
@@ -23,11 +24,14 @@ export default async function ReputationPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white">ReputationOS</h1>
-        <p className="mt-1 text-sm text-slate-400">
-          Search visibility, brand & news monitoring, sentiment analysis, defamation tracking and SEO recovery for {subject.displayName}.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white">ReputationOS</h1>
+          <p className="mt-1 text-sm text-slate-400">
+            Search visibility, brand & news monitoring, sentiment analysis, defamation tracking and SEO recovery for {subject.displayName}.
+          </p>
+        </div>
+        <DataBadge live={moduleData.live} />
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
