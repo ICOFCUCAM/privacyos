@@ -138,7 +138,10 @@ Trigger it any of three ways:
    the scheduler) into `.env.local`.
 2. Apply the migrations in order: `0001_init.sql`, `0002_suites.sql`,
    `0003_cron.sql` (Supabase CLI or SQL editor).
-3. Run the app, visit `/login`, and **sign up** an account.
+3. Run the app, visit `/login`, and **sign up** (email/password) — or use
+   **SSO**. To enable Google/Microsoft: turn the providers on in Supabase
+   (Authentication → Providers), set the provider client IDs/secrets, set
+   `NEXT_PUBLIC_SITE_URL`, and add `<site>/auth/callback` as an allowed redirect.
 4. You're routed through **in-app onboarding** to create your first protected
    subject and run an initial scan — no SQL required. (Prefer a fully populated
    demo? Run `supabase/seed.sql` instead.)

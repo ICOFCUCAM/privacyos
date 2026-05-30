@@ -6,9 +6,9 @@ import { isSupabaseConfigured } from "@/lib/supabase/server";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; error?: string }>;
 }) {
-  const { next } = await searchParams;
+  const { next, error } = await searchParams;
   const configured = isSupabaseConfigured();
 
   return (
@@ -23,7 +23,7 @@ export default async function LoginPage({
           <p className="mb-6 text-sm text-slate-400">
             Sign in to your protection dashboard.
           </p>
-          <LoginForm next={next ?? "/dashboard"} configured={configured} />
+          <LoginForm next={next ?? "/dashboard"} configured={configured} oauthError={error} />
         </div>
       </div>
     </main>

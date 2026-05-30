@@ -26,7 +26,8 @@ sequences the path to a production, category-defining platform.
   with pure row→domain mappers; seed populates every suite table
 - ✅ In-app onboarding: live, signed-in users with no subject are routed to
   `/onboarding` to create their first subject + run an initial scan (no seed)
-- SSO providers (Google/Microsoft)
+- ✅ SSO providers (Google/Microsoft) via Supabase OAuth + PKCE callback
+  (`/auth/callback`), with email/password retained
 - ✅ Scheduled agent runs: `runScheduledCycle` + `/api/cron` (CRON_SECRET),
   `scheduled-protect` Edge Function, pg_cron migration (0003) and Vercel Cron —
   24/7 monitoring writing runs, actions, score snapshots and notifications
