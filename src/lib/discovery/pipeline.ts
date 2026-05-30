@@ -15,10 +15,24 @@ import {
   type DiscoveryInput,
 } from "./source";
 import { BreachConnector } from "./breach-connector";
+import {
+  DarkWebConnector,
+  DomainConnector,
+  NewsConnector,
+  SearchConnector,
+  SocialConnector,
+} from "./connectors";
 
-/** Default source roster. Extend this as new connectors land. */
+/** Default source roster — every discovery layer the platform runs. */
 export function defaultDiscoverySources(): DiscoverySource[] {
-  return [new BreachConnector()];
+  return [
+    new BreachConnector(),
+    new SearchConnector(),
+    new NewsConnector(),
+    new SocialConnector(),
+    new DomainConnector(),
+    new DarkWebConnector(),
+  ];
 }
 
 function threatKey(t: Pick<Threat, "kind" | "title">): string {

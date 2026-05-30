@@ -1,6 +1,7 @@
-import { Card } from "@/components/ui";
+import { Card, Pill, SectionTitle, StatCard } from "@/components/ui";
 import { getDataSource } from "@/lib/data";
-import { cn, timeAgo } from "@/lib/ui";
+import { getModuleData } from "@/lib/data/modules";
+import { cn, timeAgo, titleCase } from "@/lib/ui";
 import type { AgentStatus } from "@/lib/types";
 
 const statusStyle: Record<AgentStatus, string> = {
@@ -11,15 +12,42 @@ const statusStyle: Record<AgentStatus, string> = {
 };
 
 export default async function AgentsPage() {
-  const { agents } = await (await getDataSource()).getDataset();
+  const data = await (await getDataSource()).getDataset();
+  const agents = data.agents;
+  const { agentActions } = await getModuleData();
+  const completed = agentActions.filter((a) => a.status === "completed").length;
+  const escalations = agentActions.filter((a) => a.kind === "escalate").length;
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">AI Agents</h1>
+        <h1 className="text-2xl font-bold text-white">Agent Dashboard</h1>
         <p className="mt-1 text-sm text-slate-400">
           Eight specialized agents defend you continuously. You see outcomes, not complexity.
         </p>
       </div>
+
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+        <StatCard label="Agents online" value={`${agents.filter((a) => a.status === "running").length}/8`} accent="text-risk-low" />
+        <StatCard label="Discoveries" value={data.exposures.length + data.threats.length} />
+        <StatCard label="Actions completed" value={completed} />
+        <StatCard label="Escalations" value={escalations} accent="text-risk-high" />
+        <StatCard label="Recommendations" value={data.recommendations.length} accent="text-brand-fg" />
+      </div>
+
+      <Card>
+        <SectionTitle title="Recent agent activity" subtitle="Autonomous actions across the fleet" />
+        <ul className="divide-y divide-border">
+          {agentActions.map((a) => (
+            <li key={a.id} className="flex items-center gap-3 py-3">
+              <Pill>{titleCase(a.agent)}</Pill>
+              <span className="flex-1 text-sm text-slate-300">{a.summary}</span>
+              <Pill>{titleCase(a.kind)}</Pill>
+              <span className="text-xs text-slate-500">{timeAgo(a.createdAt)}</span>
+            </li>
+          ))}
+        </ul>
+      </Card>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {agents.map((a) => (

@@ -9,13 +9,32 @@ import {
   StatCard,
 } from "@/components/ui";
 import { getDataSource } from "@/lib/data";
+import { getModuleData } from "@/lib/data/modules";
+import { computeScoreSet } from "@/lib/scoring/scores";
 import { scoreToLevel } from "@/lib/scoring/risk-score";
-import { timeAgo, titleCase } from "@/lib/ui";
+import { cn, timeAgo, titleCase } from "@/lib/ui";
 
 export default async function OverviewPage() {
   const ds = await getDataSource();
   const data = await ds.getDataset();
+  const mod = await getModuleData();
   const score = data.riskScore;
+  const scores = computeScoreSet({
+    risk: score,
+    mentions: mod.mentions,
+    incidents: mod.incidents,
+    credentialLeaks: mod.credentialLeaks,
+    domainRisks: mod.domainRisks,
+    employeeExposures: mod.employeeExposures,
+  });
+  const suiteScores = [
+    { label: "Privacy", value: scores.privacy },
+    { label: "Identity", value: scores.identity },
+    { label: "Reputation", value: scores.reputation },
+    { label: "Executive", value: scores.executive },
+    { label: "Business", value: scores.business },
+    { label: "Overall", value: scores.overall },
+  ];
   const activeThreats = data.threats.filter((t) => !t.acknowledged);
   const openCases = data.cases.filter((c) => c.status !== "resolved");
   const runningAgents = data.agents.filter((a) => a.status === "running");
@@ -58,6 +77,22 @@ export default async function OverviewPage() {
           </div>
         </Card>
       </div>
+
+      {/* Suite risk scores */}
+      <Card>
+        <SectionTitle title="Suite risk scores" subtitle="PrivacyOS · ReputationOS · ExecutiveOS · BusinessOS (0–100, higher = more risk)" />
+        <div className="grid grid-cols-3 gap-3 lg:grid-cols-6">
+          {suiteScores.map((s) => {
+            const level = scoreToLevel(s.value);
+            return (
+              <div key={s.label} className="rounded-lg border border-border bg-bg-subtle/60 p-3 text-center">
+                <p className={cn("text-2xl font-bold", `text-risk-${level}`)}>{s.value}</p>
+                <p className="mt-0.5 text-xs text-slate-400">{s.label}</p>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
 
       {/* Stat row */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">

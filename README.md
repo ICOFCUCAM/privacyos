@@ -31,8 +31,24 @@ $100M product, but a coherent architecture you can build the rest on top of.
 | Data-access layer with live ⇄ demo auto-switch | ✅ unit-tested |
 | Demo dataset so everything runs with **zero config** | ✅ |
 
-See [`ARCHITECTURE.md`](./ARCHITECTURE.md) for the design and
-[`ROADMAP.md`](./ROADMAP.md) for what comes next.
+See [`ARCHITECTURE.md`](./ARCHITECTURE.md) for the design,
+[`ROADMAP.md`](./ROADMAP.md) for what comes next, and
+[`CAPABILITY_MATRIX.md`](./CAPABILITY_MATRIX.md) for the full feature audit.
+
+### Product suites
+
+PrivacyOS is organized into four suites, all navigable in the dashboard:
+
+- **PrivacyOS** — exposure inventory, threat feed, cases, AI recommendations
+- **ReputationOS** — mentions, sentiment trend, defamation tracking, SEO recovery
+- **ExecutiveOS** — incidents (deepfake/impersonation/doxxing), family, travel risk
+- **BusinessOS** — domains, employee exposure, credential leaks, third-party risk
+- **Automation** — AI agents, legal document generator, reporting engine, alerts
+
+Six scoring axes (`src/lib/scoring/scores.ts`), six discovery layers
+(`src/lib/discovery/`), a legal engine (`src/lib/legal/`) exporting six document
+types via `GET /api/legal`, and a reporting engine (`src/lib/reports/`) producing
+seven print-ready reports via `GET /api/reports/[type]`.
 
 ---
 

@@ -128,3 +128,58 @@ export function AxisBar({ label, value }: { label: string; value: number }) {
     </div>
   );
 }
+
+/** Simple responsive line chart for a numeric series that may go negative. */
+export function LineChart({
+  values,
+  height = 80,
+  color = "#6366f1",
+}: {
+  values: number[];
+  height?: number;
+  color?: string;
+}) {
+  if (values.length === 0) return null;
+  const w = 100;
+  const min = Math.min(...values, 0);
+  const max = Math.max(...values, 0);
+  const range = max - min || 1;
+  const stepX = w / Math.max(values.length - 1, 1);
+  const y = (v: number) => height - ((v - min) / range) * height;
+  const points = values.map((v, i) => `${i * stepX},${y(v)}`).join(" ");
+  const zeroY = y(0);
+  return (
+    <svg viewBox={`0 0 ${w} ${height}`} preserveAspectRatio="none" className="h-20 w-full">
+      <line x1="0" y1={zeroY} x2={w} y2={zeroY} stroke="#1f2430" strokeWidth="0.5" />
+      <polyline
+        points={points}
+        fill="none"
+        stroke={color}
+        strokeWidth="1.5"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  );
+}
+
+/** Stacked sentiment bars (positive / neutral / negative) per day. */
+export function SentimentBars({
+  days,
+}: {
+  days: { positive: number; neutral: number; negative: number }[];
+}) {
+  return (
+    <div className="flex h-20 items-end gap-1">
+      {days.map((d, i) => {
+        const total = d.positive + d.neutral + d.negative || 1;
+        return (
+          <div key={i} className="flex h-full flex-1 flex-col justify-end overflow-hidden rounded-sm">
+            <div className="bg-risk-critical/70" style={{ height: `${(d.negative / total) * 100}%` }} />
+            <div className="bg-slate-600" style={{ height: `${(d.neutral / total) * 100}%` }} />
+            <div className="bg-risk-low/70" style={{ height: `${(d.positive / total) * 100}%` }} />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
