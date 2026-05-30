@@ -85,6 +85,20 @@ batch, returning only genuinely new items.
   findings via the data source when live. The "Run discovery scan" button on the
   Exposure Inventory page triggers it and refreshes server data.
 
+## Scheduler — always-on monitoring (`src/lib/scheduler/`)
+
+`runScheduledCycle(store)` drives 24/7 protection: for every subject across all
+tenants it runs discovery, persists new findings, runs the agent orchestrator,
+refreshes recommendations, writes an audit run + activity + score snapshots, and
+raises notifications for new critical threats. It depends on a `SchedulerStore`
+interface (not Supabase directly), so it is unit-tested with an in-memory store
+and runs live via `SupabaseSchedulerStore` (service-role, multi-tenant).
+
+It is exposed at `/api/cron`, guarded by `CRON_SECRET`, and triggered by Supabase
+pg_cron → `scheduled-protect` Edge Function, Vercel Cron, or any external
+scheduler. Crucially it reuses the same `protect()`, `runDiscovery()` and scoring
+as interactive flows — scheduled and on-demand runs share one code path.
+
 ## Data-access layer (`src/lib/data/`)
 
 Pages and API routes depend on a `DataSource` interface, never on Supabase or

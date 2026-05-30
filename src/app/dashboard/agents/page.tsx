@@ -35,6 +35,22 @@ export default async function AgentsPage() {
         <StatCard label="Recommendations" value={data.recommendations.length} accent="text-brand-fg" />
       </div>
 
+      <Card className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+        <div className="flex items-center gap-3">
+          <span className="relative flex h-2.5 w-2.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-risk-low opacity-75" />
+            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-risk-low" />
+          </span>
+          <div>
+            <p className="text-sm font-semibold text-white">Continuous monitoring active</p>
+            <p className="text-xs text-slate-400">
+              The agent fleet runs autonomously every 6 hours · last run {agentActions[0] ? timeAgo(agentActions[0].createdAt) : "—"}
+            </p>
+          </div>
+        </div>
+        <Pill>24/7 · pg_cron / Edge Function</Pill>
+      </Card>
+
       <Card>
         <SectionTitle title="Recent agent activity" subtitle="Autonomous actions across the fleet" />
         <ul className="divide-y divide-border">

@@ -26,8 +26,10 @@ sequences the path to a production, category-defining platform.
   with pure row→domain mappers; seed populates every suite table
 - SSO providers (Google/Microsoft) + onboarding flow to create the first
   `subject` in-app (instead of seed)
-- Supabase Edge Functions to run agents on a schedule (cron)
-- `score_snapshots`-backed trend charts (table exists; wire the read)
+- ✅ Scheduled agent runs: `runScheduledCycle` + `/api/cron` (CRON_SECRET),
+  `scheduled-protect` Edge Function, pg_cron migration (0003) and Vercel Cron —
+  24/7 monitoring writing runs, actions, score snapshots and notifications
+- `score_snapshots`-backed trend charts (table + writes exist; wire the read)
 
 ## Phase 3 — Real discovery connectors 🚧
 - ✅ `DiscoverySource` interface + concurrent pipeline with failure isolation

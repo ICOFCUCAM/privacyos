@@ -97,6 +97,24 @@ New connectors implement the `DiscoverySource` interface
 (`src/lib/discovery/source.ts`); the pipeline runs them concurrently, isolates
 failures, and dedupes findings against the known footprint.
 
+## Always-on monitoring (scheduled runs)
+
+`POST/GET /api/cron` runs the full protection cycle across **all tenants** using
+the service-role client: discovery → agent orchestration → scoring → persistence
+(new exposures/threats, refreshed recommendations, `agent_runs`, `agent_actions`,
+`score_snapshots`, and critical-threat notifications). It reuses the exact same
+orchestrator/discovery/scoring as interactive runs, so they never drift
+(`src/lib/scheduler/`).
+
+Guard it with `CRON_SECRET` (callers send `Authorization: Bearer <secret>`).
+Trigger it any of three ways:
+
+- **Supabase**: deploy the `scheduled-protect` Edge Function and schedule it with
+  `supabase/migrations/0003_cron.sql` (pg_cron + pg_net, every 6h).
+- **Vercel Cron**: `vercel.json` is preconfigured (Vercel sets the bearer when
+  `CRON_SECRET` is set).
+- **Anything else**: `curl -X POST -H "Authorization: Bearer $CRON_SECRET" $APP_URL/api/cron`.
+
 ## Tech stack
 
 - **Frontend:** Next.js (App Router), TypeScript, Tailwind CSS
