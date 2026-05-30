@@ -121,18 +121,22 @@ export class OpenAIProvider implements LLMProvider {
 }
 
 /** Selects a provider from environment configuration, defaulting to mock. */
-export function resolveProvider(env: NodeJS.ProcessEnv = process.env): LLMProvider {
-  const pref = env.PRIVACYOS_LLM_PROVIDER ?? "mock";
+export function resolveProvider(
+  env: Record<string, string | undefined> = process.env,
+): LLMProvider {
+  const pref = (env.PRIVACYOS_LLM_PROVIDER ?? "").toLowerCase().trim();
+
+  // Explicit, valid preference with a matching key.
   if (pref === "anthropic" && env.ANTHROPIC_API_KEY) {
     return new AnthropicProvider(env.ANTHROPIC_API_KEY);
   }
   if (pref === "openai" && env.OPENAI_API_KEY) {
     return new OpenAIProvider(env.OPENAI_API_KEY);
   }
-  // Auto-detect if a key exists but no explicit preference.
-  if (pref === "mock") {
-    if (env.ANTHROPIC_API_KEY) return new AnthropicProvider(env.ANTHROPIC_API_KEY);
-    if (env.OPENAI_API_KEY) return new OpenAIProvider(env.OPENAI_API_KEY);
-  }
+  // Any other case (unset, "mock", or an unrecognized/misspelled value): if a
+  // key is present, auto-detect rather than silently downgrading to mock — a
+  // misconfigured preference should never waste a configured key.
+  if (env.ANTHROPIC_API_KEY) return new AnthropicProvider(env.ANTHROPIC_API_KEY);
+  if (env.OPENAI_API_KEY) return new OpenAIProvider(env.OPENAI_API_KEY);
   return new MockProvider();
 }
