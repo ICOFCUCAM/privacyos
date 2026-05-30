@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { Trash2, RefreshCw } from "lucide-react";
 import { Card, Pill, SectionTitle, StatCard } from "@/components/ui";
 import { getDataSource } from "@/lib/data";
+import { getEntitlements } from "@/lib/billing/subscription";
 import { BROKERS } from "@/lib/brokers/registry";
 import { cn, timeAgo, titleCase } from "@/lib/ui";
 import type { ExposureStatus } from "@/lib/types";
@@ -16,14 +18,27 @@ const statusStyle: Record<string, string> = {
 
 const order: ExposureStatus[] = ["reappeared", "removal_requested", "in_progress", "monitoring", "removed"];
 
-export default async function RemovalsPage() {
+export default async function RemovalsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ limit?: string }>;
+}) {
+  const { limit: limitHit } = await searchParams;
   const ds = await getDataSource();
   const removals = await ds.listRemovals();
+  const { brokerRemovalLimit } = await getEntitlements();
   const sorted = [...removals].sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status));
 
   const active = removals.filter((r) => ["removal_requested", "in_progress"].includes(r.status)).length;
   const removed = removals.filter((r) => ["removed", "monitoring"].includes(r.status)).length;
   const reappeared = removals.filter((r) => r.status === "reappeared").length;
+
+  const counted = removals.filter((r) =>
+    ["removal_requested", "in_progress", "reappeared", "monitoring", "removed"].includes(r.status),
+  ).length;
+  const unlimited = !Number.isFinite(brokerRemovalLimit);
+  const atLimit = !unlimited && counted >= brokerRemovalLimit;
+  const allowanceLabel = unlimited ? "Unlimited" : `${counted}/${brokerRemovalLimit}`;
 
   return (
     <div className="space-y-6">
@@ -41,19 +56,31 @@ export default async function RemovalsPage() {
         <StatCard label="In progress" value={active} accent="text-risk-medium" />
         <StatCard label="Removed / monitoring" value={removed} accent="text-risk-low" />
         <StatCard label="Reappeared" value={reappeared} accent="text-risk-critical" />
-        <StatCard label="Brokers covered" value={`${BROKERS.length}+`} />
+        <StatCard label="Plan allowance" value={allowanceLabel} accent={atLimit ? "text-risk-high" : undefined} hint={unlimited ? undefined : "Active removals used"} />
       </div>
+
+      {(atLimit || limitHit) && (
+        <div className="flex items-center justify-between gap-4 rounded-xl border border-risk-high/30 bg-risk-high/10 px-4 py-3">
+          <p className="text-sm text-risk-high">
+            You&apos;ve reached your plan&apos;s broker-removal limit
+            {Number.isFinite(brokerRemovalLimit) ? ` of ${brokerRemovalLimit}` : ""}. Upgrade for more (or unlimited) removals.
+          </p>
+          <Link href="/pricing#personal" className="shrink-0 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90">
+            Upgrade
+          </Link>
+        </div>
+      )}
 
       <Card>
         <SectionTitle title="File a new opt-out" subtitle="Pick a broker; the Privacy Agent handles submission and re-checks" />
         <form action={fileRemovalAction} className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <label className="flex-1">
             <span className="mb-1 block text-xs font-medium text-slate-400">Broker</span>
-            <select name="brokerName" className="w-full rounded-lg border border-border bg-bg-subtle px-3 py-2 text-sm text-white outline-none focus:border-brand">
+            <select name="brokerName" disabled={atLimit} className="w-full rounded-lg border border-border bg-bg-subtle px-3 py-2 text-sm text-white outline-none focus:border-brand disabled:opacity-50">
               {BROKERS.map((b) => <option key={b.id} value={b.name}>{b.name} · {b.category}</option>)}
             </select>
           </label>
-          <button type="submit" className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90">
+          <button type="submit" disabled={atLimit} className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90 disabled:cursor-not-allowed disabled:opacity-50">
             <Trash2 className="h-4 w-4" /> File opt-out
           </button>
         </form>

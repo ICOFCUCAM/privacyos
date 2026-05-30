@@ -62,6 +62,31 @@ export function Pill({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * Honest data-provenance badge. Live = data from Supabase for this user; Sample
+ * = the built-in demonstration dataset (not collected from real sources yet).
+ */
+export function DataBadge({ live }: { live: boolean }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1",
+        live
+          ? "bg-risk-low/10 text-risk-low ring-risk-low/30"
+          : "bg-risk-medium/10 text-risk-medium ring-risk-medium/30",
+      )}
+      title={
+        live
+          ? "Live data from your account"
+          : "Sample data — illustrative dataset, not collected from real sources yet"
+      }
+    >
+      <span className={cn("h-1.5 w-1.5 rounded-full", live ? "bg-risk-low" : "bg-risk-medium")} />
+      {live ? "Live data" : "Sample data"}
+    </span>
+  );
+}
+
 export function StatCard({
   label,
   value,

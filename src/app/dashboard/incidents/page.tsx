@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Card, RiskBadge, Pill, StatCard } from "@/components/ui";
+import { Card, DataBadge, RiskBadge, Pill, StatCard } from "@/components/ui";
 import { getModuleData } from "@/lib/data/modules";
 import { cn, timeAgo, titleCase } from "@/lib/ui";
 
@@ -17,17 +17,21 @@ export default async function IncidentsPage({
   searchParams: Promise<{ kind?: string }>;
 }) {
   const { kind = "all" } = await searchParams;
-  const { incidents } = await getModuleData();
+  const moduleData = await getModuleData();
+  const { incidents } = moduleData;
   const filtered = kind === "all" ? incidents : incidents.filter((i) => i.kind === kind);
   const open = incidents.filter((i) => i.status !== "resolved" && i.status !== "dismissed");
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Incidents</h1>
-        <p className="mt-1 text-sm text-slate-400">
-          Deepfake, impersonation, doxxing and location-exposure incidents with evidence and takedown workflow.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Incidents</h1>
+          <p className="mt-1 text-sm text-slate-400">
+            Deepfake, impersonation, doxxing and location-exposure incidents with evidence and takedown workflow.
+          </p>
+        </div>
+        <DataBadge live={moduleData.live} />
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
