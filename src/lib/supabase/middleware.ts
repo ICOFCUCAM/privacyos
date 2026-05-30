@@ -32,9 +32,16 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     },
   });
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user;
+  try {
+    const res = await supabase.auth.getUser();
+    user = res.data.user;
+  } catch (err) {
+    // Auth backend unreachable / misconfigured — don't 500 the whole app. Let
+    // the request through; page-level data access degrades to demo data.
+    console.error("[privacyos] middleware auth check failed:", err);
+    return response;
+  }
 
   const path = request.nextUrl.pathname;
   if (!user && (path.startsWith("/dashboard") || path.startsWith("/onboarding"))) {

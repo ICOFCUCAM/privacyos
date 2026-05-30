@@ -17,13 +17,27 @@ export type { DataSource, PrivacyDataSet } from "./source";
 export async function getDataSource(): Promise<DataSource> {
   if (!isSupabaseConfigured()) return new DemoDataSource();
 
-  const client = await getSupabaseServerClient();
-  if (!client) return new DemoDataSource();
+  try {
+    const client = await getSupabaseServerClient();
+    if (!client) return new DemoDataSource();
 
-  const {
-    data: { user },
-  } = await client.auth.getUser();
-  if (!user) return new DemoDataSource();
+    const {
+      data: { user },
+    } = await client.auth.getUser();
+    if (!user) return new DemoDataSource();
 
-  return new SupabaseDataSource(client);
+    // Probe schema readiness. If the backend isn't migrated yet (tables missing)
+    // or is unreachable, degrade to demo data instead of crashing every page
+    // with a 500. A real, migrated backend with an empty table returns no error.
+    const { error } = await client.from("subjects").select("id").limit(1);
+    if (error) {
+      console.error("[privacyos] live backend not ready — using demo data:", error.message);
+      return new DemoDataSource();
+    }
+
+    return new SupabaseDataSource(client);
+  } catch (err) {
+    console.error("[privacyos] data source resolution failed — using demo data:", err);
+    return new DemoDataSource();
+  }
 }

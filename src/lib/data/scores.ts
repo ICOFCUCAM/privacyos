@@ -30,9 +30,13 @@ export async function getScoreHistory(): Promise<ScoreSeries[]> {
   if (!isSupabaseConfigured()) return demoScoreHistory();
   const db = await getSupabaseServerClient();
   if (!db) return demoScoreHistory();
-  const {
-    data: { user },
-  } = await db.auth.getUser();
+  let user;
+  try {
+    const res = await db.auth.getUser();
+    user = res.data.user;
+  } catch {
+    return demoScoreHistory();
+  }
   if (!user) return demoScoreHistory();
 
   // RLS scopes to the current user.
