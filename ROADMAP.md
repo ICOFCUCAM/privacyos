@@ -21,11 +21,13 @@ sequences the path to a production, category-defining platform.
 - `/api/protect` reads from the data source and persists runs to `agent_runs`
   + recommendations when live; seed script for a realistic footprint
 
-### Phase 2 follow-ups (next)
+### Phase 2 follow-ups
+- ✅ Live module data: `getModuleData()` reads the 0002 suite tables (RLS-scoped)
+  with pure row→domain mappers; seed populates every suite table
 - SSO providers (Google/Microsoft) + onboarding flow to create the first
   `subject` in-app (instead of seed)
 - Supabase Edge Functions to run agents on a schedule (cron)
-- `risk_snapshots` table to power real score trend charts
+- `score_snapshots`-backed trend charts (table exists; wire the read)
 
 ## Phase 3 — Real discovery connectors 🚧
 - ✅ `DiscoverySource` interface + concurrent pipeline with failure isolation

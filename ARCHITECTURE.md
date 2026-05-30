@@ -98,6 +98,13 @@ the demo arrays directly:
 - This gives graceful degradation (always explorable) and a single seam to
   swap persistence.
 
+The suite modules (ReputationOS / ExecutiveOS / BusinessOS / legal / reporting)
+go through `getModuleData()` (`src/lib/data/modules.ts`), which is also
+live-aware: signed in + configured → RLS-scoped reads across the 0002 tables
+(mapped by pure functions in `module-mappers.ts`); otherwise the deterministic
+mock. Per-table query failures degrade to empty rather than breaking the page.
+`supabase/seed.sql` populates every suite table for a signed-up user.
+
 ## Auth & sessions
 
 - Email + password via Supabase, with server actions (`src/app/auth/actions.ts`).

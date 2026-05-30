@@ -23,6 +23,22 @@ import type {
   ThirdPartyRisk,
   TravelAlert,
 } from "@/lib/suite-types";
+import { getSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import {
+  buildDomains,
+  mapAgentAction,
+  mapCredentialLeak,
+  mapDomainRisk,
+  mapEmployeeExposure,
+  mapFamilyMember,
+  mapIncident,
+  mapLegalRequest,
+  mapMention,
+  mapNotification,
+  mapSentimentDay,
+  mapThirdPartyRisk,
+  mapTravelAlert,
+} from "./module-mappers";
 
 const iso = (daysAgo: number) => new Date(Date.now() - daysAgo * 86_400_000).toISOString();
 const day = (daysAgo: number) => new Date(Date.now() - daysAgo * 86_400_000).toISOString().slice(0, 10);
@@ -135,11 +151,8 @@ export interface ModuleData {
   agentActions: AgentAction[];
 }
 
-/**
- * Returns the full module dataset. Today this serves the deterministic mock
- * provider; live per-table Supabase queries plug in here behind the same shape.
- */
-export async function getModuleData(): Promise<ModuleData> {
+/** The deterministic mock dataset (used when not signed in / unconfigured). */
+export function mockModuleData(): ModuleData {
   return {
     mentions,
     sentimentTrend,
@@ -154,5 +167,64 @@ export async function getModuleData(): Promise<ModuleData> {
     legalRequests,
     notifications,
     agentActions,
+  };
+}
+
+/**
+ * Returns the full module dataset.
+ *
+ * Live (Supabase configured + signed in): reads from the suite tables, scoped by
+ * RLS to the current user. Otherwise the deterministic mock provider — keeping
+ * the product explorable without a backend. Per-table query failures degrade to
+ * empty rather than breaking the whole dashboard.
+ */
+export async function getModuleData(): Promise<ModuleData> {
+  if (!isSupabaseConfigured()) return mockModuleData();
+  const db = await getSupabaseServerClient();
+  if (!db) return mockModuleData();
+  const {
+    data: { user },
+  } = await db.auth.getUser();
+  if (!user) return mockModuleData();
+
+  // RLS scopes every table to the current user, so no explicit user filter.
+  const [
+    mentionsRes, sentimentRes, incidentsRes, travelRes, familyRes,
+    domainRes, domainRiskRes, employeeRes, credentialRes, thirdPartyRes,
+    legalRes, notifRes, actionsRes,
+  ] = await Promise.all([
+    db.from("mentions").select("*").order("detected_at", { ascending: false }),
+    db.from("sentiment_records").select("*").order("recorded_on", { ascending: true }),
+    db.from("incidents").select("*").order("detected_at", { ascending: false }),
+    db.from("travel_alerts").select("*").order("travel_date", { ascending: true }),
+    db.from("family_profiles").select("*").order("created_at", { ascending: true }),
+    db.from("domains").select("*").order("monitored_since", { ascending: true }),
+    db.from("domain_risks").select("*").order("detected_at", { ascending: false }),
+    db.from("employee_exposures").select("*").order("detected_at", { ascending: false }),
+    db.from("credential_leaks").select("*").order("detected_at", { ascending: false }),
+    db.from("third_party_risks").select("*").order("assessed_at", { ascending: false }),
+    db.from("legal_requests").select("*").order("updated_at", { ascending: false }),
+    db.from("notifications").select("*").order("created_at", { ascending: false }),
+    db.from("agent_actions").select("*").order("created_at", { ascending: false }),
+  ]);
+
+  const domainRows = domainRes.data ?? [];
+  const domainRiskRows = domainRiskRes.data ?? [];
+  const domainsById = new Map<string, string>(domainRows.map((d) => [d.id, d.domain]));
+
+  return {
+    mentions: (mentionsRes.data ?? []).map(mapMention),
+    sentimentTrend: (sentimentRes.data ?? []).map(mapSentimentDay),
+    incidents: (incidentsRes.data ?? []).map(mapIncident),
+    travelAlerts: (travelRes.data ?? []).map(mapTravelAlert),
+    familyMembers: (familyRes.data ?? []).map(mapFamilyMember),
+    domains: buildDomains(domainRows, domainRiskRows),
+    domainRisks: domainRiskRows.map((r) => mapDomainRisk(r, domainsById)),
+    employeeExposures: (employeeRes.data ?? []).map(mapEmployeeExposure),
+    credentialLeaks: (credentialRes.data ?? []).map(mapCredentialLeak),
+    thirdPartyRisks: (thirdPartyRes.data ?? []).map(mapThirdPartyRisk),
+    legalRequests: (legalRes.data ?? []).map(mapLegalRequest),
+    notifications: (notifRes.data ?? []).map(mapNotification),
+    agentActions: (actionsRes.data ?? []).map(mapAgentAction),
   };
 }
