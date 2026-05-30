@@ -5,14 +5,16 @@ import { usePathname } from "next/navigation";
 import {
   Shield, LayoutDashboard, Radar, ShieldAlert, Star, FolderKanban,
   Bot, Building2, Users, Crown, FileText, Sparkles, LogOut,
-  Globe, Plane, UserCog, Network, Scale, Bell, Siren, MessageSquareHeart, Trash2, ScrollText, Settings,
+  Globe, Plane, UserCog, Network, Scale, Bell, Siren, MessageSquareHeart, Trash2, ScrollText, Settings, Lock,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/ui";
 import { signOut } from "@/app/auth/actions";
+import type { Feature } from "@/lib/billing/entitlements";
 
 type NavItem = { href: string; label: string; icon: LucideIcon };
-const navGroups: { group: string; items: NavItem[] }[] = [
+type NavGroup = { group: string; items: NavItem[]; feature?: Feature };
+const navGroups: NavGroup[] = [
   {
     group: "",
     items: [{ href: "/dashboard", label: "Overview", icon: LayoutDashboard }],
@@ -30,10 +32,12 @@ const navGroups: { group: string; items: NavItem[] }[] = [
   },
   {
     group: "ReputationOS",
+    feature: "reputation",
     items: [{ href: "/dashboard/reputation", label: "Reputation", icon: Star }],
   },
   {
     group: "ExecutiveOS",
+    feature: "executive",
     items: [
       { href: "/dashboard/executive", label: "Executive Protection", icon: Crown },
       { href: "/dashboard/incidents", label: "Incidents", icon: Siren },
@@ -43,6 +47,7 @@ const navGroups: { group: string; items: NavItem[] }[] = [
   },
   {
     group: "BusinessOS",
+    feature: "business",
     items: [
       { href: "/dashboard/business", label: "Business Intelligence", icon: Building2 },
       { href: "/dashboard/domains", label: "Domains", icon: Globe },
@@ -66,11 +71,14 @@ const navGroups: { group: string; items: NavItem[] }[] = [
 export function Sidebar({
   subjectName,
   live,
+  lockedFeatures = [],
 }: {
   subjectName?: string;
   live?: boolean;
+  lockedFeatures?: Feature[];
 }) {
   const pathname = usePathname();
+  const isLocked = (f?: Feature) => f !== undefined && lockedFeatures.includes(f);
   const name = subjectName ?? "Demo Subject";
   const initials =
     name
@@ -85,11 +93,14 @@ export function Sidebar({
         <span className="text-lg font-bold text-white">PrivacyOS</span>
       </Link>
       <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-2">
-        {navGroups.map((grp, gi) => (
+        {navGroups.map((grp, gi) => {
+          const locked = isLocked(grp.feature);
+          return (
           <div key={gi} className="space-y-1">
             {grp.group && (
-              <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+              <p className="flex items-center gap-1.5 px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
                 {grp.group}
+                {locked && <Lock className="h-3 w-3" />}
               </p>
             )}
             {grp.items.map((item) => {
@@ -97,24 +108,30 @@ export function Sidebar({
                 item.href === "/dashboard"
                   ? pathname === item.href
                   : pathname.startsWith(item.href);
+              // Locked suites link to the upgrade page instead of the gated route.
+              const href = locked ? "/pricing" : item.href;
               return (
                 <Link
                   key={item.href}
-                  href={item.href}
+                  href={href}
                   className={cn(
                     "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition",
-                    active
-                      ? "bg-brand/15 text-white ring-1 ring-brand/30"
-                      : "text-slate-400 hover:bg-bg-elevated hover:text-white",
+                    locked
+                      ? "text-slate-600 hover:bg-bg-elevated hover:text-slate-400"
+                      : active
+                        ? "bg-brand/15 text-white ring-1 ring-brand/30"
+                        : "text-slate-400 hover:bg-bg-elevated hover:text-white",
                   )}
                 >
                   <item.icon className="h-4 w-4" />
-                  {item.label}
+                  <span className="flex-1">{item.label}</span>
+                  {locked && <Lock className="h-3.5 w-3.5" />}
                 </Link>
               );
             })}
           </div>
-        ))}
+          );
+        })}
       </nav>
       <div className="border-t border-border p-4">
         <div className="flex items-center gap-3">
