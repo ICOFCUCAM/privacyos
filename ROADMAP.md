@@ -24,8 +24,9 @@ sequences the path to a production, category-defining platform.
 ### Phase 2 follow-ups
 - ✅ Live module data: `getModuleData()` reads the 0002 suite tables (RLS-scoped)
   with pure row→domain mappers; seed populates every suite table
-- SSO providers (Google/Microsoft) + onboarding flow to create the first
-  `subject` in-app (instead of seed)
+- ✅ In-app onboarding: live, signed-in users with no subject are routed to
+  `/onboarding` to create their first subject + run an initial scan (no seed)
+- SSO providers (Google/Microsoft)
 - ✅ Scheduled agent runs: `runScheduledCycle` + `/api/cron` (CRON_SECRET),
   `scheduled-protect` Edge Function, pg_cron migration (0003) and Vercel Cron —
   24/7 monitoring writing runs, actions, score snapshots and notifications

@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/sidebar";
 import { getDataSource } from "@/lib/data";
 
@@ -8,6 +9,8 @@ export default async function DashboardLayout({
 }) {
   const ds = await getDataSource();
   const subject = await ds.getPrimarySubject();
+  // Live, signed-in user without a subject yet → send them through onboarding.
+  if (ds.live && !subject) redirect("/onboarding");
   const name = subject?.displayName ?? "your footprint";
 
   return (

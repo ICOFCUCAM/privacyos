@@ -125,10 +125,14 @@ Trigger it any of three ways:
 
 ## Connecting Supabase (go live)
 
-1. Create a project and copy the URL + anon key into `.env.local`.
-2. Apply `supabase/migrations/0001_init.sql` (Supabase CLI or SQL editor).
+1. Create a project and copy the URL + anon key (and the service-role key, for
+   the scheduler) into `.env.local`.
+2. Apply the migrations in order: `0001_init.sql`, `0002_suites.sql`,
+   `0003_cron.sql` (Supabase CLI or SQL editor).
 3. Run the app, visit `/login`, and **sign up** an account.
-4. Run `supabase/seed.sql` to populate a realistic footprint for that account.
+4. You're routed through **in-app onboarding** to create your first protected
+   subject and run an initial scan — no SQL required. (Prefer a fully populated
+   demo? Run `supabase/seed.sql` instead.)
 5. The app auto-detects the session and switches from demo to live, RLS-scoped
    data. Sign-in is required for `/dashboard`; signed-out users still get the
    demo experience.
