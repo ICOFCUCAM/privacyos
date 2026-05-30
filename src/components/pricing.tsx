@@ -22,6 +22,34 @@ function priceLabel(plan: Plan, annual: boolean) {
 
 function PlanCard({ plan, annual }: { plan: Plan; annual: boolean }) {
   const { big, sub } = priceLabel(plan, annual);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function choose() {
+    if (plan.monthly === null) {
+      window.location.href = "mailto:sales@privacyos.app?subject=" + encodeURIComponent(`${plan.name} enquiry`);
+      return;
+    }
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ planId: plan.id, annual }),
+      });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        window.location.href = data.url;
+        return;
+      }
+      setErr(data.error ?? "Could not start checkout.");
+    } catch {
+      setErr("Could not start checkout.");
+    } finally {
+      setBusy(false);
+    }
+  }
   return (
     <div
       className={cn(
@@ -53,15 +81,18 @@ function PlanCard({ plan, annual }: { plan: Plan; annual: boolean }) {
       </ul>
 
       <button
+        onClick={choose}
+        disabled={busy}
         className={cn(
-          "mt-6 rounded-lg px-4 py-2.5 text-sm font-semibold transition",
+          "mt-6 rounded-lg px-4 py-2.5 text-sm font-semibold transition disabled:opacity-60",
           plan.featured
             ? "bg-brand text-white hover:bg-brand/90"
             : "border border-border text-slate-200 hover:bg-bg-elevated",
         )}
       >
-        {plan.monthly === null ? "Contact sales" : "Choose plan"}
+        {busy ? "Starting…" : plan.monthly === null ? "Contact sales" : "Choose plan"}
       </button>
+      {err && <p className="mt-2 text-xs text-risk-critical">{err}</p>}
     </div>
   );
 }
