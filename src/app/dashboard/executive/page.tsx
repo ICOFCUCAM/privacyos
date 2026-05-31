@@ -1,5 +1,5 @@
 import { Crown } from "lucide-react";
-import { Card, RiskBadge, SectionTitle, StatCard } from "@/components/ui";
+import { Card, PageHeader, RiskBadge, SectionTitle, StatCard } from "@/components/ui";
 import { getDataSource } from "@/lib/data";
 import { titleCase } from "@/lib/ui";
 
@@ -12,15 +12,11 @@ export default async function ExecutivePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Crown className="h-7 w-7 text-brand" />
-        <div>
-          <h1 className="text-2xl font-bold text-white">Executive Protection</h1>
-          <p className="mt-1 text-sm text-slate-400">
-            VIP-grade protection: doxxing, location exposure, family safety and personal threats.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={Crown}
+        title="Executive Protection"
+        subtitle="VIP-grade protection: doxxing, location exposure, family safety and personal threats."
+      />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="Physical-security alerts" value={physical.length} accent="text-risk-critical" />
