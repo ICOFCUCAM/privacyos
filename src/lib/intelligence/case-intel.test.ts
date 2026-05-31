@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { caseQueue, caseTimeline, enrichCase, summarizeCases } from "./case-intel";
+import {
+  caseAgentActivity, caseQueue, caseTimeline, enrichCase, filterCases, summarizeCases, WORKFLOW_STAGES,
+} from "./case-intel";
 import type { Case, Exposure } from "@/lib/types";
 
 const NOW = new Date("2026-05-31T12:00:00Z").getTime();
@@ -71,5 +73,52 @@ describe("caseQueue", () => {
     ], [], NOW);
     expect(["open", "in_progress"]).toContain(q[0].case.status);
     expect(q.at(-1)!.case.status).toBe("resolved");
+  });
+});
+
+describe("MTTR + resolved-today + critical metrics", () => {
+  it("computes mean resolution time and resolved-today", () => {
+    const s = summarizeCases([
+      caseRec({ status: "resolved", createdAt: hoursAgo(10), updatedAt: hoursAgo(4) }), // 6h
+      caseRec({ status: "resolved", createdAt: hoursAgo(12), updatedAt: hoursAgo(2) }), // 10h
+      caseRec({ status: "open", riskLevel: "critical" }),
+    ], [], NOW);
+    expect(s.mttrHours).toBe(8); // mean of 6 and 10
+    expect(s.resolvedToday).toBe(2);
+    expect(s.critical).toBe(1);
+  });
+});
+
+describe("workflow stage", () => {
+  it("maps status to an 8-stage workflow position", () => {
+    expect(WORKFLOW_STAGES).toHaveLength(8);
+    expect(enrichCase(caseRec({ status: "resolved" }), [], NOW).workflowStage).toBe("Close");
+    expect(enrichCase(caseRec({ status: "in_progress" }), [], NOW).workflowStage).toBe("Execute");
+    expect(enrichCase(caseRec({ status: "escalated" }), [], NOW).workflowIndex).toBe(3);
+  });
+});
+
+describe("filterCases", () => {
+  const items = caseQueue([
+    caseRec({ status: "open", riskLevel: "critical" }),
+    caseRec({ status: "escalated", riskLevel: "high" }),
+    caseRec({ status: "resolved", riskLevel: "low" }),
+  ], [], NOW);
+  it("filters by status and severity", () => {
+    expect(filterCases(items, "all")).toHaveLength(3);
+    expect(filterCases(items, "open").length).toBe(2); // open + escalated are open
+    expect(filterCases(items, "escalated")).toHaveLength(1);
+    expect(filterCases(items, "resolved")).toHaveLength(1);
+    expect(filterCases(items, "critical")).toHaveLength(1);
+  });
+});
+
+describe("caseAgentActivity", () => {
+  it("lists distinct agents that worked the case", () => {
+    const acts = caseAgentActivity(caseRec({ status: "resolved", assignedAgent: "security" }));
+    expect(acts.length).toBeGreaterThan(0);
+    expect(acts.some((a) => a.agent === "security")).toBe(true);
+    // no duplicate agents
+    expect(new Set(acts.map((a) => a.agent)).size).toBe(acts.length);
   });
 });

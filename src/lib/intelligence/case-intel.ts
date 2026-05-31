@@ -36,6 +36,27 @@ export interface EnrichedCase {
   /** Priority score = risk-weight × openness × age pressure. */
   priority: number;
   timeline: CaseTimelineStep[];
+  /** Current stage in the 8-stage operational workflow. */
+  workflowStage: WorkflowStage;
+  workflowIndex: number;
+}
+
+/** The operational workflow every case advances through. */
+export const WORKFLOW_STAGES = [
+  "Detect", "Analyze", "Correlate", "Decide", "Execute", "Verify", "Report", "Close",
+] as const;
+export type WorkflowStage = (typeof WORKFLOW_STAGES)[number];
+
+/** Map a case status to its current workflow stage index (0–7). */
+function stageIndexFor(status: CaseStatus): number {
+  switch (status) {
+    case "open": return 1;            // Detected → analyzing
+    case "in_progress": return 4;     // Executing
+    case "awaiting_response": return 5; // Verifying
+    case "escalated": return 3;       // Decide (held for human)
+    case "resolved": return 7;        // Close
+    default: return 0;
+  }
 }
 
 const OPEN_STATUSES: CaseStatus[] = ["open", "in_progress", "awaiting_response", "escalated"];
@@ -78,13 +99,23 @@ export function enrichCase(c: Case, exposures: Exposure[], now = Date.now()): En
   const openness = isOpen ? 1 : 0.2;
   const agePressure = Math.min(1.5, 1 + ageHours / Math.max(slaHours, 1));
   const priority = Math.round((RISK_RANK[c.riskLevel] + 1) * openness * agePressure * 10) / 10;
+  const workflowIndex = stageIndexFor(c.status);
 
-  return { case: c, ageHours, sla, slaHours, evidenceCount, priority, timeline: caseTimeline(c) };
+  return {
+    case: c, ageHours, sla, slaHours, evidenceCount, priority, timeline: caseTimeline(c),
+    workflowStage: WORKFLOW_STAGES[workflowIndex], workflowIndex,
+  };
 }
 
 export interface CaseQueueSummary {
   open: number;
   resolved: number;
+  /** Open critical-severity cases. */
+  critical: number;
+  /** Cases resolved within the last 24h. */
+  resolvedToday: number;
+  /** Mean resolution time across resolved cases, hours (0 if none). */
+  mttrHours: number;
   bySeverity: Record<RiskLevel, number>;
   /** Open cases past or near their SLA. */
   slaBreached: number;
@@ -96,9 +127,16 @@ export function summarizeCases(cases: Case[], exposures: Exposure[], now = Date.
   const enriched = cases.map((c) => enrichCase(c, exposures, now));
   const bySeverity: Record<RiskLevel, number> = { low: 0, medium: 0, high: 0, critical: 0 };
   for (const c of cases) if (OPEN_STATUSES.includes(c.status)) bySeverity[c.riskLevel] += 1;
+  const resolved = cases.filter((c) => c.status === "resolved");
+  const resolvedToday = resolved.filter((c) => now - new Date(c.updatedAt).getTime() <= DAY).length;
+  const resolutionHrs = resolved.map((c) => Math.max(0, (new Date(c.updatedAt).getTime() - new Date(c.createdAt).getTime()) / 3_600_000));
+  const mttrHours = resolutionHrs.length === 0 ? 0 : Math.round((resolutionHrs.reduce((s, h) => s + h, 0) / resolutionHrs.length) * 10) / 10;
   return {
     open: cases.filter((c) => OPEN_STATUSES.includes(c.status)).length,
-    resolved: cases.filter((c) => c.status === "resolved").length,
+    resolved: resolved.length,
+    critical: cases.filter((c) => OPEN_STATUSES.includes(c.status) && c.riskLevel === "critical").length,
+    resolvedToday,
+    mttrHours,
     bySeverity,
     slaBreached: enriched.filter((e) => e.sla === "breached").length,
     slaAtRisk: enriched.filter((e) => e.sla === "at_risk").length,
@@ -115,4 +153,42 @@ export function caseQueue(cases: Case[], exposures: Exposure[], now = Date.now()
       const bOpen = OPEN_STATUSES.includes(b.case.status) ? 1 : 0;
       return bOpen - aOpen || b.priority - a.priority;
     });
+}
+
+/* ── Filtering ───────────────────────────────────────────────────────────── */
+
+export type CaseFilter =
+  | "all" | "open" | "escalated" | "resolved"
+  | RiskLevel;
+
+export function filterCases(items: EnrichedCase[], filter: CaseFilter): EnrichedCase[] {
+  switch (filter) {
+    case "all": return items;
+    case "open": return items.filter((e) => OPEN_STATUSES.includes(e.case.status));
+    case "escalated": return items.filter((e) => e.case.status === "escalated");
+    case "resolved": return items.filter((e) => e.case.status === "resolved");
+    case "low": case "medium": case "high": case "critical":
+      return items.filter((e) => e.case.riskLevel === filter);
+    default: return items;
+  }
+}
+
+/* ── Agent activity ──────────────────────────────────────────────────────── */
+
+export interface CaseAgentActivity {
+  agent: AgentKind;
+  action: string;
+}
+
+/** The agents that have worked a case + what each did, from its timeline. */
+export function caseAgentActivity(c: Case): CaseAgentActivity[] {
+  const seen = new Set<AgentKind>();
+  const out: CaseAgentActivity[] = [];
+  for (const step of caseTimeline(c)) {
+    if (!step.done || step.agent === "system") continue;
+    if (seen.has(step.agent)) continue;
+    seen.add(step.agent);
+    out.push({ agent: step.agent, action: step.label });
+  }
+  return out;
 }
