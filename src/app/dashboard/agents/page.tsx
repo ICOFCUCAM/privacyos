@@ -82,6 +82,12 @@ export default async function AgentsPage() {
               </span>
             </div>
             <p className="text-sm text-slate-400">{a.description}</p>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-bg-subtle">
+              <div
+                className={cn("h-full rounded-full", a.status === "running" ? "bg-risk-low" : "bg-brand/60")}
+                style={{ width: `${(a.itemsHandled / maxItems) * 100}%` }}
+              />
+            </div>
             <div className="flex items-center justify-between border-t border-border pt-3 text-xs text-slate-500">
               <span>{a.itemsHandled} items handled</span>
               {a.lastRunAt && <span>last run {timeAgo(a.lastRunAt)}</span>}
