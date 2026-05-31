@@ -4,7 +4,6 @@ import {
   Radar, Trash2, Layers,
 } from "lucide-react";
 import {
-  AxisBar,
   Card,
   RiskBadge,
   ScoreGauge,
@@ -149,30 +148,29 @@ export default async function OverviewPage() {
       {/* ── TIER 1 — score · operations stream · agents (above the fold) ───── */}
       <div className="grid grid-cols-1 gap-2.5 xl:grid-cols-12">
         <div className="space-y-2.5 xl:col-span-3">
-          <Card className="flex items-center gap-3 p-3">
-            <ScoreGauge score={score.overall} />
-            <div className="min-w-0">
-              <p className="text-[10px] uppercase tracking-wide text-slate-400">Exposure score</p>
-              <div className="mt-0.5 flex items-center gap-1.5">
-                <span className="text-xl font-bold text-white">{score.overall}</span>
-                <RiskBadge level={scoreToLevel(score.overall)} />
-              </div>
-              <div className="mt-2 space-y-1.5">
-                <AxisBar label="Identity" value={score.identity} />
-                <AxisBar label="Reputation" value={score.reputation} />
-                <AxisBar label="Financial" value={score.financial} />
-                <AxisBar label="Security" value={score.security} />
-                <AxisBar label="Family" value={score.family} />
-              </div>
-            </div>
-          </Card>
-          {/* Risk trend — compact, Tier 1 */}
           <Card className="p-3">
-            <div className="mb-1.5 flex items-center justify-between">
-              <span className="text-xs font-semibold text-white">Risk trend</span>
-              <span className="text-[10px] text-slate-500">{trendPoints.length} snapshots</span>
+            <div className="flex items-center gap-3">
+              <ScoreGauge score={score.overall} size={96} />
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] uppercase tracking-wide text-slate-400">Exposure score</p>
+                <div className="mt-0.5 flex items-center gap-1.5">
+                  <span className="text-xl font-bold text-white">{score.overall}</span>
+                  <RiskBadge level={scoreToLevel(score.overall)} />
+                </div>
+                <div className="mt-1.5 flex items-center justify-between">
+                  <span className="text-[10px] uppercase tracking-wide text-slate-500">Risk trend</span>
+                  <span className="text-[10px] text-slate-500">{trendPoints.length} snapshots</span>
+                </div>
+                <RiskEvolution history={scoreHistory} current={scores.overall} compact />
+              </div>
             </div>
-            <RiskEvolution history={scoreHistory} current={scores.overall} compact />
+            <div className="mt-2 grid grid-cols-5 gap-2 border-t border-border pt-2">
+              <AxisStat label="Identity" value={score.identity} />
+              <AxisStat label="Reputation" value={score.reputation} />
+              <AxisStat label="Financial" value={score.financial} />
+              <AxisStat label="Security" value={score.security} />
+              <AxisStat label="Family" value={score.family} />
+            </div>
           </Card>
         </div>
 
@@ -186,7 +184,7 @@ export default async function OverviewPage() {
       </div>
 
       {/* ── TIER 1 — recommendations · autonomous response (horizontal) ────── */}
-      <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-2.5 lg:grid-cols-2">
         <Card className="p-3">
           <SectionTitleRow title="AI recommendations" href="/dashboard/recommendations" />
           <ul className="mt-1 divide-y divide-border">
@@ -225,7 +223,7 @@ export default async function OverviewPage() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-3">
+      <div className="grid grid-cols-1 items-start gap-2.5 lg:grid-cols-3">
         <Card className="p-3">
           <SectionTitleRow title="Attack surface" />
           <div className="flex items-center justify-between gap-2">
@@ -320,6 +318,17 @@ function Stat({ label, value, tone }: { label: string; value: string; tone?: str
       <span className="text-[11px] uppercase tracking-wide text-slate-500">{label}</span>
       <span className={cn("text-sm font-bold text-white", tone)}>{value}</span>
     </span>
+  );
+}
+
+/** Compact axis score chip — value over label, color-coded by severity. */
+function AxisStat({ label, value }: { label: string; value: number }) {
+  const level = scoreToLevel(value);
+  return (
+    <div className="text-center">
+      <p className={cn("text-base font-bold", `text-risk-${level}`)}>{value}</p>
+      <p className="text-[9px] uppercase tracking-wide text-slate-500">{label}</p>
+    </div>
   );
 }
 

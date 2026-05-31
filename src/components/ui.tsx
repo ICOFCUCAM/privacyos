@@ -189,14 +189,15 @@ export function StatCard({
 }
 
 /** Circular gauge for a 0–100 score (higher = worse exposure). */
-export function ScoreGauge({ score }: { score: number }) {
+export function ScoreGauge({ score, size = 144 }: { score: number; size?: number }) {
   const radius = 52;
   const circ = 2 * Math.PI * radius;
   const dash = (score / 100) * circ;
   const color =
     score >= 75 ? "#ef4444" : score >= 50 ? "#f97316" : score >= 25 ? "#eab308" : "#22c55e";
+  const valueClass = size <= 96 ? "text-2xl" : "text-3xl";
   return (
-    <div className="relative h-36 w-36">
+    <div className="relative shrink-0" style={{ height: size, width: size }}>
       <svg className="h-full w-full -rotate-90" viewBox="0 0 120 120">
         <circle cx="60" cy="60" r={radius} fill="none" stroke="#1f2430" strokeWidth="10" />
         <circle
@@ -211,8 +212,8 @@ export function ScoreGauge({ score }: { score: number }) {
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-3xl font-bold text-white">{score}</span>
-        <span className="text-xs text-slate-400">exposure</span>
+        <span className={cn("font-bold text-white", valueClass)}>{score}</span>
+        <span className="text-[10px] text-slate-400">exposure</span>
       </div>
     </div>
   );

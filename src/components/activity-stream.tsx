@@ -1,6 +1,6 @@
 import { Bot, ScrollText, ShieldAlert, Siren, Trash2, Workflow } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { Card, SectionTitle } from "@/components/ui";
+import { Card } from "@/components/ui";
 import { cn, timeAgo } from "@/lib/ui";
 import type { EventKind, EventSeverity, FeedEvent } from "@/lib/events/feed";
 
@@ -28,38 +28,35 @@ const sevColor: Record<EventSeverity, string> = {
  */
 export function ActivityStream({ events, live }: { events: FeedEvent[]; live: boolean }) {
   return (
-    <Card className="flex h-full flex-col">
-      <SectionTitle
-        title="Operations stream"
-        subtitle="Every defensive action, in real time"
-        action={
-          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-risk-low">
-            <span className="relative flex h-2 w-2">
-              <span className={cn("absolute inline-flex h-full w-full rounded-full bg-risk-low opacity-75", live && "animate-ping")} />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-risk-low" />
-            </span>
-            {live ? "LIVE" : "SAMPLE"}
+    <Card className="flex h-full flex-col p-3">
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-white">Operations stream</h2>
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-risk-low">
+          <span className="relative flex h-2 w-2">
+            <span className={cn("absolute inline-flex h-full w-full rounded-full bg-risk-low opacity-75", live && "animate-ping")} />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-risk-low" />
           </span>
-        }
-      />
-      <ol className="relative ml-1 max-h-[26rem] space-y-4 overflow-y-auto border-l border-border pl-5 pt-1">
+          {live ? "LIVE" : "SAMPLE"}
+        </span>
+      </div>
+      <ol className="relative ml-1 max-h-[24rem] flex-1 space-y-2 overflow-y-auto border-l border-border pl-5 pt-0.5">
         {events.map((e) => {
           const Icon = kindIcon[e.kind];
           return (
             <li key={e.id} className="relative">
               <span
                 className={cn(
-                  "absolute -left-[27px] flex h-5 w-5 items-center justify-center rounded-full ring-1",
+                  "absolute -left-[26px] flex h-4 w-4 items-center justify-center rounded-full ring-1",
                   sevColor[e.severity],
                 )}
               >
-                <Icon className="h-3 w-3" />
+                <Icon className="h-2.5 w-2.5" />
               </span>
               <div className="flex items-start justify-between gap-3">
-                <p className="text-sm font-medium leading-snug text-white">{e.title}</p>
-                <span className="shrink-0 text-[11px] text-slate-500">{timeAgo(e.at)}</span>
+                <p className="text-[13px] font-medium leading-snug text-white">{e.title}</p>
+                <span className="shrink-0 text-[10px] text-slate-500">{timeAgo(e.at)}</span>
               </div>
-              {e.detail && <p className="mt-0.5 text-xs text-slate-500">{e.detail} · {e.source}</p>}
+              {e.detail && <p className="text-[11px] leading-tight text-slate-500">{e.detail} · {e.source}</p>}
             </li>
           );
         })}
