@@ -1,6 +1,33 @@
 import type { ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
 import { cn, riskBg, titleCase } from "@/lib/ui";
 import type { RiskLevel } from "@/lib/types";
+
+/** Consistent page header: optional icon, title, subtitle and an actions slot. */
+export function PageHeader({
+  title,
+  subtitle,
+  icon: Icon,
+  actions,
+}: {
+  title: string;
+  subtitle?: string;
+  icon?: LucideIcon;
+  actions?: ReactNode;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <div className="flex items-center gap-3">
+        {Icon && <Icon className="h-7 w-7 shrink-0 text-brand" />}
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-white">{title}</h1>
+          {subtitle && <p className="mt-1 text-sm text-slate-400">{subtitle}</p>}
+        </div>
+      </div>
+      {actions && <div className="shrink-0">{actions}</div>}
+    </div>
+  );
+}
 
 export function Card({
   children,
