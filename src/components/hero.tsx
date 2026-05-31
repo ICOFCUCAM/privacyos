@@ -8,16 +8,23 @@ const trust = [
   "Dark Web Intelligence",
 ];
 
-// The asset is now background-free (transparent), so it integrates directly —
-// no frame, no mask. A soft drop-shadow gives it depth on the page.
+// Background-free render, integrated directly. No float, no frame — depth comes
+// from layered lighting and a refined two-stage shadow.
 const render: React.CSSProperties = {
-  filter: "drop-shadow(0 24px 60px rgba(79,70,229,0.4))",
+  filter:
+    "drop-shadow(0 22px 45px rgba(79,70,229,0.32)) drop-shadow(0 50px 110px rgba(0,0,0,0.6))",
 };
 
 export function Hero() {
   return (
     <section className="relative overflow-hidden">
-      <div className="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-4 px-6 pb-8 pt-16 lg:grid-cols-12 lg:gap-0 lg:pb-16 lg:pt-24">
+      {/* Ambient top light for depth */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 -top-40 h-[420px] bg-[radial-gradient(60%_100%_at_60%_0%,rgba(99,102,241,0.16),transparent_70%)]"
+      />
+
+      <div className="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-6 px-6 pb-10 pt-16 lg:grid-cols-12 lg:gap-0 lg:pb-20 lg:pt-28">
         {/* LEFT — copy */}
         <div className="relative z-10 lg:col-span-5">
           <span className="inline-flex items-center gap-2 rounded-full border border-border bg-bg-elevated/70 px-3 py-1 text-xs font-medium text-brand-fg backdrop-blur">
@@ -25,14 +32,14 @@ export function Hero() {
             The Operating System for Digital Privacy
           </span>
 
-          <h1 className="mt-6 text-4xl font-bold leading-[1.08] tracking-tight text-white sm:text-5xl xl:text-6xl">
+          <h1 className="mt-6 text-4xl font-bold leading-[1.06] tracking-tight text-white sm:text-5xl xl:text-[3.75rem]">
             Protect Your Entire{" "}
-            <span className="bg-gradient-to-r from-brand-fg to-brand bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-brand-fg via-brand to-brand-fg bg-clip-text text-transparent">
               Digital Life.
             </span>
           </h1>
 
-          <p className="mt-5 max-w-xl text-lg text-slate-400">
+          <p className="mt-5 max-w-xl text-lg leading-relaxed text-slate-400">
             PrivacyOS discovers, monitors, analyzes, and continuously defends your digital
             presence across search engines, data brokers, social media, dark web sources,
             and AI-generated threats.
@@ -41,42 +48,57 @@ export function Hero() {
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link
               href="/dashboard/assistant"
-              className="inline-flex items-center gap-2 rounded-lg bg-brand px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand/90"
+              className="group inline-flex items-center gap-2 rounded-lg bg-brand px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-brand/25 transition hover:bg-brand/90 hover:shadow-brand/40"
             >
               <ShieldCheck className="h-4 w-4" /> Get Protected
             </Link>
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-2 rounded-lg border border-border px-6 py-3 text-sm font-semibold text-slate-200 transition hover:bg-bg-elevated"
+              className="inline-flex items-center gap-2 rounded-lg border border-border bg-bg-elevated/40 px-6 py-3 text-sm font-semibold text-slate-200 backdrop-blur transition hover:bg-bg-elevated"
             >
               <PlayCircle className="h-4 w-4" /> Watch Demo
             </Link>
           </div>
 
-          <ul className="mt-8 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+          <ul className="mt-9 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
             {trust.map((t) => (
               <li key={t} className="flex items-center gap-2 text-sm text-slate-300">
-                <Check className="h-4 w-4 shrink-0 text-risk-low" />
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-risk-low/15">
+                  <Check className="h-3 w-3 text-risk-low" />
+                </span>
                 {t}
               </li>
             ))}
           </ul>
         </div>
 
-        {/* RIGHT — the product render, blended into the page (no frame) */}
+        {/* RIGHT — premium product render */}
         <div className="relative lg:col-span-7">
-          {/* Ambient global-network lighting behind the asset (extends past it) */}
+          {/* Layered intelligence-network lighting */}
           <div
             aria-hidden
-            className="pointer-events-none absolute left-1/2 top-1/2 -z-0 h-[150%] w-[150%] -translate-x-1/2 -translate-y-1/2"
+            className="pointer-events-none absolute left-1/2 top-1/2 -z-0 h-[155%] w-[155%] -translate-x-1/2 -translate-y-1/2"
           >
-            <div className="animate-pulse-glow absolute inset-[12%] rounded-full bg-brand/15 blur-3xl" />
-            <div className="animate-spin-slow absolute inset-[6%] rounded-full border border-brand/10" />
-            <div className="animate-spin-slow-rev absolute inset-[20%] rounded-full border border-brand/10" />
+            {/* wide soft halo */}
+            <div className="animate-pulse-glow absolute inset-[14%] rounded-full bg-brand/16 blur-3xl" />
+            {/* tighter bright core */}
+            <div className="absolute inset-[30%] rounded-full bg-brand/25 blur-2xl" />
+            {/* aurora wash */}
+            <div
+              className="absolute inset-0 opacity-50 blur-2xl"
+              style={{
+                background:
+                  "conic-gradient(from 210deg at 55% 45%, rgba(99,102,241,0.18), transparent 35%, rgba(165,180,252,0.12) 60%, transparent 85%)",
+              }}
+            />
+            {/* refined orbit rings */}
+            <div className="animate-spin-slow absolute inset-[6%] rounded-full border border-brand/15" />
+            <div className="animate-spin-slow-rev absolute inset-[19%] rounded-full border border-white/[0.06]" />
+            <div className="absolute inset-[33%] rounded-full border border-brand/10" />
           </div>
 
-          {/* Background-free render — integrates directly, bleeds under the copy */}
-          <div className="hero-float relative z-10 lg:-ml-10 lg:-mr-12">
+          {/* Static, background-free composition — bleeds under the copy */}
+          <div className="relative z-10 lg:-ml-12 lg:-mr-14">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <picture>
               <source srcSet="/hero-dashboard.webp" type="image/webp" />
@@ -93,7 +115,10 @@ export function Hero() {
       </div>
 
       {/* Soft transition into the social-proof bar */}
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-[88px] h-32 bg-gradient-to-b from-transparent to-bg" />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-[88px] h-32 bg-gradient-to-b from-transparent to-bg"
+      />
 
       {/* Social proof bar */}
       <div className="relative border-y border-border bg-bg-subtle/40">
@@ -105,7 +130,9 @@ export function Hero() {
             { v: "24/7", l: "AI Monitoring" },
           ].map((s) => (
             <div key={s.l} className="text-center">
-              <p className="text-2xl font-bold text-white sm:text-3xl">{s.v}</p>
+              <p className="bg-gradient-to-b from-white to-slate-400 bg-clip-text text-2xl font-bold text-transparent sm:text-3xl">
+                {s.v}
+              </p>
               <p className="mt-1 text-xs text-slate-400 sm:text-sm">{s.l}</p>
             </div>
           ))}
