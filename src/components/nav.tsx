@@ -8,6 +8,7 @@ import {
   Globe, Plane, UserCog, Network, Scale, Bell, Siren, MessageSquareHeart,
   Trash2, ScrollText, Settings, Lock, Users2, TrendingUp, Workflow, BadgeCheck, GitBranch, Blocks,
   LayoutTemplate, Gauge, FileLock2,
+  Search, Newspaper, LifeBuoy, Share2, Rocket,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/ui";
@@ -36,7 +37,20 @@ export const navGroups: NavGroup[] = [
       { href: "/dashboard/recommendations", label: "AI Recommendations", icon: Sparkles },
     ],
   },
-  { group: "ReputationOS", feature: "reputation", items: [{ href: "/dashboard/reputation", label: "Reputation", icon: Star }] },
+  {
+    group: "ReputationOS",
+    feature: "reputation",
+    items: [
+      { href: "/dashboard/reputation", label: "Overview", icon: Star },
+      { href: "/dashboard/reputation/growth", label: "Growth & Brand", icon: TrendingUp },
+      { href: "/dashboard/reputation/seo", label: "Search & SEO", icon: Search },
+      { href: "/dashboard/reputation/media", label: "Earned Media", icon: Newspaper },
+      { href: "/dashboard/reputation/recovery", label: "Recovery", icon: LifeBuoy },
+      { href: "/dashboard/reputation/social", label: "Social Strategy", icon: Share2 },
+      { href: "/dashboard/reputation/intelligence", label: "Intelligence", icon: Sparkles },
+      { href: "/dashboard/reputation/campaigns", label: "Campaigns", icon: Rocket },
+    ],
+  },
   {
     group: "ExecutiveOS",
     feature: "executive",
@@ -93,6 +107,15 @@ export function NavList({
   const pathname = usePathname();
   const isLocked = (f?: Feature) => f !== undefined && lockedFeatures.includes(f);
 
+  // Mark only the most specific matching item active, so a parent ("Overview")
+  // doesn't light up alongside its nested child ("Growth & Brand").
+  const matches = (href: string) =>
+    href === "/dashboard" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+  const activeHref = navGroups
+    .flatMap((g) => g.items.map((i) => i.href))
+    .filter(matches)
+    .sort((a, b) => b.length - a.length)[0];
+
   return (
     <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-2">
       {navGroups.map((grp, gi) => {
@@ -106,8 +129,7 @@ export function NavList({
               </p>
             )}
             {grp.items.map((item) => {
-              const active =
-                item.href === "/dashboard" ? pathname === item.href : pathname.startsWith(item.href);
+              const active = item.href === activeHref;
               const href = locked ? "/pricing" : item.href;
               return (
                 <Link
