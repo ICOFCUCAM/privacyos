@@ -262,4 +262,35 @@ export class SupabaseSchedulerStore implements SchedulerStore {
       );
     }
   }
+
+  async recordInvestigation(
+    userId: string,
+    subjectId: string,
+    threatTitle: string,
+    steps: { agent: string; label: string }[],
+  ): Promise<void> {
+    if (steps.length === 0) return;
+    // Resolve the most-recent threat row for this subject+title.
+    const { data: threat } = await this.db
+      .from("threats")
+      .select("id")
+      .eq("subject_id", subjectId)
+      .eq("title", threatTitle)
+      .order("detected_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!threat) return;
+    // Stagger timestamps a few minutes apart so the timeline reads chronologically.
+    const base = Date.now();
+    await this.db.from("threat_investigations").insert(
+      steps.map((s, i) => ({
+        user_id: userId,
+        subject_id: subjectId,
+        threat_id: threat.id,
+        agent: s.agent,
+        label: s.label,
+        created_at: new Date(base + i * 6 * 60_000).toISOString(),
+      })),
+    );
+  }
 }

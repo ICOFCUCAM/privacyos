@@ -9,6 +9,7 @@ import { getDataSource } from "@/lib/data";
 import {
   groupThreats, investigationTimeline, summarizeThreats, threatIntel, THREAT_CATEGORIES,
 } from "@/lib/intelligence/threat-intel";
+import { getThreatInvestigations } from "@/lib/intelligence/investigation-store";
 import { cn, timeAgo, titleCase } from "@/lib/ui";
 import type { AgentKind, RiskLevel, ThreatKind } from "@/lib/types";
 import { acknowledgeThreatAction } from "@/app/dashboard/actions";
@@ -42,6 +43,8 @@ export default async function ThreatsPage() {
 
   const summary = summarizeThreats(threats);
   const groups = groupThreats(threats);
+  // Real, persisted investigation steps per threat (live); empty in demo.
+  const investigations = await getThreatInvestigations();
 
   return (
     <div className="space-y-5">
@@ -106,7 +109,12 @@ export default async function ThreatsPage() {
 
                 {group.threats.map((t) => {
                   const intel = threatIntel(t);
-                  const timeline = investigationTimeline(t);
+                  const stored = investigations.get(t.id);
+                  // Prefer the real persisted trail; fall back to the derived one.
+                  const timeline = stored?.length
+                    ? stored.map((s) => ({ agent: s.agent as never, label: s.label, at: s.at }))
+                    : investigationTimeline(t).map((s) => ({ ...s, at: undefined as string | undefined }));
+                  const isReal = !!stored?.length;
                   return (
                     <Card key={t.id} className="space-y-3">
                       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -130,17 +138,25 @@ export default async function ThreatsPage() {
 
                       {/* Investigation timeline */}
                       <div className="rounded-lg border border-border bg-bg-subtle/30 p-3">
-                        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Investigation timeline</p>
+                        <div className="mb-2 flex items-center justify-between">
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Investigation timeline</p>
+                          <span className={cn("text-[9px] font-semibold uppercase", isReal ? "text-risk-low" : "text-slate-600")}>
+                            {isReal ? "Recorded" : "Projected"}
+                          </span>
+                        </div>
                         <ol className="relative ml-1 space-y-2 border-l border-border pl-4">
                           {timeline.map((step, i) => {
-                            const SIcon = AGENT_ICON[step.agent] ?? Brain;
+                            const SIcon = AGENT_ICON[step.agent as keyof typeof AGENT_ICON] ?? Brain;
                             return (
                               <li key={i} className="relative">
                                 <span className="absolute -left-[21px] flex h-4 w-4 items-center justify-center rounded-full bg-bg-elevated ring-1 ring-border">
                                   <SIcon className="h-2.5 w-2.5 text-brand-fg" />
                                 </span>
                                 <p className="text-xs text-slate-300">{step.label}</p>
-                                <p className="text-[10px] text-slate-600">{step.agent === "user" ? "You" : `${titleCase(step.agent)} agent`} · +{step.offsetMin}m</p>
+                                <p className="text-[10px] text-slate-600">
+                                  {step.agent === "user" ? "You" : `${titleCase(String(step.agent))} agent`}
+                                  {step.at ? ` · ${timeAgo(step.at)}` : ""}
+                                </p>
                               </li>
                             );
                           })}

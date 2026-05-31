@@ -45,6 +45,7 @@ class MemoryStore implements SchedulerStore {
   notifications: NewNotification[][] = [];
   savedRemovals: RemovalRequest[] = [];
   createdRemovals: Omit<RemovalRequest, "id">[] = [];
+  investigations: { threatTitle: string; steps: { agent: string; label: string }[] }[] = [];
   reputation: ReputationData[] = [];
   domainScans: DomainScanData[] = [];
 
@@ -58,6 +59,9 @@ class MemoryStore implements SchedulerStore {
   }
   async listRemovalsForSubject(_s: string): Promise<RemovalRequest[]> {
     return this.removals;
+  }
+  async recordInvestigation(_u: string, _s: string, threatTitle: string, steps: { agent: string; label: string }[]) {
+    this.investigations.push({ threatTitle, steps });
   }
   async createRemovals(_u: string, _s: string, requests: Omit<RemovalRequest, "id">[]) {
     this.createdRemovals.push(...requests);
@@ -150,6 +154,10 @@ describe("runScheduledCycle", () => {
     expect(summary.subjectsProcessed).toBe(2);
     expect(summary.newThreats).toBe(2);
     expect(store.runs).toHaveLength(2);
+    // each new threat gets a recorded investigation (Discovery → Threat Intel → …)
+    expect(store.investigations).toHaveLength(2);
+    expect(store.investigations[0].steps[0].agent).toBe("discovery");
+    expect(store.investigations[0].steps.length).toBeGreaterThanOrEqual(2);
     // one agent state per fleet member, per run
     expect(store.runs[0].agentStates).toHaveLength(AGENT_COUNT);
     // three score snapshots per subject

@@ -109,4 +109,7 @@ export interface SchedulerStore {
   saveReputation(userId: string, subjectId: string, data: ReputationData): Promise<void>;
   /** Upsert the domain and replace its risks from a DNS/email-security scan. */
   saveDomainRisks(userId: string, data: DomainScanData): Promise<void>;
+  /** Append timestamped investigation steps for a newly-discovered threat,
+   *  resolved by (subjectId, threatTitle). No-op if the threat row isn't found. */
+  recordInvestigation(userId: string, subjectId: string, threatTitle: string, steps: { agent: string; label: string }[]): Promise<void>;
 }

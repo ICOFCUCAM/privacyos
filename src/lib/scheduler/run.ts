@@ -17,6 +17,7 @@ import type { DiscoverySource } from "@/lib/discovery/source";
 import { computeRiskScore } from "@/lib/scoring/risk-score";
 import { advanceRemoval, shouldReappear } from "@/lib/brokers/removal";
 import { planAutoFilings } from "@/lib/brokers/auto-file";
+import { investigationTimeline } from "@/lib/intelligence/threat-intel";
 import { collectReputation, type MentionSource } from "@/lib/reputation/collect";
 import { scanDomain } from "@/lib/domains/scan";
 import { DohClient } from "@/lib/domains/dns";
@@ -59,6 +60,13 @@ export async function runScheduledCycle(
     );
     if (finding.exposures.length || finding.threats.length) {
       await store.saveDiscovered(fp.userId, finding.exposures, finding.threats);
+    }
+
+    // Record the timestamped, agent-driven investigation for each NEW threat so
+    // the Threat Intelligence page shows the real trail, not just a derived one.
+    for (const t of finding.threats) {
+      const steps = investigationTimeline(t).map((s) => ({ agent: s.agent, label: s.label }));
+      await store.recordInvestigation(fp.userId, fp.subject.id, t.title, steps);
     }
 
     const exposures = [...fp.exposures, ...finding.exposures];
