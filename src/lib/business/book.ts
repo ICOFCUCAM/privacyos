@@ -12,7 +12,9 @@
  */
 
 import { PLANS, type PlanCategory } from "@/lib/billing/plans";
+import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { Account, AccountStatus } from "./saas-metrics";
+import { rowsToBook } from "./book-mapper";
 
 const iso = (daysAgo: number) => new Date(Date.now() - daysAgo * 86_400_000).toISOString();
 
@@ -111,10 +113,26 @@ export function demoBook(): Account[] {
 }
 
 /**
- * Resolve the active book of business. Demo today; swap to a Supabase-backed
- * reader (real `subscriptions` rows) behind this same signature when the billing
- * warehouse is connected.
+ * Resolve the operator's book of business across all customers. When the
+ * service-role admin client is configured and the `subscriptions` table holds
+ * real rows, the live aggregate book is returned; otherwise we fall back to the
+ * deterministic demo book so the operator console is always populated. Never
+ * throws — billing intelligence must not break the dashboard.
  */
 export async function getBook(): Promise<{ accounts: Account[]; live: boolean }> {
+  try {
+    const admin = getSupabaseAdminClient();
+    if (admin) {
+      const { data, error } = await admin
+        .from("subscriptions")
+        .select("id,plan_id,status,current_period_end,cancel_at_period_end,created_at");
+      if (!error && data && data.length > 0) {
+        const accounts = rowsToBook(data);
+        if (accounts.length > 0) return { accounts, live: true };
+      }
+    }
+  } catch {
+    // fall through to demo book
+  }
   return { accounts: demoBook(), live: false };
 }
