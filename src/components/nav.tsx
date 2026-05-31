@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Radar, ShieldAlert, Star, FolderKanban,
   Bot, Building2, Users, Crown, FileText, Sparkles,
   Globe, Plane, UserCog, Network, Scale, Bell, Siren, MessageSquareHeart,
-  Trash2, ScrollText, Settings, Lock, Users2,
+  Trash2, ScrollText, Settings, Lock, Users2, TrendingUp,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/ui";
@@ -59,6 +59,12 @@ export const navGroups: NavGroup[] = [
       { href: "/dashboard/audit", label: "Audit Log", icon: ScrollText },
       { href: "/dashboard/notifications", label: "Notifications", icon: Bell },
       { href: "/dashboard/settings", label: "Settings", icon: Settings },
+    ],
+  },
+  {
+    group: "Operator",
+    items: [
+      { href: "/dashboard/business-intelligence", label: "Growth & Revenue", icon: TrendingUp },
     ],
   },
 ];

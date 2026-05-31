@@ -15,6 +15,7 @@ import {
   AgentsSection,
   ActivitySection,
   EcosystemSection,
+  EnterpriseSection,
 } from "@/components/landing-sections";
 import { SecurityArchitecture } from "@/components/security-architecture";
 import { buttonClasses } from "@/components/ui";
@@ -62,6 +63,8 @@ export default function LandingPage() {
       <TrustStrip />
 
       <EcosystemSection />
+
+      <EnterpriseSection />
 
       <AgentsSection />
 

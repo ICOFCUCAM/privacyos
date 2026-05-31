@@ -183,3 +183,62 @@ export function EcosystemSection() {
     </section>
   );
 }
+
+/* ── Enterprise infrastructure positioning ───────────────────────────────── */
+
+const enterpriseCapabilities: { icon: LucideIcon; title: string; desc: string }[] = [
+  { icon: Crown, title: "Monitor executives", desc: "VIP doxxing, impersonation, deepfake and travel-risk protection at board level." },
+  { icon: Building2, title: "Protect the workforce", desc: "Employee exposure, credential-leak and third-party risk across the whole org." },
+  { icon: ScanFace, title: "Detect deepfakes & impersonation", desc: "Proprietary detection models with measured precision, recall and F1." },
+  { icon: Scale, title: "Automate compliance & legal", desc: "GDPR/CCPA requests, broker opt-outs and an append-only audit trail, generated automatically." },
+  { icon: Star, title: "Manage reputation", desc: "Search, brand, news and sentiment intelligence with recovery workflows." },
+  { icon: Sparkles, title: "Run autonomous AI agents", desc: "A fleet of specialists that discover, remediate and escalate 24/7 — your automation moat." },
+];
+
+const investorMetrics: { label: string; value: string; note: string }[] = [
+  { label: "Recurring revenue", value: "MRR / ARR", note: "subscription-based & compounding" },
+  { label: "Net revenue retention", value: ">100%", note: "expansion outpaces churn" },
+  { label: "Detection accuracy", value: "F1-scored", note: "measured, not claimed" },
+  { label: "Automation moat", value: "Agent-run", note: "work done without a human" },
+];
+
+export function EnterpriseSection() {
+  return (
+    <section className="border-y border-border bg-bg-elevated/30">
+      <div className="mx-auto max-w-6xl px-6 py-24">
+        <div className="mx-auto max-w-2xl text-center">
+          <span className="text-xs font-semibold uppercase tracking-wider text-brand-fg">Enterprise Infrastructure</span>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            Where companies make PrivacyOS critical infrastructure.
+          </h2>
+          <p className="mt-4 text-lg text-slate-400">
+            Recurring, sticky and hard to replace — organizations run their entire digital-risk
+            operation on PrivacyOS, from executive protection to compliance automation.
+          </p>
+        </div>
+
+        <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {enterpriseCapabilities.map((c) => (
+            <div key={c.title} className="rounded-xl border border-border bg-bg-elevated/60 p-5">
+              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-brand/25 to-brand/5">
+                <c.icon className="h-5 w-5 text-brand-fg" />
+              </span>
+              <h3 className="mt-3 font-semibold text-white">{c.title}</h3>
+              <p className="mt-1 text-sm text-slate-400">{c.desc}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-12 grid grid-cols-2 gap-4 rounded-2xl border border-border bg-bg-elevated/60 p-6 lg:grid-cols-4">
+          {investorMetrics.map((m) => (
+            <div key={m.label} className="text-center">
+              <p className="text-2xl font-bold text-white">{m.value}</p>
+              <p className="mt-1 text-sm font-medium text-slate-300">{m.label}</p>
+              <p className="mt-0.5 text-xs text-slate-500">{m.note}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
