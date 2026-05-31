@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Card, DataBadge, PageHeader, RiskBadge, Pill, SectionTitle, StatCard } from "@/components/ui";
+import { buttonClasses, Card, DataBadge, PageHeader, RiskBadge, Pill, SectionTitle, StatCard } from "@/components/ui";
 import { SeverityBar } from "@/components/viz";
 import { getModuleData } from "@/lib/data/modules";
 import { cn, timeAgo, titleCase } from "@/lib/ui";
@@ -88,7 +88,7 @@ export default async function IncidentsPage({
                 <span className="text-xs text-slate-500">{timeAgo(i.detectedAt)}</span>
               </div>
             </div>
-            <button className="shrink-0 self-center rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:bg-bg-elevated">
+            <button className={buttonClasses("secondary", "sm", "shrink-0 self-center")}>
               Open case
             </button>
           </Card>

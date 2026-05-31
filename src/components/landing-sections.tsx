@@ -5,6 +5,7 @@ import {
   Radar, Eye, Sparkles, ArrowRight,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { buttonClasses } from "@/components/ui";
 import { AGENT_CATALOG } from "@/lib/data/mappers";
 import type { AgentKind } from "@/lib/types";
 import { cn } from "@/lib/ui";
@@ -175,7 +176,7 @@ export function EcosystemSection() {
       </div>
 
       <div className="mt-10 flex justify-center">
-        <Link href="/pricing" className="inline-flex items-center gap-2 rounded-lg bg-brand px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand/90">
+        <Link href="/pricing" className={buttonClasses("primary", "lg")}>
           Explore plans <ArrowRight className="h-4 w-4" />
         </Link>
       </div>

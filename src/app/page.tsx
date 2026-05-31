@@ -17,6 +17,7 @@ import {
   EcosystemSection,
 } from "@/components/landing-sections";
 import { SecurityArchitecture } from "@/components/security-architecture";
+import { buttonClasses } from "@/components/ui";
 
 const modules = [
   { icon: Search, title: "Privacy Discovery", desc: "Find every discoverable exposure across the public internet, brokers and breaches." },
@@ -50,10 +51,7 @@ export default function LandingPage() {
           >
             Pricing
           </Link>
-          <Link
-            href="/dashboard"
-            className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90"
-          >
+          <Link href="/dashboard" className={buttonClasses("primary", "md")}>
             Open Dashboard
           </Link>
         </div>
@@ -103,10 +101,10 @@ export default function LandingPage() {
             Discover what&apos;s exposed, remove it, and let autonomous agents defend you around the clock.
           </p>
           <div className="mt-8 flex items-center justify-center gap-3">
-            <Link href="/dashboard/assistant" className="rounded-lg bg-brand px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand/90">
+            <Link href="/dashboard/assistant" className={buttonClasses("primary", "lg")}>
               Get Protected
             </Link>
-            <Link href="/pricing" className="rounded-lg border border-border px-6 py-3 text-sm font-semibold text-slate-200 transition hover:bg-bg-elevated">
+            <Link href="/pricing" className={buttonClasses("secondary", "lg")}>
               View Pricing
             </Link>
           </div>

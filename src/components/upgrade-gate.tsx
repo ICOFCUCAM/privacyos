@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Lock, ArrowRight } from "lucide-react";
+import { buttonClasses } from "@/components/ui";
 
 /**
  * Full-page gate shown when the current plan doesn't include a suite. Renders a
@@ -23,7 +24,7 @@ export function UpgradeGate({
       <p className="mt-2 text-sm text-slate-400">{description}</p>
       <Link
         href={`/pricing#${upsell}`}
-        className="mt-6 inline-flex items-center gap-2 rounded-lg bg-brand px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand/90"
+        className={buttonClasses("primary", "md", "mt-6 px-5 py-2.5")}
       >
         View {suite} plans <ArrowRight className="h-4 w-4" />
       </Link>

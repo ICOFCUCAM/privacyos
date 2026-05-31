@@ -1,5 +1,5 @@
 import { Scale, Download } from "lucide-react";
-import { Card, PageHeader, Pill, SectionTitle, StatCard } from "@/components/ui";
+import { buttonClasses, Card, PageHeader, Pill, SectionTitle, StatCard } from "@/components/ui";
 import { getModuleData } from "@/lib/data/modules";
 import { LEGAL_TYPE_LABELS } from "@/lib/legal/engine";
 import { cn, timeAgo, titleCase } from "@/lib/ui";
@@ -53,7 +53,7 @@ export default async function LegalPage() {
             <span className="mb-1 block text-xs font-medium text-slate-400">Matter (optional)</span>
             <input name="matter" placeholder="e.g. home address listing" className="w-full rounded-lg border border-border bg-bg-subtle px-3 py-2 text-sm text-white outline-none focus:border-brand" />
           </label>
-          <button type="submit" className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90">
+          <button type="submit" className={buttonClasses("primary", "md")}>
             <Download className="h-4 w-4" /> Generate
           </button>
         </form>

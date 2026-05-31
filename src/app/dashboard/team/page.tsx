@@ -1,5 +1,5 @@
 import { Users2, UserPlus } from "lucide-react";
-import { Card, DataBadge, PageHeader, Pill, SectionTitle, StatCard } from "@/components/ui";
+import { buttonClasses, Card, DataBadge, PageHeader, Pill, SectionTitle, StatCard } from "@/components/ui";
 import { getMembership, listTeam } from "@/lib/rbac/membership";
 import { assignableRoles, can, canManageMember, ROLE_LABEL, type OrgRole } from "@/lib/rbac/roles";
 import { cn } from "@/lib/ui";
@@ -64,7 +64,7 @@ export default async function TeamPage() {
                 ))}
               </select>
             </label>
-            <button type="submit" className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90">
+            <button type="submit" className={buttonClasses("primary", "md")}>
               <UserPlus className="h-4 w-4" /> Send invite
             </button>
           </form>
@@ -100,11 +100,11 @@ export default async function TeamPage() {
                       <select name="role" defaultValue={m.role} className="rounded-md border border-border bg-bg-subtle px-2 py-1 text-xs text-white outline-none focus:border-brand">
                         {assignable.map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
                       </select>
-                      <button type="submit" className="rounded-md border border-border px-2 py-1 text-xs text-slate-200 transition hover:bg-bg-elevated">Save</button>
+                      <button type="submit" className={buttonClasses("secondary", "sm", "gap-0 px-2 py-1")}>Save</button>
                     </form>
                     <form action={removeMemberAction}>
                       <input type="hidden" name="id" value={m.id} />
-                      <button type="submit" className="rounded-md border border-border px-2 py-1 text-xs text-risk-critical transition hover:bg-bg-elevated">Remove</button>
+                      <button type="submit" className={buttonClasses("secondary", "sm", "gap-0 px-2 py-1 text-risk-critical")}>Remove</button>
                     </form>
                   </div>
                 ) : (

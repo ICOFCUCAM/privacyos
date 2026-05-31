@@ -1,5 +1,5 @@
 import { FileText, ExternalLink, Download } from "lucide-react";
-import { Card, PageHeader, Pill } from "@/components/ui";
+import { buttonClasses, Card, PageHeader, Pill } from "@/components/ui";
 import { REPORT_TITLES } from "@/lib/reports/engine";
 import type { ReportType } from "@/lib/suite-types";
 
@@ -42,13 +42,13 @@ export default function ReportsPage() {
                 href={`/api/reports/${t}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-slate-200 transition hover:bg-bg-elevated"
+                className={buttonClasses("secondary", "md", "flex-1 px-3 py-2")}
               >
                 <ExternalLink className="h-4 w-4" /> View
               </a>
               <a
                 href={`/api/reports/${t}?format=pdf`}
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-white transition hover:bg-brand/90"
+                className={buttonClasses("primary", "md", "flex-1 px-3 py-2")}
               >
                 <Download className="h-4 w-4" /> PDF
               </a>

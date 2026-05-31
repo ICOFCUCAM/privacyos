@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ShieldAlert, ArrowRight } from "lucide-react";
+import { buttonClasses } from "@/components/ui";
 
 export default function NotFound() {
   return (
@@ -15,10 +16,10 @@ export default function NotFound() {
         The address may be wrong or the page has moved. Your protection is still active.
       </p>
       <div className="mt-8 flex items-center gap-3">
-        <Link href="/" className="rounded-lg bg-brand px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand/90">
+        <Link href="/" className={buttonClasses("primary", "md", "px-5 py-2.5")}>
           Back home
         </Link>
-        <Link href="/dashboard" className="inline-flex items-center gap-2 rounded-lg border border-border px-5 py-2.5 text-sm font-semibold text-slate-200 transition hover:bg-bg-elevated">
+        <Link href="/dashboard" className={buttonClasses("secondary", "md", "px-5 py-2.5")}>
           Open dashboard <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
