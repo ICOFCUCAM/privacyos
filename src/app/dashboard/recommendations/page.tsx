@@ -7,7 +7,8 @@ import { approveRecommendationAction } from "@/app/dashboard/actions";
 export const metadata = { title: "AI Recommendations" };
 
 export default async function RecommendationsPage() {
-  const { recommendations } = await (await getDataSource()).getDataset();
+  const ds = await getDataSource();
+  const { recommendations } = await ds.getDataset();
   const totalImpact = recommendations.reduce((s, r) => s + r.impact, 0);
   const maxImpact = Math.max(1, ...recommendations.map((r) => r.impact));
 
@@ -15,7 +16,7 @@ export default async function RecommendationsPage() {
     <div className="space-y-6">
       <PageHeader
         title="AI Recommendations"
-        subtitle="Prioritized actions from your agents. Approve to let PrivacyOS execute them."
+        subtitle="Prioritized actions from your agents. Approving one opens a tracked case for the owning agent."
         actions={
           <div className="rounded-lg border border-border bg-bg-elevated px-4 py-2 text-right">
             <p className="text-xs text-slate-400">Projected score drop</p>
@@ -23,6 +24,12 @@ export default async function RecommendationsPage() {
           </div>
         }
       />
+
+      {!ds.live && (
+        <div className="rounded-lg border border-risk-medium/30 bg-risk-medium/10 px-4 py-2.5 text-xs text-risk-medium">
+          Sample data — approvals are illustrative in demo mode. Connect your account to execute them and open real cases.
+        </div>
+      )}
 
       <div className="space-y-3">
         {recommendations.map((r) => (

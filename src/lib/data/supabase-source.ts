@@ -10,6 +10,7 @@ import type { ProtectOutcome } from "@/lib/agents/orchestrator";
 import type { DiscoveryFinding } from "@/lib/discovery/source";
 import { computeRiskScore } from "@/lib/scoring/risk-score";
 import { advanceRemoval, createRemoval, shouldReappear } from "@/lib/brokers/removal";
+import { caseFromRecommendation } from "@/lib/agents/recommendation-routing";
 import type { DataSource, PrivacyDataSet } from "./source";
 import {
   aggregateAgentStates,
@@ -68,6 +69,36 @@ export class SupabaseDataSource implements DataSource {
   }
 
   async approveRecommendation(id: string): Promise<void> {
+    // Approving a recommendation opens a real, tracked Case assigned to the
+    // owning agent, then marks the recommendation approved (so it leaves the
+    // queue). This turns approval into actual remediation work, not just a flag.
+    const { data: rec, error: recErr } = await this.db
+      .from("recommendations")
+      .select("id,subject_id,agent,title,rationale,risk_level")
+      .eq("id", id)
+      .maybeSingle();
+    if (recErr) throw recErr;
+
+    if (rec) {
+      const fields = caseFromRecommendation({
+        id: rec.id,
+        agent: rec.agent,
+        title: rec.title,
+        rationale: rec.rationale ?? "",
+        riskLevel: rec.risk_level,
+      });
+      const { error: caseErr } = await this.db.from("cases").insert({
+        subject_id: rec.subject_id,
+        type: fields.type,
+        title: fields.title,
+        summary: fields.summary,
+        status: "in_progress",
+        risk_level: fields.riskLevel,
+        assigned_agent: fields.assignedAgent,
+      });
+      if (caseErr) throw caseErr;
+    }
+
     const { error } = await this.db.from("recommendations").update({ approved: true }).eq("id", id);
     if (error) throw error;
   }

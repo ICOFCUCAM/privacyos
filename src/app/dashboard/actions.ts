@@ -22,6 +22,8 @@ export async function approveRecommendationAction(formData: FormData): Promise<v
   const ds = await getDataSource();
   await ds.approveRecommendation(id);
   await recordAudit({ action: "recommendation.approved", entity: "recommendation", entityId: id });
+  // Approval opens a tracked case, so refresh the cases view too.
   revalidatePath("/dashboard/recommendations");
+  revalidatePath("/dashboard/cases");
   revalidatePath("/dashboard");
 }
