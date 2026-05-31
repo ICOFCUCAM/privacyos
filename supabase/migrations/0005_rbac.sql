@@ -1,11 +1,18 @@
 -- PrivacyOS organization RBAC: team membership with roles.
 -- Members belong to an organization with a role (owner/admin/member/viewer).
 -- A SECURITY DEFINER helper avoids recursive RLS when policies check membership.
+-- Idempotent: safe to re-run.
 
-create type org_role as enum ('owner', 'admin', 'member', 'viewer');
-create type member_status as enum ('invited', 'active');
+do $$ begin
+  if not exists (select 1 from pg_type where typname = 'org_role') then
+    create type org_role as enum ('owner', 'admin', 'member', 'viewer');
+  end if;
+  if not exists (select 1 from pg_type where typname = 'member_status') then
+    create type member_status as enum ('invited', 'active');
+  end if;
+end $$;
 
-create table org_members (
+create table if not exists org_members (
   id          uuid primary key default gen_random_uuid(),
   org_id      uuid not null references organizations(id) on delete cascade,
   user_id     uuid references auth.users(id) on delete cascade,
@@ -14,9 +21,9 @@ create table org_members (
   status      member_status not null default 'invited',
   created_at  timestamptz not null default now()
 );
-create unique index org_members_org_email_idx on org_members(org_id, lower(email));
-create index org_members_user_idx on org_members(user_id);
-create index org_members_org_idx on org_members(org_id);
+create unique index if not exists org_members_org_email_idx on org_members(org_id, lower(email));
+create index if not exists org_members_user_idx on org_members(user_id);
+create index if not exists org_members_org_idx on org_members(org_id);
 
 -- Current user's role in an org (NULL if not a member). SECURITY DEFINER so the
 -- membership lookup in RLS policies does not recurse through RLS.
@@ -35,8 +42,11 @@ $$;
 alter table org_members enable row level security;
 
 -- Members can read their org's roster; only owners/admins can write.
+drop policy if exists org_members_select on org_members;
 create policy org_members_select on org_members
   for select using (user_id = auth.uid() or public.org_role_for(org_id) is not null);
+
+drop policy if exists org_members_write on org_members;
 create policy org_members_write on org_members
   for all
   using (public.org_role_for(org_id) in ('owner', 'admin'))
@@ -60,6 +70,7 @@ begin
 end;
 $$;
 
+drop trigger if exists organizations_add_owner on organizations;
 create trigger organizations_add_owner
   after insert on organizations
   for each row execute function public.add_org_owner();
