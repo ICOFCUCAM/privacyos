@@ -148,9 +148,9 @@ export default async function OverviewPage() {
       </div>
 
       {/* ── TIER 1 — score+recs · operations stream · agent fleet ───────────
-          Content-driven cards (items-start) so each sizes to its own content —
-          no fixed-height band, no overflow bleeding over the charts below. */}
-      <div className="grid grid-cols-1 items-start gap-2.5 xl:grid-cols-12">
+          Columns stretch to equal height; the recommendations card and agent
+          roster grow to fill, so no gap forms beneath the taller stream. */}
+      <div className="grid grid-cols-1 items-stretch gap-2.5 xl:grid-cols-12">
         {/* Left: score + axis breakdown + recommendations */}
         <div className="flex flex-col gap-2.5 xl:col-span-3">
           <Card className="p-3">
@@ -177,11 +177,11 @@ export default async function OverviewPage() {
               <AxisStat label="Family" value={score.family} />
             </div>
           </Card>
-          <Card className="p-3">
+          <Card className="flex flex-1 flex-col p-3">
             <SectionTitleRow title="AI recommendations" href="/dashboard/recommendations" />
-            <ul className="divide-y divide-border">
+            <ul className="flex flex-1 flex-col divide-y divide-border">
               {topRecs.map((r) => (
-                <li key={r.id} className="flex items-center gap-2.5 py-1.5">
+                <li key={r.id} className="flex flex-1 items-center gap-2.5 py-1.5">
                   <Sparkles className="h-3.5 w-3.5 shrink-0 text-brand" />
                   <span className="min-w-0 flex-1 truncate text-[13px] text-white">{r.title}</span>
                   <span className="shrink-0 text-[11px] font-semibold text-risk-low">−{r.impact}</span>
@@ -193,12 +193,12 @@ export default async function OverviewPage() {
         </div>
 
         {/* Middle: live operations stream */}
-        <div className="xl:col-span-5">
+        <div className="flex flex-col xl:col-span-5">
           <ActivityStream events={feed} live={live} />
         </div>
 
         {/* Right: the full agent fleet as a 4-column icon-tile grid (benchmark) */}
-        <div className="xl:col-span-4">
+        <div className="flex flex-col xl:col-span-4">
           <AgentRoster roster={roster} online={onlineAgents} total={totalAgents} live={live} columns="tiles" />
         </div>
       </div>

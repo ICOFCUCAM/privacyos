@@ -28,7 +28,7 @@ const sevColor: Record<EventSeverity, string> = {
  */
 export function ActivityStream({ events, live }: { events: FeedEvent[]; live: boolean }) {
   return (
-    <Card className="flex flex-col p-3">
+    <Card className="flex h-full flex-col p-3">
       <div className="mb-2 flex items-center justify-between">
         <h2 className="text-sm font-semibold text-white">Operations stream</h2>
         <span className="inline-flex items-center gap-1.5 text-xs font-medium text-risk-low">

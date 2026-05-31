@@ -87,7 +87,7 @@ export function AgentRoster({
 
       {columns === "tiles" ? (
         /* Benchmark layout: 4-column grid of circular icon tiles. */
-        <ul className="grid flex-1 grid-cols-3 content-start gap-x-2 gap-y-3 sm:grid-cols-4">
+        <ul className="grid flex-1 grid-cols-3 content-between gap-x-2 gap-y-3 sm:grid-cols-4">
           {roster.map((a) => {
             const Icon = a.locked ? Lock : AGENT_ICON[a.kind];
             return (
