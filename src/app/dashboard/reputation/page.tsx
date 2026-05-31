@@ -14,6 +14,8 @@ const sentColor: Record<SentimentLabel, string> = {
   mixed: "text-risk-medium",
 };
 
+export const metadata = { title: "ReputationOS" };
+
 export default async function ReputationPage() {
   const { subject } = await (await getDataSource()).getDataset();
   const moduleData = await getModuleData();
