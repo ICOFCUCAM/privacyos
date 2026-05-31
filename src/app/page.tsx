@@ -8,8 +8,8 @@ import {
   Building2,
   Users,
   ScanFace,
-  ArrowRight,
 } from "lucide-react";
+import { Hero } from "@/components/hero";
 
 const modules = [
   { icon: Search, title: "Privacy Discovery", desc: "Find every discoverable exposure across the public internet, brokers and breaches." },
@@ -46,40 +46,9 @@ export default function LandingPage() {
         </div>
       </header>
 
-      <section className="mx-auto max-w-4xl px-6 py-24 text-center">
-        <span className="inline-flex items-center gap-2 rounded-full border border-border bg-bg-elevated px-3 py-1 text-xs font-medium text-brand-fg">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand" />
-          The operating system for digital privacy
-        </span>
-        <h1 className="mt-6 text-5xl font-bold leading-tight tracking-tight text-white sm:text-6xl">
-          The antivirus for your
-          <span className="bg-gradient-to-r from-brand-fg to-brand bg-clip-text text-transparent">
-            {" "}
-            personal information
-          </span>
-        </h1>
-        <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-400">
-          PrivacyOS discovers, monitors, analyzes, and continuously defends your
-          digital presence across search engines, data brokers, social media,
-          the dark web, and AI-generated content — powered by autonomous AI agents.
-        </p>
-        <div className="mt-10 flex items-center justify-center gap-4">
-          <Link
-            href="/dashboard/assistant"
-            className="inline-flex items-center gap-2 rounded-lg bg-brand px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand/90"
-          >
-            Protect me <ArrowRight className="h-4 w-4" />
-          </Link>
-          <a
-            href="https://code.claude.com/docs/en/claude-code-on-the-web"
-            className="rounded-lg border border-border px-6 py-3 text-sm font-semibold text-slate-200 transition hover:bg-bg-elevated"
-          >
-            View architecture
-          </a>
-        </div>
-      </section>
+      <Hero />
 
-      <section className="mx-auto max-w-6xl px-6 pb-28">
+      <section className="mx-auto max-w-6xl px-6 py-28">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {modules.map((m) => (
             <div
