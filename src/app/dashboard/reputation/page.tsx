@@ -1,4 +1,4 @@
-import { Card, DataBadge, RiskBadge, Pill, SectionTitle, StatCard, SentimentBars } from "@/components/ui";
+import { Card, DataBadge, PageHeader, RiskBadge, Pill, SectionTitle, StatCard, SentimentBars } from "@/components/ui";
 import { ReputationScanButton } from "@/components/reputation-scan-button";
 import { getDataSource } from "@/lib/data";
 import { getModuleData } from "@/lib/data/modules";
@@ -30,18 +30,16 @@ export default async function ReputationPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white">ReputationOS</h1>
-          <p className="mt-1 text-sm text-slate-400">
-            Search visibility, brand & news monitoring, sentiment analysis, defamation tracking and SEO recovery for {subject.displayName}.
-          </p>
-        </div>
-        <div className="flex flex-col items-end gap-2">
-          <DataBadge live={moduleData.live} />
-          <ReputationScanButton />
-        </div>
-      </div>
+      <PageHeader
+        title="ReputationOS"
+        subtitle={`Search visibility, brand & news monitoring, sentiment analysis, defamation tracking and SEO recovery for ${subject.displayName}.`}
+        actions={
+          <div className="flex flex-col items-end gap-2">
+            <DataBadge live={moduleData.live} />
+            <ReputationScanButton />
+          </div>
+        }
+      />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="Reputation risk" value={repScore} accent={cn(scoreToLevel(repScore) === "critical" || scoreToLevel(repScore) === "high" ? "text-risk-high" : "text-white")} hint="Higher = more at risk" />

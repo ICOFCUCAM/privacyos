@@ -1,4 +1,4 @@
-import { Card, RiskBadge, Pill, SectionTitle, StatCard } from "@/components/ui";
+import { Card, PageHeader, RiskBadge, Pill, SectionTitle, StatCard } from "@/components/ui";
 import { RiskDonut } from "@/components/viz";
 import { getDataSource } from "@/lib/data";
 import { timeAgo, titleCase } from "@/lib/ui";
@@ -20,12 +20,10 @@ export default async function CasesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Active Cases</h1>
-        <p className="mt-1 text-sm text-slate-400">
-          Remediation work, mostly driven autonomously by your agents.
-        </p>
-      </div>
+      <PageHeader
+        title="Active Cases"
+        subtitle="Remediation work, mostly driven autonomously by your agents."
+      />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card className="flex items-center gap-5">

@@ -1,8 +1,10 @@
 import { Users } from "lucide-react";
-import { Card, DataBadge, RiskBadge, SectionTitle, StatCard } from "@/components/ui";
+import { Card, DataBadge, PageHeader, RiskBadge, SectionTitle, StatCard } from "@/components/ui";
 import { RiskDonut } from "@/components/viz";
 import { getModuleData } from "@/lib/data/modules";
 import type { RiskLevel } from "@/lib/types";
+
+export const metadata = { title: "Family Protection" };
 
 export default async function FamilyPage() {
   const moduleData = await getModuleData();
@@ -13,18 +15,12 @@ export default async function FamilyPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Users className="h-7 w-7 text-brand" />
-          <div>
-            <h1 className="text-2xl font-bold text-white">Family Protection</h1>
-            <p className="mt-1 text-sm text-slate-400">
-              Protect children, parents and elderly relatives — data, photos, school and location exposure.
-            </p>
-          </div>
-        </div>
-        <DataBadge live={moduleData.live} />
-      </div>
+      <PageHeader
+        icon={Users}
+        title="Family Protection"
+        subtitle="Protect children, parents and elderly relatives — data, photos, school and location exposure."
+        actions={<DataBadge live={moduleData.live} />}
+      />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="Members protected" value={familyMembers.length} />

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { entitlementsFor, isEntitled } from "./entitlements";
+import { availableAgents, DEMO_ENTITLEMENTS, entitlementsFor, isEntitled } from "./entitlements";
 
 describe("entitlements", () => {
   it("treats active/trialing/past_due as entitled, others not", () => {
@@ -41,5 +41,44 @@ describe("entitlements", () => {
 
   it("ignores unknown plan ids", () => {
     expect(entitlementsFor({ planId: "bogus", status: "active" }).entitled).toBe(false);
+  });
+});
+
+describe("availableAgents", () => {
+  it("brings the full fleet online in demo mode", () => {
+    expect(availableAgents(DEMO_ENTITLEMENTS).size).toBe(8);
+  });
+
+  it("brings no agents online for a lapsed/none plan", () => {
+    expect(availableAgents(entitlementsFor(null)).size).toBe(0);
+  });
+
+  it("always includes the 3 core agents on any entitled plan", () => {
+    const agents = availableAgents(entitlementsFor({ planId: "starter", status: "active" }));
+    expect(agents.has("discovery")).toBe(true);
+    expect(agents.has("privacy")).toBe(true);
+    expect(agents.has("security")).toBe(true);
+    // Starter has no AI add-on → legal/deepfake stay offline.
+    expect(agents.has("legal")).toBe(false);
+    expect(agents.has("deepfake")).toBe(false);
+    expect(agents.size).toBe(3);
+  });
+
+  it("unlocks suite agents by feature", () => {
+    const rep = availableAgents(entitlementsFor({ planId: "rep-creator", status: "active" }));
+    expect(rep.has("reputation")).toBe(true);
+
+    const exec = availableAgents(entitlementsFor({ planId: "exec-pro", status: "active" }));
+    expect(exec.has("executive")).toBe(true);
+    expect(exec.has("reputation")).toBe(true);
+
+    const biz = availableAgents(entitlementsFor({ planId: "biz-growth", status: "active" }));
+    expect(biz.has("business")).toBe(true);
+  });
+
+  it("unlocks legal + deepfake agents with the AI add-on / higher tiers", () => {
+    const plus = availableAgents(entitlementsFor({ planId: "plus", status: "active" }));
+    expect(plus.has("legal")).toBe(true);
+    expect(plus.has("deepfake")).toBe(true);
   });
 });

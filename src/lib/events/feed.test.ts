@@ -50,4 +50,20 @@ describe("operations feed", () => {
     const feed = buildFeed({ removals: [{ ...removals[0], history: [] }] });
     expect(feed).toHaveLength(0);
   });
+
+  it("surfaces playbook runs with autonomy-aware severity", () => {
+    const feed = buildFeed({
+      playbookRuns: [
+        { id: "p1", at: "2026-01-08T00:00:00Z", playbookName: "Broker Removal", owner: "privacy", fullyAutonomous: true, autoSteps: 4, approvalSteps: 0, level: "medium" },
+        { id: "p2", at: "2026-01-08T00:00:00Z", playbookName: "Deepfake Takedown", owner: "deepfake", fullyAutonomous: false, autoSteps: 2, approvalSteps: 1, level: "critical" },
+      ],
+    });
+    const auto = feed.find((e) => e.id === "playbook-p1")!;
+    const gated = feed.find((e) => e.id === "playbook-p2")!;
+    expect(auto.kind).toBe("playbook");
+    expect(auto.severity).toBe("low"); // fully autonomous → low/positive
+    expect(auto.title).toContain("autonomously");
+    expect(gated.severity).toBe("critical"); // gated → inherits finding severity
+    expect(gated.title).toContain("approval pending");
+  });
 });

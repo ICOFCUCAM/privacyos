@@ -1,4 +1,4 @@
-import { Bot, ScrollText, ShieldAlert, Siren, Trash2 } from "lucide-react";
+import { Bot, ScrollText, ShieldAlert, Siren, Trash2, Workflow } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Card, SectionTitle } from "@/components/ui";
 import { cn, timeAgo } from "@/lib/ui";
@@ -10,6 +10,7 @@ const kindIcon: Record<EventKind, LucideIcon> = {
   threat: ShieldAlert,
   incident: Siren,
   removal: Trash2,
+  playbook: Workflow,
 };
 
 const sevColor: Record<EventSeverity, string> = {

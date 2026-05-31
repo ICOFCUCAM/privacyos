@@ -1,4 +1,4 @@
-import { Card, RiskBadge, Pill } from "@/components/ui";
+import { buttonClasses, Card, PageHeader, RiskBadge, Pill } from "@/components/ui";
 import { getDataSource } from "@/lib/data";
 import { timeAgo, titleCase } from "@/lib/ui";
 import { acknowledgeThreatAction } from "@/app/dashboard/actions";
@@ -10,12 +10,10 @@ export default async function ThreatsPage() {
   const { threats } = await ds.getDataset();
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Threat Feed</h1>
-        <p className="mt-1 text-sm text-slate-400">
-          Time-ordered alerts from dark-web, breach, deepfake and impersonation monitoring.
-        </p>
-      </div>
+      <PageHeader
+        title="Threat Feed"
+        subtitle="Time-ordered alerts from dark-web, breach, deepfake and impersonation monitoring."
+      />
 
       <div className="space-y-3">
         {threats.map((t) => (
@@ -42,7 +40,7 @@ export default async function ThreatsPage() {
                 <input type="hidden" name="id" value={t.id} />
                 <button
                   type="submit"
-                  className="shrink-0 self-center rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:bg-bg-elevated"
+                  className={buttonClasses("secondary", "sm", "shrink-0 self-center")}
                 >
                   Acknowledge
                 </button>

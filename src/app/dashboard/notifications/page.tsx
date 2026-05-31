@@ -1,5 +1,5 @@
 import { Bell, CheckCheck } from "lucide-react";
-import { Card, RiskBadge, Pill, StatCard } from "@/components/ui";
+import { buttonClasses, Card, PageHeader, RiskBadge, Pill, StatCard } from "@/components/ui";
 import { getModuleData } from "@/lib/data/modules";
 import { timeAgo, titleCase } from "@/lib/ui";
 import { markAllReadAction } from "./actions";
@@ -10,25 +10,23 @@ export default async function NotificationsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Bell className="h-7 w-7 text-brand" />
-          <div>
-            <h1 className="text-2xl font-bold text-white">Notifications</h1>
-            <p className="mt-1 text-sm text-slate-400">Alerts, incidents, removals, reports and recommendations.</p>
-          </div>
-        </div>
-        {unread.length > 0 && (
-          <form action={markAllReadAction}>
-            <button
-              type="submit"
-              className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-slate-200 transition hover:bg-bg-elevated"
-            >
-              <CheckCheck className="h-4 w-4" /> Mark all read
-            </button>
-          </form>
-        )}
-      </div>
+      <PageHeader
+        icon={Bell}
+        title="Notifications"
+        subtitle="Alerts, incidents, removals, reports and recommendations."
+        actions={
+          unread.length > 0 ? (
+            <form action={markAllReadAction}>
+              <button
+                type="submit"
+                className={buttonClasses("secondary", "md")}
+              >
+                <CheckCheck className="h-4 w-4" /> Mark all read
+              </button>
+            </form>
+          ) : undefined
+        }
+      />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="Total" value={notifications.length} />

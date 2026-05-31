@@ -15,18 +15,22 @@ import {
   AgentsSection,
   ActivitySection,
   EcosystemSection,
+  EnterpriseSection,
+  OutcomesBand,
 } from "@/components/landing-sections";
+import { MoatBand } from "@/components/landing-visuals";
 import { SecurityArchitecture } from "@/components/security-architecture";
+import { buttonClasses } from "@/components/ui";
 
 const modules = [
-  { icon: Search, title: "Privacy Discovery", desc: "Find every discoverable exposure across the public internet, brokers and breaches." },
-  { icon: Shield, title: "Identity Protection", desc: "Continuous defense of names, emails, phones, addresses and credentials." },
-  { icon: Eye, title: "Dark Web Monitoring", desc: "Real-time alerts on credential leaks and identity-theft indicators." },
-  { icon: ScanFace, title: "Deepfake Detection", desc: "Detect AI-generated media, voice clones and synthetic impersonation." },
-  { icon: Scale, title: "AI Legal Automation", desc: "Auto-draft GDPR/CCPA requests, complaints and takedown evidence." },
-  { icon: Building2, title: "Business Intelligence", desc: "Employee credential leaks, exposed assets and brand impersonation." },
-  { icon: Users, title: "Family & Executive", desc: "VIP-grade protection for executives, public figures and families." },
-  { icon: Bot, title: "Autonomous Agents", desc: "Eight specialized agents that defend you 24/7. You see outcomes, not complexity." },
+  { icon: Search, title: "Privacy Discovery", desc: "Every exposure across the web, brokers and breaches." },
+  { icon: Shield, title: "Identity Protection", desc: "Defends names, emails, phones, addresses, credentials." },
+  { icon: Eye, title: "Dark Web Monitoring", desc: "Real-time alerts on credential leaks." },
+  { icon: ScanFace, title: "Deepfake Detection", desc: "Catches synthetic media, voice clones, impersonation." },
+  { icon: Scale, title: "Legal Automation", desc: "Auto-drafts GDPR/CCPA requests and takedowns." },
+  { icon: Building2, title: "Business Intelligence", desc: "Credential leaks, exposed assets, brand abuse." },
+  { icon: Users, title: "Family & Executive", desc: "VIP-grade protection for leaders and families." },
+  { icon: Bot, title: "Autonomous Agents", desc: "Eight specialists defending you 24/7." },
 ];
 
 export default function LandingPage() {
@@ -50,10 +54,7 @@ export default function LandingPage() {
           >
             Pricing
           </Link>
-          <Link
-            href="/dashboard"
-            className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90"
-          >
+          <Link href="/dashboard" className={buttonClasses("primary", "md")}>
             Open Dashboard
           </Link>
         </div>
@@ -63,11 +64,20 @@ export default function LandingPage() {
 
       <TrustStrip />
 
+      {/* The moat dominates: autonomous agents + Digital Risk OS, with a visual */}
+      <MoatBand />
+
+      <OutcomesBand />
+
+      {/* Platform — paired with the exposure-intelligence visual */}
       <EcosystemSection />
 
       <AgentsSection />
 
+      {/* Always-on — paired with the live operations-stream visual */}
       <ActivitySection />
+
+      <EnterpriseSection />
 
       <SecurityArchitecture />
 
@@ -100,13 +110,13 @@ export default function LandingPage() {
             Take control of your digital footprint.
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-lg text-slate-400">
-            Discover what&apos;s exposed, remove it, and let autonomous agents defend you around the clock.
+            See what&apos;s exposed, remove it, and let autonomous agents defend you around the clock.
           </p>
           <div className="mt-8 flex items-center justify-center gap-3">
-            <Link href="/dashboard/assistant" className="rounded-lg bg-brand px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand/90">
+            <Link href="/dashboard/assistant" className={buttonClasses("primary", "lg")}>
               Get Protected
             </Link>
-            <Link href="/pricing" className="rounded-lg border border-border px-6 py-3 text-sm font-semibold text-slate-200 transition hover:bg-bg-elevated">
+            <Link href="/pricing" className={buttonClasses("secondary", "lg")}>
               View Pricing
             </Link>
           </div>

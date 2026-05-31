@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Globe } from "lucide-react";
+import { buttonClasses } from "@/components/ui";
 
 /** Triggers POST /api/domains/scan (DNS/email-auth check) and refreshes data. */
 export function DomainScanButton() {
@@ -30,7 +31,7 @@ export function DomainScanButton() {
       <button
         onClick={run}
         disabled={pending}
-        className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90 disabled:opacity-60"
+        className={buttonClasses("primary", "md")}
       >
         <Globe className="h-4 w-4" />
         {pending ? "Checking DNS…" : "Run domain scan"}

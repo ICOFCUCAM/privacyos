@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { AlertTriangle, RotateCcw } from "lucide-react";
+import { buttonClasses } from "@/components/ui";
 
 export default function Error({
   error,
@@ -29,13 +30,10 @@ export default function Error({
         {error.digest && <span className="mt-2 block text-xs text-slate-600">Ref: {error.digest}</span>}
       </p>
       <div className="mt-8 flex items-center gap-3">
-        <button
-          onClick={reset}
-          className="inline-flex items-center gap-2 rounded-lg bg-brand px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand/90"
-        >
+        <button onClick={reset} className={buttonClasses("primary", "md", "px-5 py-2.5")}>
           <RotateCcw className="h-4 w-4" /> Try again
         </button>
-        <Link href="/dashboard" className="rounded-lg border border-border px-5 py-2.5 text-sm font-semibold text-slate-200 transition hover:bg-bg-elevated">
+        <Link href="/dashboard" className={buttonClasses("secondary", "md", "px-5 py-2.5")}>
           Go to dashboard
         </Link>
       </div>

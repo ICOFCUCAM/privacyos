@@ -1,5 +1,5 @@
 import { FileText, ExternalLink, Download } from "lucide-react";
-import { Card, Pill } from "@/components/ui";
+import { buttonClasses, Card, PageHeader, Pill } from "@/components/ui";
 import { REPORT_TITLES } from "@/lib/reports/engine";
 import type { ReportType } from "@/lib/suite-types";
 
@@ -18,12 +18,11 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Reports</h1>
-        <p className="mt-1 text-sm text-slate-400">
-          Generate executive, compliance and risk reports. Each opens a print-ready document — use your browser to Save as PDF.
-        </p>
-      </div>
+      <PageHeader
+        icon={FileText}
+        title="Reports"
+        subtitle="Generate executive, compliance and risk reports. Each opens a print-ready document — use your browser to Save as PDF."
+      />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {types.map((t) => (
@@ -43,13 +42,13 @@ export default function ReportsPage() {
                 href={`/api/reports/${t}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-slate-200 transition hover:bg-bg-elevated"
+                className={buttonClasses("secondary", "md", "flex-1 px-3 py-2")}
               >
                 <ExternalLink className="h-4 w-4" /> View
               </a>
               <a
                 href={`/api/reports/${t}?format=pdf`}
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-white transition hover:bg-brand/90"
+                className={buttonClasses("primary", "md", "flex-1 px-3 py-2")}
               >
                 <Download className="h-4 w-4" /> PDF
               </a>

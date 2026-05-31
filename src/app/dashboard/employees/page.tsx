@@ -1,9 +1,11 @@
 import { UserCog } from "lucide-react";
-import { Card, DataBadge, RiskBadge, Pill, SectionTitle, StatCard } from "@/components/ui";
+import { Card, DataBadge, PageHeader, RiskBadge, Pill, SectionTitle, StatCard } from "@/components/ui";
 import { SeverityBar } from "@/components/viz";
 import { getModuleData } from "@/lib/data/modules";
 import { timeAgo, titleCase } from "@/lib/ui";
 import type { RiskLevel } from "@/lib/types";
+
+export const metadata = { title: "Employee Exposure" };
 
 export default async function EmployeesPage() {
   const moduleData = await getModuleData();
@@ -16,18 +18,12 @@ export default async function EmployeesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <UserCog className="h-7 w-7 text-brand" />
-          <div>
-            <h1 className="text-2xl font-bold text-white">Employee Exposure & Credential Leaks</h1>
-            <p className="mt-1 text-sm text-slate-400">
-              Exposed employee data and corporate credential leaks across breach and dark-web sources.
-            </p>
-          </div>
-        </div>
-        <DataBadge live={moduleData.live} />
-      </div>
+      <PageHeader
+        icon={UserCog}
+        title="Employee Exposure & Credential Leaks"
+        subtitle="Exposed employee data and corporate credential leaks across breach and dark-web sources."
+        actions={<DataBadge live={moduleData.live} />}
+      />
 
       <Card>
         <SectionTitle title="Workforce risk distribution" subtitle={`${all.length} findings across employees & credentials`} />

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Shield } from "lucide-react";
 import { PricingTable } from "@/components/pricing";
 import { TrustStrip } from "@/components/landing-sections";
+import { buttonClasses } from "@/components/ui";
 
 const faqs: { q: string; a: string }[] = [
   {
@@ -41,10 +42,7 @@ export default function PricingPage() {
           <Shield className="h-6 w-6 text-brand" />
           <span className="text-lg font-bold text-white">PrivacyOS</span>
         </Link>
-        <Link
-          href="/dashboard"
-          className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90"
-        >
+        <Link href="/dashboard" className={buttonClasses("primary", "md")}>
           Open Dashboard
         </Link>
       </header>
@@ -96,7 +94,7 @@ export default function PricingPage() {
           ))}
         </div>
         <div className="mt-10 text-center">
-          <Link href="/dashboard/assistant" className="rounded-lg bg-brand px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand/90">
+          <Link href="/dashboard/assistant" className={buttonClasses("primary", "lg")}>
             Get Protected
           </Link>
         </div>

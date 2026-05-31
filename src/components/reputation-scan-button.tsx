@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Radar } from "lucide-react";
+import { buttonClasses } from "@/components/ui";
 
 /** Triggers POST /api/reputation/scan and refreshes server data on completion. */
 export function ReputationScanButton() {
@@ -26,7 +27,7 @@ export function ReputationScanButton() {
       <button
         onClick={run}
         disabled={pending}
-        className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90 disabled:opacity-60"
+        className={buttonClasses("primary", "md")}
       >
         <Radar className="h-4 w-4" />
         {pending ? "Scanning news…" : "Run reputation scan"}

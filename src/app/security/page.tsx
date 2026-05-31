@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { Shield, BadgeCheck, FileCheck2, Server } from "lucide-react";
 import { SecurityArchitecture } from "@/components/security-architecture";
+import { buttonClasses } from "@/components/ui";
 
 export const metadata: Metadata = {
   title: "Security & Compliance",
@@ -37,7 +38,7 @@ export default function SecurityPage() {
           <Link href="/pricing" className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-200 transition hover:bg-bg-elevated">
             Pricing
           </Link>
-          <Link href="/dashboard" className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90">
+          <Link href="/dashboard" className={buttonClasses("primary", "md")}>
             Open Dashboard
           </Link>
         </div>
@@ -91,7 +92,7 @@ export default function SecurityPage() {
           details and a DPA.
         </p>
         <div className="mt-8">
-          <Link href="/pricing" className="rounded-lg bg-brand px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand/90">
+          <Link href="/pricing" className={buttonClasses("primary", "lg")}>
             View enterprise plans
           </Link>
         </div>

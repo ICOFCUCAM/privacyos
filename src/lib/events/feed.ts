@@ -11,7 +11,19 @@ import type { RiskLevel, Threat, RemovalRequest } from "@/lib/types";
 import type { AgentAction, AuditLogEntry, Incident } from "@/lib/suite-types";
 
 export type EventSeverity = "info" | "low" | "medium" | "high" | "critical";
-export type EventKind = "agent" | "audit" | "threat" | "incident" | "removal";
+export type EventKind = "agent" | "audit" | "threat" | "incident" | "removal" | "playbook";
+
+/** A minimal view of a playbook run, kept decoupled from the playbook engine. */
+export interface FeedPlaybookRun {
+  id: string;
+  at: string;
+  playbookName: string;
+  owner: string;
+  fullyAutonomous: boolean;
+  autoSteps: number;
+  approvalSteps: number;
+  level: RiskLevel;
+}
 
 export interface FeedEvent {
   id: string;
@@ -36,6 +48,7 @@ export interface FeedInputs {
   threats?: Threat[];
   incidents?: Incident[];
   removals?: RemovalRequest[];
+  playbookRuns?: FeedPlaybookRun[];
 }
 
 const titleCase = (s: string) => s.replace(/[._]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
@@ -103,6 +116,18 @@ export function buildFeed(inputs: FeedInputs, limit = 40): FeedEvent[] {
       detail: last.note,
       severity: last.status === "reappeared" ? "high" : "low",
       source: "Privacy Agent",
+    });
+  }
+
+  for (const p of inputs.playbookRuns ?? []) {
+    events.push({
+      id: `playbook-${p.id}`,
+      at: p.at,
+      kind: "playbook",
+      title: `${p.playbookName} ${p.fullyAutonomous ? "executed autonomously" : "ran — approval pending"}`,
+      detail: `${titleCase(p.owner)} agent · ${p.autoSteps} auto${p.approvalSteps ? ` · ${p.approvalSteps} approval` : ""}`,
+      severity: p.fullyAutonomous ? "low" : RISK_TO_SEVERITY[p.level],
+      source: "Response Playbook",
     });
   }
 
