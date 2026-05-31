@@ -271,12 +271,17 @@ export function attackSurface(exposures: Exposure[]): SurfaceAxis[] {
 
 /* ── Agent roster ────────────────────────────────────────────────────────── */
 
+/** Roster status — an agent's run state, or "locked" when not on the plan. */
+export type RosterStatus = AgentState["status"] | "locked";
+
 export interface AgentRosterEntry {
   kind: AgentKind;
   name: string;
   description: string;
-  status: AgentState["status"];
+  status: RosterStatus;
   online: boolean;
+  /** True when the agent is not included in the current plan. */
+  locked: boolean;
   itemsHandled: number;
   lastRunAt?: string;
   /** Most recent action summary, used as the agent's "current task". */
@@ -298,8 +303,16 @@ const TASK_VERB: Record<string, string> = {
 /**
  * Fuse agent state with the recent action stream so each agent shows a live
  * status, a current task and its completed-action count.
+ *
+ * `available` optionally scopes which agents are online for the current plan —
+ * agents not in the set are reported as locked/offline regardless of their
+ * underlying run state. When omitted, every agent's own status is used (demo).
  */
-export function agentRoster(agents: AgentState[], actions: AgentAction[]): AgentRosterEntry[] {
+export function agentRoster(
+  agents: AgentState[],
+  actions: AgentAction[],
+  available?: Set<AgentKind>,
+): AgentRosterEntry[] {
   const byAgent = new Map<AgentKind, AgentAction[]>();
   for (const a of actions) {
     const list = byAgent.get(a.agent) ?? [];
@@ -309,19 +322,22 @@ export function agentRoster(agents: AgentState[], actions: AgentAction[]): Agent
   return agents.map((agent) => {
     const list = (byAgent.get(agent.kind) ?? []).slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     const latest = list[0];
-    const online = agent.status === "running" || agent.status === "idle";
+    const inPlan = available ? available.has(agent.kind) : true;
+    const online = inPlan && (agent.status === "running" || agent.status === "idle");
+    const status: AgentRosterEntry["status"] = inPlan ? agent.status : "locked";
     const verb = latest ? TASK_VERB[latest.kind] ?? "Working" : undefined;
     return {
       kind: agent.kind,
       name: agent.name,
       description: agent.description,
-      status: agent.status,
+      status,
       online,
-      itemsHandled: agent.itemsHandled,
-      lastRunAt: agent.lastRunAt,
-      currentTask: latest ? `${verb} · ${latest.summary}` : undefined,
-      currentTaskAt: latest?.createdAt,
-      completedActions: list.filter((a) => a.status === "completed").length,
+      locked: !inPlan,
+      itemsHandled: inPlan ? agent.itemsHandled : 0,
+      lastRunAt: inPlan ? agent.lastRunAt : undefined,
+      currentTask: inPlan && latest ? `${verb} · ${latest.summary}` : undefined,
+      currentTaskAt: inPlan ? latest?.createdAt : undefined,
+      completedActions: inPlan ? list.filter((a) => a.status === "completed").length : 0,
     };
   });
 }

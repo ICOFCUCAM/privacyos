@@ -5,8 +5,8 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { Card, SectionTitle } from "@/components/ui";
 import { cn, timeAgo } from "@/lib/ui";
-import type { AgentKind, AgentState } from "@/lib/types";
-import type { AgentRosterEntry } from "@/lib/intelligence/command-center";
+import type { AgentKind } from "@/lib/types";
+import type { AgentRosterEntry, RosterStatus } from "@/lib/intelligence/command-center";
 
 const AGENT_ICON: Record<AgentKind, LucideIcon> = {
   discovery: Search,
@@ -19,18 +19,28 @@ const AGENT_ICON: Record<AgentKind, LucideIcon> = {
   business: Building2,
 };
 
-const statusDot: Record<AgentState["status"], string> = {
+const statusDot: Record<RosterStatus, string> = {
   running: "bg-risk-low",
   idle: "bg-slate-500",
   blocked: "bg-risk-medium",
   error: "bg-risk-critical",
+  locked: "bg-slate-600",
 };
 
-const statusLabel: Record<AgentState["status"], string> = {
+const statusLabel: Record<RosterStatus, string> = {
   running: "ACTIVE",
   idle: "ONLINE",
   blocked: "BLOCKED",
   error: "ERROR",
+  locked: "LOCKED",
+};
+
+const statusText: Record<RosterStatus, string> = {
+  running: "text-risk-low",
+  idle: "text-risk-low",
+  blocked: "text-risk-medium",
+  error: "text-risk-critical",
+  locked: "text-slate-500",
 };
 
 /**
@@ -41,12 +51,15 @@ const statusLabel: Record<AgentState["status"], string> = {
 export function AgentRoster({
   roster,
   online,
+  total = 8,
   live,
 }: {
   roster: AgentRosterEntry[];
   online: number;
+  total?: number;
   live: boolean;
 }) {
+  const lockedCount = roster.filter((a) => a.locked).length;
   return (
     <Card className="flex h-full flex-col">
       <SectionTitle
@@ -58,49 +71,60 @@ export function AgentRoster({
               <span className={cn("absolute inline-flex h-full w-full rounded-full bg-risk-low opacity-75", live && "animate-ping")} />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-risk-low" />
             </span>
-            {online}/8 online
+            {online}/{total} online
           </span>
         }
       />
-      <ul className="-mr-1 flex-1 space-y-1 overflow-y-auto pr-1">
+      <ul className="-mr-1 flex-1 space-y-0.5 overflow-y-auto pr-1">
         {roster.map((a) => {
-          const Icon = AGENT_ICON[a.kind];
+          const Icon = a.locked ? Lock : AGENT_ICON[a.kind];
           return (
-            <li key={a.kind} className="rounded-lg p-2 transition hover:bg-bg-subtle/50">
-              <div className="flex items-start gap-3">
-                <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand/12 ring-1 ring-brand/20">
-                  <Icon className="h-4 w-4 text-brand-fg" />
-                  <span className={cn("absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-bg-elevated", statusDot[a.status])} />
+            <li
+              key={a.kind}
+              className={cn(
+                "rounded-lg p-1.5 transition hover:bg-bg-subtle/50",
+                a.locked && "opacity-55",
+              )}
+            >
+              <div className="flex items-center gap-2.5">
+                <span className={cn(
+                  "relative flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ring-1",
+                  a.locked ? "bg-slate-500/10 ring-border" : "bg-brand/12 ring-brand/20",
+                )}>
+                  <Icon className={cn("h-3.5 w-3.5", a.locked ? "text-slate-500" : "text-brand-fg")} />
+                  <span className={cn("absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full ring-2 ring-bg-elevated", statusDot[a.status])} />
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="truncate text-sm font-semibold text-white">{a.name}</p>
-                    <span className={cn(
-                      "shrink-0 text-[10px] font-bold tracking-wide",
-                      a.status === "running" || a.status === "idle" ? "text-risk-low" : a.status === "error" ? "text-risk-critical" : "text-risk-medium",
-                    )}>
+                    <p className="truncate text-[13px] font-semibold text-white">{a.name}</p>
+                    <span className={cn("shrink-0 text-[9px] font-bold tracking-wide", statusText[a.status])}>
                       {statusLabel[a.status]}
                     </span>
                   </div>
-                  <p className="truncate text-xs text-slate-400">
-                    {a.currentTask ?? a.description}
+                  <p className="truncate text-[11px] text-slate-400">
+                    {a.locked
+                      ? "Not included in your plan — upgrade to deploy"
+                      : a.currentTask ?? a.description}
                   </p>
-                  <div className="mt-1 flex items-center gap-3 text-[10px] text-slate-500">
-                    <span>{a.itemsHandled} handled</span>
-                    <span>{a.completedActions} actions</span>
-                    {a.currentTaskAt && <span>{timeAgo(a.currentTaskAt)}</span>}
-                  </div>
                 </div>
+                {!a.locked && (
+                  <span className="shrink-0 text-right text-[10px] text-slate-500">
+                    {a.itemsHandled}
+                    {a.currentTaskAt && <span className="block">{timeAgo(a.currentTaskAt)}</span>}
+                  </span>
+                )}
               </div>
             </li>
           );
         })}
       </ul>
       <Link
-        href="/dashboard/agents"
-        className="mt-3 inline-flex items-center justify-center gap-1.5 border-t border-border pt-3 text-xs font-medium text-brand-fg hover:underline"
+        href={lockedCount > 0 ? "/pricing" : "/dashboard/agents"}
+        className="mt-2.5 inline-flex items-center justify-center gap-1.5 border-t border-border pt-2.5 text-xs font-medium text-brand-fg hover:underline"
       >
-        View all agents <ArrowRight className="h-3.5 w-3.5" />
+        {lockedCount > 0
+          ? <>Deploy {lockedCount} more agent{lockedCount === 1 ? "" : "s"} <ArrowRight className="h-3.5 w-3.5" /></>
+          : <>View all agents <ArrowRight className="h-3.5 w-3.5" /></>}
       </Link>
     </Card>
   );

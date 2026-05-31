@@ -5,7 +5,6 @@ import {
 } from "lucide-react";
 import {
   AxisBar,
-  buttonClasses,
   Card,
   RiskBadge,
   ScoreGauge,
@@ -21,6 +20,8 @@ import { getDataSource } from "@/lib/data";
 import { getModuleData } from "@/lib/data/modules";
 import { getScoreHistory } from "@/lib/data/scores";
 import { getAuditLog } from "@/lib/audit/audit";
+import { getEntitlements } from "@/lib/billing/subscription";
+import { availableAgents } from "@/lib/billing/entitlements";
 import { buildFeed, activeSeverityCount } from "@/lib/events/feed";
 import { computeScoreSet } from "@/lib/scoring/scores";
 import { scoreToLevel } from "@/lib/scoring/risk-score";
@@ -45,6 +46,8 @@ export default async function OverviewPage() {
   const scoreHistory = await getScoreHistory();
   const removals = await ds.listRemovals();
   const auditLog = await getAuditLog(30);
+  const entitlements = await getEntitlements();
+  const available = availableAgents(entitlements);
   const score = data.riskScore;
   const scores = computeScoreSet({
     risk: score,
@@ -63,11 +66,11 @@ export default async function OverviewPage() {
     { label: "Overall", value: scores.overall },
   ];
   const activeThreats = data.threats.filter((t) => !t.acknowledged);
-  const openCases = data.cases.filter((c) => c.status !== "resolved");
 
   // Operational intelligence (pure, derived from the real dataset).
-  const roster = agentRoster(data.agents, mod.agentActions);
+  const roster = agentRoster(data.agents, mod.agentActions, available);
   const onlineAgents = onlineAgentCount(roster);
+  const totalAgents = roster.length;
   const expTimeline = exposureTimeline(data.exposures, 30);
   const thrTimeline = threatTimeline(data.threats, 30);
   const velocity = discoveryVelocity(data.exposures, data.threats, 30);
@@ -86,10 +89,9 @@ export default async function OverviewPage() {
   const sev = activeSeverityCount(feed);
   const live = ds.live;
   const band = BANNER[scoreToLevel(score.overall)];
-  const removedCount = data.exposures.filter((e) => e.status === "removed").length;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -100,12 +102,12 @@ export default async function OverviewPage() {
         </div>
         <span className="hidden items-center gap-2 rounded-full border border-border bg-bg-elevated px-3 py-1.5 text-xs font-medium text-slate-300 sm:inline-flex">
           <ShieldCheck className="h-3.5 w-3.5 text-risk-low" />
-          {onlineAgents}/8 agents · 24/7 monitoring
+          {onlineAgents}/{totalAgents} agents · 24/7 monitoring
         </span>
       </div>
 
       {/* Threat-level banner */}
-      <div className={cn("flex flex-wrap items-center justify-between gap-3 rounded-xl border px-5 py-3", band.ring)}>
+      <div className={cn("flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-2.5", band.ring)}>
         <div className="flex items-center gap-3">
           <span className="relative flex h-2.5 w-2.5">
             <span className={cn("absolute inline-flex h-full w-full rounded-full opacity-75", band.dot, live && "animate-ping")} />
@@ -123,7 +125,7 @@ export default async function OverviewPage() {
       </div>
 
       {/* Operational KPI strip */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiTile
           icon={<Radar className="h-4 w-4 text-brand-fg" />}
           label="Discovery velocity"
@@ -154,9 +156,9 @@ export default async function OverviewPage() {
       </div>
 
       {/* Hero row: score + risk breakdown · operations stream · agent roster */}
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
-        <div className="space-y-4 xl:col-span-3">
-          <Card className="flex items-center gap-5">
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-12">
+        <div className="space-y-3 xl:col-span-3">
+          <Card className="flex items-center gap-4 p-4">
             <ScoreGauge score={score.overall} />
             <div>
               <p className="text-xs uppercase tracking-wide text-slate-400">Exposure score</p>
@@ -167,9 +169,9 @@ export default async function OverviewPage() {
               <p className="mt-2 text-xs text-slate-500">Lower is safer. Recomputed continuously.</p>
             </div>
           </Card>
-          <Card>
+          <Card className="p-4">
             <SectionTitle title="Risk breakdown" subtitle="Five-axis exposure model" />
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               <AxisBar label="Identity" value={score.identity} />
               <AxisBar label="Reputation" value={score.reputation} />
               <AxisBar label="Financial" value={score.financial} />
@@ -184,22 +186,22 @@ export default async function OverviewPage() {
         </div>
 
         <div className="xl:col-span-3">
-          <AgentRoster roster={roster} online={onlineAgents} live={live} />
+          <AgentRoster roster={roster} online={onlineAgents} total={totalAgents} live={live} />
         </div>
       </div>
 
       {/* Intelligence row: exposure timeline + threat timeline */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card>
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <Card className="p-4">
           <SectionTitle
             title="Exposure discovery — 30 days"
             subtitle={`${velocity.windowTotal} discoveries · agents indexing continuously`}
             action={<VelocityBadge delta={velocity.deltaPct} />}
           />
-          <StackedTimeline buckets={expTimeline} ariaLabel="Exposures discovered per day" />
+          <StackedTimeline buckets={expTimeline} height={88} ariaLabel="Exposures discovered per day" />
           <SeverityLegend />
         </Card>
-        <Card>
+        <Card className="p-4">
           <SectionTitle
             title="Threat activity — 30 days"
             subtitle={`${data.threats.length} threats detected across all sources`}
@@ -209,14 +211,14 @@ export default async function OverviewPage() {
               </Link>
             }
           />
-          <StackedTimeline buckets={thrTimeline} ariaLabel="Threats detected per day" />
+          <StackedTimeline buckets={thrTimeline} height={88} ariaLabel="Threats detected per day" />
           <SeverityLegend />
         </Card>
       </div>
 
       {/* Risk evolution (area) + remediation progress */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+        <Card className="p-4 lg:col-span-2">
           <SectionTitle
             title="Risk evolution"
             subtitle="Overall exposure score over the monitoring window"
@@ -228,12 +230,12 @@ export default async function OverviewPage() {
           />
           <RiskEvolution history={scoreHistory} current={scores.overall} />
         </Card>
-        <Card>
+        <Card className="p-4">
           <SectionTitle title="Remediation progress" subtitle="Broker & takedown portfolio" />
           <ProgressMeter percent={remediation.percentComplete} stages={remediation.stages} />
           <Link
             href="/dashboard/removals"
-            className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-brand-fg hover:underline"
+            className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-brand-fg hover:underline"
           >
             Manage removals <ArrowRight className="h-3.5 w-3.5" />
           </Link>
@@ -241,15 +243,15 @@ export default async function OverviewPage() {
       </div>
 
       {/* Situational awareness: attack surface + top sources */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card>
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <Card className="p-4">
           <SectionTitle
             title="Identity attack surface"
             subtitle="Where your exposure concentrates across identity vectors"
           />
-          <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <RadarChart axes={surface} />
-            <ul className="grid w-full grid-cols-2 gap-x-4 gap-y-1.5 text-xs sm:w-auto">
+          <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <RadarChart axes={surface} size={196} />
+            <ul className="grid w-full grid-cols-2 gap-x-4 gap-y-1 text-xs sm:w-auto">
               {surface
                 .filter((a) => a.count > 0)
                 .sort((a, b) => b.count - a.count)
@@ -262,7 +264,7 @@ export default async function OverviewPage() {
             </ul>
           </div>
         </Card>
-        <Card>
+        <Card className="p-4">
           <SectionTitle
             title="Top exposure sources"
             subtitle="Where your data is surfacing most"
@@ -281,15 +283,15 @@ export default async function OverviewPage() {
       </div>
 
       {/* Suite risk scores */}
-      <Card>
+      <Card className="p-4">
         <SectionTitle title="Suite risk scores" subtitle="PrivacyOS · ReputationOS · ExecutiveOS · BusinessOS (0–100, higher = more risk)" />
-        <div className="grid grid-cols-3 gap-3 lg:grid-cols-6">
+        <div className="grid grid-cols-3 gap-2.5 lg:grid-cols-6">
           {suiteScores.map((s) => {
             const level = scoreToLevel(s.value);
             return (
-              <div key={s.label} className="rounded-lg border border-border bg-bg-subtle/60 p-3 text-center">
-                <p className={cn("text-2xl font-bold", `text-risk-${level}`)}>{s.value}</p>
-                <p className="mt-0.5 text-xs text-slate-400">{s.label}</p>
+              <div key={s.label} className="rounded-lg border border-border bg-bg-subtle/60 p-2.5 text-center">
+                <p className={cn("text-xl font-bold", `text-risk-${level}`)}>{s.value}</p>
+                <p className="mt-0.5 text-[11px] text-slate-400">{s.label}</p>
               </div>
             );
           })}
@@ -303,8 +305,8 @@ export default async function OverviewPage() {
       />
 
       {/* Threats + recommendations */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card>
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <Card className="p-4">
           <SectionTitle
             title="Threat feed"
             action={
@@ -313,7 +315,7 @@ export default async function OverviewPage() {
               </Link>
             }
           />
-          <ul className="space-y-3">
+          <ul className="space-y-2.5">
             {data.threats.slice(0, 4).map((t) => (
               <li key={t.id} className="flex items-start gap-3">
                 <RiskBadge level={t.riskLevel} />
@@ -328,7 +330,7 @@ export default async function OverviewPage() {
           </ul>
         </Card>
 
-        <Card>
+        <Card className="p-4">
           <SectionTitle
             title="AI recommendations"
             subtitle="What should happen next"
@@ -338,7 +340,7 @@ export default async function OverviewPage() {
               </Link>
             }
           />
-          <ul className="space-y-3">
+          <ul className="space-y-2.5">
             {data.recommendations.slice(0, 4).map((r) => (
               <li key={r.id} className="flex items-start gap-3">
                 <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
@@ -417,7 +419,7 @@ function RiskEvolution({
     : [];
   return (
     <>
-      <AreaChart values={values} height={170} color="#6366f1" />
+      <AreaChart values={values} height={128} color="#6366f1" />
       {labels.length > 0 && <AxisLabels labels={labels} />}
     </>
   );

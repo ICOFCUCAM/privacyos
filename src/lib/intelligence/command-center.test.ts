@@ -208,4 +208,23 @@ describe("agentRoster", () => {
     expect(legal.online).toBe(false);
     expect(legal.currentTask).toBeUndefined();
   });
+
+  it("locks agents not in the available plan set", () => {
+    const roster = agentRoster(
+      [agent({ kind: "discovery", status: "running" }), agent({ kind: "executive", status: "running" })],
+      [action({ agent: "executive", summary: "VIP sweep" })],
+      new Set(["discovery"]),
+    );
+    const exec = roster.find((a) => a.kind === "executive")!;
+    expect(exec.locked).toBe(true);
+    expect(exec.status).toBe("locked");
+    expect(exec.online).toBe(false);
+    expect(exec.currentTask).toBeUndefined();
+    expect(exec.itemsHandled).toBe(0);
+
+    const disc = roster.find((a) => a.kind === "discovery")!;
+    expect(disc.locked).toBe(false);
+    expect(disc.online).toBe(true);
+    expect(onlineAgentCount(roster)).toBe(1);
+  });
 });

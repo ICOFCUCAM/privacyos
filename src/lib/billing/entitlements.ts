@@ -8,6 +8,7 @@
 
 import type { PlanCategory } from "./plans";
 import { PLANS } from "./plans";
+import type { AgentKind } from "@/lib/types";
 
 export type SubscriptionStatus =
   | "trialing" | "active" | "past_due" | "canceled" | "incomplete" | "unpaid" | "none";
@@ -111,4 +112,39 @@ export function entitlementsFor(sub: Subscription | null): Entitlements {
     brokerRemovalLimit: personalTier ? (BROKER_LIMITS[personalTier] ?? 0) : Infinity,
     familySeats: sub.planId === "family" ? 6 : 1,
   };
+}
+
+/* ── Agent availability by plan ──────────────────────────────────────────── */
+
+/** The agents always included with any active plan (core protection). */
+const CORE_AGENTS: AgentKind[] = ["discovery", "privacy", "security"];
+
+/** Which additional agents each feature/suite unlocks. */
+const FEATURE_AGENTS: { feature: Feature; agents: AgentKind[] }[] = [
+  { feature: "reputation", agents: ["reputation"] },
+  { feature: "executive", agents: ["executive", "reputation"] },
+  { feature: "business", agents: ["business"] },
+  { feature: "ai_agent", agents: ["legal", "deepfake", "reputation"] },
+];
+
+/**
+ * Resolve which of the 8 specialist agents are online for a given set of
+ * entitlements. Core agents (Discovery, Privacy, Security) are always on for an
+ * entitled plan; suite/add-on agents come online only when their feature is
+ * unlocked. Demo/unauthenticated entitlements light up the full fleet so the
+ * product stays fully explorable.
+ */
+export function availableAgents(ent: Entitlements): Set<AgentKind> {
+  // Demo mode: everything online.
+  if (ent.planId === "demo") {
+    return new Set<AgentKind>([
+      "discovery", "privacy", "legal", "reputation", "security", "deepfake", "executive", "business",
+    ]);
+  }
+  if (!ent.entitled) return new Set<AgentKind>();
+  const set = new Set<AgentKind>(CORE_AGENTS);
+  for (const { feature, agents } of FEATURE_AGENTS) {
+    if (ent.features[feature]) agents.forEach((a) => set.add(a));
+  }
+  return set;
 }
