@@ -12,7 +12,7 @@
  * Supabase-backed reader later) — this module never performs IO.
  */
 
-import type { Plan, PlanCategory } from "@/lib/billing/plans";
+import type { PlanCategory } from "@/lib/billing/plans";
 
 export type AccountStatus = "active" | "trialing" | "churned";
 
@@ -232,11 +232,4 @@ export function mrrMovement(book: Account[], now = Date.now()): MrrMovement {
     book.filter((a) => a.status === "churned" && isRecent(a.churnedAt)).reduce((s, a) => s + a.mrr, 0),
   );
   return { newMrr, expansionMrr, churnedMrr, netNewMrr: round(newMrr + expansionMrr - churnedMrr) };
-}
-
-/* ── Plan-derived helpers ────────────────────────────────────────────────── */
-
-/** Resolve a plan's effective monthly price (custom plans → a sensible floor). */
-export function planMonthly(plan: Plan, fallback = 25000): number {
-  return plan.monthly ?? fallback;
 }

@@ -7,7 +7,7 @@ import { Card, PageHeader, SectionTitle } from "@/components/ui";
 import { AreaChart } from "@/components/viz-advanced";
 import { getBook } from "@/lib/business/book";
 import {
-  arpu, arr, enterpriseBook, mrr, mrrMovement, retention, revenueByCategory, unitEconomics,
+  activeLogos, arpu, arr, enterpriseBook, magicNumber, mrr, mrrMovement, retention, revenueByCategory, unitEconomics,
 } from "@/lib/business/saas-metrics";
 import {
   automationMoat, blendedAccuracy, dataCorpus, scoreDetectors, type DetectionSample,
@@ -86,6 +86,12 @@ export default async function BusinessIntelligencePage() {
 
   const ltvHealthy = ue.ltvToCac >= 3;
   const nrrHealthy = ret.nrr >= 100;
+  // SaaS magic number: annualized net-new MRR over the S&M (acquisition) spend
+  // carried by logos won this month.
+  const recentSpend = accounts
+    .filter((a) => Date.now() - new Date(a.startedAt).getTime() <= 30 * 86_400_000)
+    .reduce((s, a) => s + a.acquisitionCost, 0);
+  const magic = magicNumber(movement.netNewMrr * 12, recentSpend);
 
   // Composite business health — blends growth, retention, efficiency,
   // defensibility, compliance and enterprise mix into one board-ready score.
@@ -181,7 +187,7 @@ export default async function BusinessIntelligencePage() {
             <TrendingUp className="h-4 w-4 text-risk-low" />
           </div>
           <p className="mt-1 text-2xl font-bold text-white">{money(annual)}</p>
-          <p className="text-[11px] text-slate-500">ARPU {money(arpuVal)}/mo</p>
+          <p className="text-[11px] text-slate-500">{activeLogos(accounts)} logos · ARPU {money(arpuVal)}/mo</p>
         </Card>
         <Card className="p-4">
           <div className="flex items-center justify-between">
@@ -337,11 +343,12 @@ export default async function BusinessIntelligencePage() {
       {/* Investor scorecard */}
       <Card className="p-4">
         <SectionTitle title="Investor scorecard" subtitle="The metrics that define enterprise-infrastructure value" />
-        <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 lg:grid-cols-3">
           <Scorecard label="MRR" value={money(monthly)} good={movement.netNewMrr >= 0} note="growing" />
           <Scorecard label="NRR" value={`${ret.nrr}%`} good={nrrHealthy} note={nrrHealthy ? "expansion > churn" : "watch churn"} />
           <Scorecard label="LTV:CAC" value={`${ue.ltvToCac.toFixed(1)}×`} good={ltvHealthy} note={ltvHealthy ? "efficient" : "improving"} />
           <Scorecard label="CAC payback" value={`${ue.paybackMonths.toFixed(1)} mo`} good={ue.paybackMonths <= 12} note="months" />
+          <Scorecard label="Magic number" value={magic.toFixed(1)} good={magic >= 0.75} note="net-new ARR / S&M" />
           <Scorecard label="Enterprise ACV" value={money(ent.acv)} good note={`${ent.contracts} contracts`} />
           <Scorecard label="Detection acc." value={`${accuracy}%`} good={accuracy >= 90} note="blended F1" />
           <Scorecard label="Automation" value={`${moat.automationRate}%`} good={moat.automationRate >= 75} note="autonomous" />
