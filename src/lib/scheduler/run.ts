@@ -17,6 +17,7 @@ import type { DiscoverySource } from "@/lib/discovery/source";
 import { computeRiskScore } from "@/lib/scoring/risk-score";
 import { advanceRemoval, shouldReappear } from "@/lib/brokers/removal";
 import { planAutoFilings } from "@/lib/brokers/auto-file";
+import { casesForNewThreats } from "@/lib/agents/threat-cases";
 import { investigationTimeline } from "@/lib/intelligence/threat-intel";
 import { collectReputation, type MentionSource } from "@/lib/reputation/collect";
 import { scanDomain } from "@/lib/domains/scan";
@@ -49,6 +50,7 @@ export async function runScheduledCycle(
   let newThreats = 0;
   let recommendations = 0;
   let removalsFiled = 0;
+  let casesOpened = 0;
   let mentionsCollected = 0;
   let domainRisksFound = 0;
 
@@ -67,6 +69,31 @@ export async function runScheduledCycle(
     for (const t of finding.threats) {
       const steps = investigationTimeline(t).map((s) => ({ agent: s.agent, label: s.label }));
       await store.recordInvestigation(fp.userId, fp.subject.id, t.title, steps);
+    }
+
+    // Auto-open a tracked Case for each NEW high/critical threat, so the case
+    // queue (and Mission Control) populates itself from live detections instead
+    // of waiting for a human to file one. Deduped against open cases by title.
+    if (finding.threats.length > 0) {
+      try {
+        const openTitles = await store.listOpenCaseTitlesForSubject(fp.subject.id);
+        const newCases = casesForNewThreats(finding.threats, openTitles);
+        if (newCases.length > 0) {
+          await store.createCases(fp.userId, fp.subject.id, newCases);
+          await store.recordActions(fp.userId, fp.subject.id, [
+            {
+              agent: "incident",
+              kind: "escalate",
+              summary: `Opened ${newCases.length} case(s) from new high/critical threat(s) and assigned the responding agent(s).`,
+              status: "completed",
+            },
+          ]);
+          casesOpened += newCases.length;
+        }
+      } catch (err) {
+        // Case creation is best-effort; never fail the whole cycle.
+        console.error("[privacyos] auto-open cases failed:", err);
+      }
     }
 
     const exposures = [...fp.exposures, ...finding.exposures];
@@ -208,6 +235,7 @@ export async function runScheduledCycle(
     recommendations,
     removalsAdvanced,
     removalsFiled,
+    casesOpened,
     mentionsCollected,
     domainRisksFound,
     ranAt: new Date().toISOString(),

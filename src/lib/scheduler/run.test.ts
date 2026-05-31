@@ -19,6 +19,7 @@ import { MockProvider } from "@/lib/agents/llm/provider";
 import type { DiscoverySource } from "@/lib/discovery/source";
 import type { Exposure, Recommendation, Subject, Threat } from "@/lib/types";
 import type { ProtectOutcome } from "@/lib/agents/orchestrator";
+import type { NewCaseFields } from "@/lib/agents/recommendation-routing";
 
 function subject(id: string, userId: string): Subject {
   return {
@@ -48,6 +49,8 @@ class MemoryStore implements SchedulerStore {
   investigations: { threatTitle: string; steps: { agent: string; label: string }[] }[] = [];
   reputation: ReputationData[] = [];
   domainScans: DomainScanData[] = [];
+  createdCases: NewCaseFields[] = [];
+  openCaseTitles: string[] = [];
 
   async listFootprints() {
     return this.footprints;
@@ -92,6 +95,12 @@ class MemoryStore implements SchedulerStore {
   }
   async saveDomainRisks(_u: string, data: DomainScanData) {
     this.domainScans.push(data);
+  }
+  async listOpenCaseTitlesForSubject(_s: string): Promise<string[]> {
+    return this.openCaseTitles;
+  }
+  async createCases(_u: string, _s: string, cases: NewCaseFields[]) {
+    this.createdCases.push(...cases);
   }
 }
 
@@ -164,6 +173,25 @@ describe("runScheduledCycle", () => {
     expect(store.scores[0].map((s) => s.kind)).toEqual(["privacy", "identity", "overall"]);
     // critical threat raised a notification
     expect(store.notifications[0][0].riskLevel).toBe("critical");
+    // critical threat auto-opened a tracked case per subject, assigned to security
+    expect(summary.casesOpened).toBe(2);
+    expect(store.createdCases).toHaveLength(2);
+    expect(store.createdCases[0]).toMatchObject({ type: "breach_response", assignedAgent: "security", riskLevel: "critical" });
+  });
+
+  it("does not re-open a case when one already exists for the threat", async () => {
+    const store = new MemoryStore([
+      { userId: "u1", subject: subject("a", "u1"), exposures: [], threats: [] },
+    ]);
+    store.openCaseTitles = ["Leak found"]; // a case for this threat already exists
+    const summary = await runScheduledCycle(store, {
+      sources: [critSource],
+      provider: new MockProvider(),
+      reputationSource: repSource,
+      domainClient: domClient,
+    });
+    expect(summary.casesOpened).toBe(0);
+    expect(store.createdCases).toHaveLength(0);
   });
 
   it("auto-files broker opt-outs for discovered broker exposures", async () => {

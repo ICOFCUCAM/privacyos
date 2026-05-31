@@ -23,6 +23,7 @@ import type {
   Threat,
 } from "@/lib/types";
 import type { ProtectOutcome } from "@/lib/agents/orchestrator";
+import type { NewCaseFields } from "@/lib/agents/recommendation-routing";
 import type { AssessedRisk } from "@/lib/domains/dns";
 
 export interface Footprint {
@@ -59,6 +60,8 @@ export interface ScheduledRunSummary {
   removalsAdvanced: number;
   /** New broker opt-outs auto-filed from discovered exposures this cycle. */
   removalsFiled: number;
+  /** Cases auto-opened from new high/critical threats this cycle. */
+  casesOpened: number;
   mentionsCollected: number;
   domainRisksFound: number;
   ranAt: string;
@@ -112,4 +115,8 @@ export interface SchedulerStore {
   /** Append timestamped investigation steps for a newly-discovered threat,
    *  resolved by (subjectId, threatTitle). No-op if the threat row isn't found. */
   recordInvestigation(userId: string, subjectId: string, threatTitle: string, steps: { agent: string; label: string }[]): Promise<void>;
+  /** Titles of the subject's currently-open cases (to avoid opening duplicates). */
+  listOpenCaseTitlesForSubject(subjectId: string): Promise<string[]>;
+  /** Open new cases (e.g. auto-raised from high/critical threats). */
+  createCases(userId: string, subjectId: string, cases: NewCaseFields[]): Promise<void>;
 }

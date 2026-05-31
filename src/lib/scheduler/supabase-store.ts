@@ -7,6 +7,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Exposure, Recommendation, RemovalRequest, Threat } from "@/lib/types";
 import type { ProtectOutcome } from "@/lib/agents/orchestrator";
+import type { NewCaseFields } from "@/lib/agents/recommendation-routing";
 import { mapExposure, mapRemoval, mapSubject, mapThreat } from "@/lib/data/mappers";
 import { isRemovalDue } from "@/lib/brokers/removal";
 import type {
@@ -290,6 +291,31 @@ export class SupabaseSchedulerStore implements SchedulerStore {
         agent: s.agent,
         label: s.label,
         created_at: new Date(base + i * 6 * 60_000).toISOString(),
+      })),
+    );
+  }
+
+  async listOpenCaseTitlesForSubject(subjectId: string): Promise<string[]> {
+    const { data } = await this.db
+      .from("cases")
+      .select("title")
+      .eq("subject_id", subjectId)
+      .neq("status", "resolved");
+    return (data ?? []).map((r) => r.title as string);
+  }
+
+  async createCases(userId: string, subjectId: string, cases: NewCaseFields[]): Promise<void> {
+    if (cases.length === 0) return;
+    await this.db.from("cases").insert(
+      cases.map((c) => ({
+        user_id: userId,
+        subject_id: subjectId,
+        type: c.type,
+        title: c.title,
+        summary: c.summary,
+        status: "open",
+        risk_level: c.riskLevel,
+        assigned_agent: c.assignedAgent,
       })),
     );
   }
