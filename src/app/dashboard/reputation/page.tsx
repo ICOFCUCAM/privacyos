@@ -1,38 +1,44 @@
-import { Card, DataBadge, PageHeader, RiskBadge, Pill, SectionTitle, StatCard, SentimentBars } from "@/components/ui";
+import { Card, DataBadge, PageHeader, Pill, SectionTitle, SentimentBars } from "@/components/ui";
 import { ReputationScanButton } from "@/components/reputation-scan-button";
 import { getDataSource } from "@/lib/data";
 import { getModuleData } from "@/lib/data/modules";
-import { reputationScore } from "@/lib/scoring/scores";
-import { scoreToLevel } from "@/lib/scoring/risk-score";
+import { reputationOverview, monitoringCoverage } from "@/lib/reputation/os/analysis";
 import { cn, timeAgo, titleCase } from "@/lib/ui";
 import type { SentimentLabel } from "@/lib/suite-types";
+import { CheckCircle2 } from "lucide-react";
+import { ReputationTabs } from "./tabs";
 
 const sentColor: Record<SentimentLabel, string> = {
-  positive: "text-risk-low",
-  neutral: "text-slate-400",
-  negative: "text-risk-critical",
-  mixed: "text-risk-medium",
+  positive: "text-risk-low", neutral: "text-slate-400", negative: "text-risk-critical", mixed: "text-risk-medium",
 };
 
 export const metadata = { title: "ReputationOS" };
+
+function scoreTone(v: number): string {
+  return v >= 70 ? "text-risk-low" : v >= 45 ? "text-risk-medium" : "text-risk-high";
+}
 
 export default async function ReputationPage() {
   const { subject } = await (await getDataSource()).getDataset();
   const moduleData = await getModuleData();
   const { mentions, sentimentTrend } = moduleData;
-  const repScore = reputationScore(mentions);
-  const negatives = mentions.filter((m) => m.sentiment === "negative");
-  const defamatory = mentions.filter((m) => m.isDefamatory);
-  const net = sentimentTrend.at(-1)?.netScore ?? 0;
-  const byChannel = mentions.reduce<Record<string, number>>((a, m) => ((a[m.channel] = (a[m.channel] ?? 0) + 1), a), {});
-  const channels = Object.entries(byChannel).sort((x, y) => y[1] - x[1]);
-  const maxCh = Math.max(1, ...channels.map(([, n]) => n));
+  const overview = reputationOverview(mentions);
+  const coverage = monitoringCoverage(mentions);
+  const s = overview.scores;
+
+  const scoreCards = [
+    { label: "Sentiment", value: s.sentiment },
+    { label: "Authority", value: s.authority },
+    { label: "Reach", value: s.reach },
+    { label: "Influence", value: s.influence },
+    { label: "Brand perception", value: s.brandPerception },
+  ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <PageHeader
         title="ReputationOS"
-        subtitle={`Search visibility, brand & news monitoring, sentiment analysis, defamation tracking and SEO recovery for ${subject.displayName}.`}
+        subtitle={`Monitoring, analysis, growth, SEO, media, recovery, social & intelligence for ${subject.displayName} — one reputation operating system.`}
         actions={
           <div className="flex flex-col items-end gap-2">
             <DataBadge live={moduleData.live} />
@@ -41,49 +47,61 @@ export default async function ReputationPage() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Reputation risk" value={repScore} accent={cn(scoreToLevel(repScore) === "critical" || scoreToLevel(repScore) === "high" ? "text-risk-high" : "text-white")} hint="Higher = more at risk" />
-        <StatCard label="Net sentiment" value={net.toFixed(2)} accent={net < 0 ? "text-risk-critical" : "text-risk-low"} hint="Trailing 14 days" />
-        <StatCard label="Negative mentions" value={negatives.length} accent="text-risk-high" />
-        <StatCard label="Defamation flags" value={defamatory.length} accent="text-risk-critical" />
-      </div>
+      <ReputationTabs />
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <SectionTitle title="Sentiment trend" subtitle="Positive / neutral / negative volume, last 14 days" />
-          <SentimentBars days={sentimentTrend} />
-          <div className="mt-3 flex gap-4 text-xs text-slate-400">
-            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded bg-risk-low/70" /> Positive</span>
-            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded bg-slate-600" /> Neutral</span>
-            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded bg-risk-critical/70" /> Negative</span>
+      {/* Health + 5-axis analysis */}
+      <Card className="p-4">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+          <div className="flex shrink-0 items-center gap-4">
+            <div className="flex h-28 w-28 flex-col items-center justify-center rounded-full ring-4 ring-brand/20">
+              <span className={cn("text-3xl font-bold", scoreTone(overview.health))}>{overview.health}</span>
+              <span className="text-[10px] text-slate-400">health</span>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-white">Reputation health</p>
+              <p className="text-xs text-slate-500">{overview.negatives} negative · {overview.defamation} defamation flag(s)</p>
+              <p className="mt-1 text-xs text-slate-500">{overview.channelsMonitored} channels monitored 24/7</p>
+            </div>
           </div>
-        </Card>
-        <Card>
-          <SectionTitle title="SEO recovery plan" />
-          <ol className="list-decimal space-y-2 pl-5 text-sm text-slate-300">
-            <li>Publish authoritative owned profiles to reclaim page one.</li>
-            <li>Issue verified press to dilute negative ranking.</li>
-            <li>Optimize LinkedIn & bio for the subject&apos;s name.</li>
-            <li>Escalate defamatory items to the Legal engine.</li>
-          </ol>
-        </Card>
-      </div>
-
-      <Card>
-        <SectionTitle title="Mentions by channel" subtitle="Where the conversation is happening" />
-        <div className="space-y-2">
-          {channels.map(([ch, n]) => (
-            <div key={ch} className="flex items-center gap-3">
-              <span className="w-24 shrink-0 text-xs text-slate-400">{titleCase(ch)}</span>
-              <div className="h-2 flex-1 overflow-hidden rounded-full bg-bg-subtle">
-                <div className="h-full rounded-full bg-brand" style={{ width: `${(n / maxCh) * 100}%` }} />
+          <div className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-5">
+            {scoreCards.map((c) => (
+              <div key={c.label} className="rounded-xl border border-border bg-bg-subtle/40 p-3 text-center">
+                <p className={cn("text-2xl font-bold", scoreTone(c.value))}>{c.value}</p>
+                <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-400">{c.label}</p>
               </div>
-              <span className="w-6 text-right text-xs text-slate-300">{n}</span>
+            ))}
+          </div>
+        </div>
+      </Card>
+
+      {/* Monitoring coverage */}
+      <Card className="p-4">
+        <SectionTitle title="Monitoring coverage" subtitle="Always-on across every channel where the conversation happens" />
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {coverage.map((c) => (
+            <div key={c.channel} className="flex items-center justify-between rounded-lg border border-border bg-bg-subtle/40 px-3 py-2">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-risk-low" />
+                <span className="text-xs text-slate-300">{c.label}</span>
+              </div>
+              <span className="text-xs font-semibold text-white">{c.mentions}</span>
             </div>
           ))}
         </div>
       </Card>
 
+      {/* Sentiment trend */}
+      <Card className="p-4">
+        <SectionTitle title="Sentiment trend" subtitle="Positive / neutral / negative volume, last 14 days" />
+        <SentimentBars days={sentimentTrend} />
+        <div className="mt-3 flex gap-4 text-xs text-slate-400">
+          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded bg-risk-low/70" /> Positive</span>
+          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded bg-slate-600" /> Neutral</span>
+          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded bg-risk-critical/70" /> Negative</span>
+        </div>
+      </Card>
+
+      {/* Mentions */}
       <Card className="p-0">
         <div className="border-b border-border p-5"><SectionTitle title="Mentions" subtitle="Brand, news, search, social, forums & reviews" /></div>
         <div className="overflow-x-auto">
