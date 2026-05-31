@@ -28,7 +28,7 @@ const sevColor: Record<EventSeverity, string> = {
  */
 export function ActivityStream({ events, live }: { events: FeedEvent[]; live: boolean }) {
   return (
-    <Card className="flex h-full flex-col p-3">
+    <Card className="flex flex-col p-3">
       <div className="mb-2 flex items-center justify-between">
         <h2 className="text-sm font-semibold text-white">Operations stream</h2>
         <span className="inline-flex items-center gap-1.5 text-xs font-medium text-risk-low">
@@ -39,7 +39,7 @@ export function ActivityStream({ events, live }: { events: FeedEvent[]; live: bo
           {live ? "LIVE" : "SAMPLE"}
         </span>
       </div>
-      <ol className="relative ml-1 min-h-0 flex-1 space-y-2 overflow-y-auto border-l border-border pl-5 pt-0.5">
+      <ol className="relative ml-1 max-h-[22rem] space-y-2 overflow-y-auto border-l border-border pl-5 pt-0.5">
         {events.map((e) => {
           const Icon = kindIcon[e.kind];
           return (

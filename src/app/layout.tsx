@@ -42,14 +42,9 @@ export const metadata: Metadata = {
     description: "Autonomous digital risk protection for individuals, executives, families and enterprises.",
     images: ["/hero-dashboard.png"],
   },
-  icons: {
-    icon: [
-      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
-      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icon.svg", type: "image/svg+xml" },
-    ],
-    apple: "/apple-icon.png",
-  },
+  // Favicon/app icons are provided by the App Router conventions
+  // (src/app/icon.png + src/app/apple-icon.png), generated from the transparent
+  // PrivacyOS shield — Next.js injects the correct <link> tags automatically.
 };
 
 export default function RootLayout({

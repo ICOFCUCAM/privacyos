@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import {
   Shield,
   Search,
@@ -123,8 +124,41 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <footer className="border-t border-border py-8 text-center text-sm text-slate-500">
-        PrivacyOS — Privacy, Reputation, Identity &amp; Digital Risk Management.
+      <footer className="border-t border-border bg-bg-subtle/30">
+        <div className="mx-auto max-w-6xl px-6 py-12">
+          <div className="grid grid-cols-2 gap-8 sm:grid-cols-4 lg:grid-cols-5">
+            <div className="col-span-2 lg:col-span-1">
+              <div className="flex items-center gap-2">
+                <Image src="/PrivacyLogo.png" alt="" width={24} height={24} className="h-6 w-6" />
+                <span className="text-base font-bold text-white">PrivacyOS</span>
+              </div>
+              <p className="mt-3 max-w-xs text-sm text-slate-400">
+                The Digital Risk Operating System — autonomous privacy, reputation, identity and enterprise protection.
+              </p>
+            </div>
+            {[
+              { h: "Platform", links: [["Command Center", "/dashboard"], ["AI Agents", "/dashboard/agents"], ["Response Playbooks", "/dashboard/playbooks"], ["Pricing", "/pricing"]] },
+              { h: "Suites", links: [["ReputationOS", "/dashboard/reputation"], ["ExecutiveOS", "/dashboard/executive"], ["BusinessOS", "/dashboard/business"], ["Growth & Revenue", "/dashboard/business-intelligence"]] },
+              { h: "Trust", links: [["Security", "/security"], ["Compliance & SLAs", "/dashboard/compliance"], ["Audit Log", "/dashboard/audit"]] },
+              { h: "Get started", links: [["Get Protected", "/dashboard/assistant"], ["Open Dashboard", "/dashboard"], ["Sign in", "/login"]] },
+            ].map((col) => (
+              <div key={col.h}>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{col.h}</p>
+                <ul className="mt-3 space-y-2">
+                  {col.links.map(([label, href]) => (
+                    <li key={href}>
+                      <Link href={href} className="text-sm text-slate-400 transition hover:text-white">{label}</Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-border pt-6 sm:flex-row">
+            <p className="text-xs text-slate-500">© {new Date().getFullYear()} PrivacyOS · Privacy, Reputation, Identity &amp; Digital Risk Management.</p>
+            <p className="text-xs text-slate-500">GDPR · CCPA · SOC 2 · ISO 27001</p>
+          </div>
+        </div>
       </footer>
     </main>
   );

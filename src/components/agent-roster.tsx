@@ -70,7 +70,7 @@ export function AgentRoster({
 }) {
   const lockedCount = roster.filter((a) => a.locked).length;
   return (
-    <Card className="flex h-full flex-col">
+    <Card className="flex flex-col p-3">
       <SectionTitle
         title="AI Agents"
         subtitle="Specialists working continuously"
@@ -85,7 +85,7 @@ export function AgentRoster({
         }
       />
       <ul className={cn(
-        "-mr-1 min-h-0 flex-1 content-start overflow-y-auto pr-1",
+        "-mr-1 pr-1",
         columns === 2 ? "grid grid-cols-1 gap-0.5 sm:grid-cols-2" : "space-y-0.5",
       )}>
         {roster.map((a) => {

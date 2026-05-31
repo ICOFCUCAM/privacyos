@@ -146,10 +146,10 @@ export default async function OverviewPage() {
       </div>
 
       {/* ── TIER 1 — score+recs · operations stream · agent fleet ───────────
-          Bounded hero band: on xl every column fills the same height with
-          internally-scrolling content, so no card carries trailing dead space. */}
-      <div className="grid grid-cols-1 gap-2.5 xl:h-[24rem] xl:grid-cols-12">
-        {/* Left: score + axis breakdown + recommendations (flex to fill) */}
+          Content-driven cards (items-start) so each sizes to its own content —
+          no fixed-height band, no overflow bleeding over the charts below. */}
+      <div className="grid grid-cols-1 items-start gap-2.5 xl:grid-cols-12">
+        {/* Left: score + axis breakdown + recommendations */}
         <div className="flex flex-col gap-2.5 xl:col-span-3">
           <Card className="p-3">
             <div className="flex items-center gap-3">
@@ -175,10 +175,10 @@ export default async function OverviewPage() {
               <AxisStat label="Family" value={score.family} />
             </div>
           </Card>
-          <Card className="flex min-h-0 flex-1 flex-col p-3">
+          <Card className="p-3">
             <SectionTitleRow title="AI recommendations" href="/dashboard/recommendations" />
-            <ul className="min-h-0 flex-1 divide-y divide-border overflow-y-auto">
-              {data.recommendations.map((r) => (
+            <ul className="divide-y divide-border">
+              {data.recommendations.slice(0, 6).map((r) => (
                 <li key={r.id} className="flex items-center gap-2.5 py-1.5">
                   <Sparkles className="h-3.5 w-3.5 shrink-0 text-brand" />
                   <span className="min-w-0 flex-1 truncate text-[13px] text-white">{r.title}</span>
@@ -190,13 +190,13 @@ export default async function OverviewPage() {
           </Card>
         </div>
 
-        {/* Middle: live operations stream (fills the band, scrolls internally) */}
-        <div className="xl:col-span-5 xl:h-full">
+        {/* Middle: live operations stream */}
+        <div className="xl:col-span-5">
           <ActivityStream events={feed} live={live} />
         </div>
 
-        {/* Right: the full agent fleet in two columns (fills the band) */}
-        <div className="xl:col-span-4 xl:h-full">
+        {/* Right: the full agent fleet in two columns */}
+        <div className="xl:col-span-4">
           <AgentRoster roster={roster} online={onlineAgents} total={totalAgents} live={live} columns={2} />
         </div>
       </div>
