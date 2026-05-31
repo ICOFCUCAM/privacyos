@@ -1,5 +1,6 @@
 import { Globe } from "lucide-react";
 import { Card, DataBadge, RiskBadge, Pill, SectionTitle, StatCard } from "@/components/ui";
+import { DomainScanButton } from "@/components/domain-scan-button";
 import { getModuleData } from "@/lib/data/modules";
 import { timeAgo, titleCase } from "@/lib/ui";
 
@@ -20,7 +21,10 @@ export default async function DomainsPage() {
             </p>
           </div>
         </div>
-        <DataBadge live={moduleData.live} />
+        <div className="flex flex-col items-end gap-2">
+          <DataBadge live={moduleData.live} />
+          <DomainScanButton />
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">

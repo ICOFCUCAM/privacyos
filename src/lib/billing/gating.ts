@@ -27,7 +27,7 @@ export const GATED_SUITES: GatedSuite[] = [
   {
     feature: "business",
     label: "BusinessOS",
-    prefixes: ["/dashboard/business", "/dashboard/domains", "/dashboard/employees", "/dashboard/third-party"],
+    prefixes: ["/dashboard/business", "/dashboard/domains", "/dashboard/employees", "/dashboard/third-party", "/dashboard/team"],
     upsell: "business",
   },
 ];

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Shield, LayoutDashboard, Radar, ShieldAlert, Star, FolderKanban,
   Bot, Building2, Users, Crown, FileText, Sparkles, LogOut,
-  Globe, Plane, UserCog, Network, Scale, Bell, Siren, MessageSquareHeart, Trash2, ScrollText, Settings, Lock,
+  Globe, Plane, UserCog, Network, Scale, Bell, Siren, MessageSquareHeart, Trash2, ScrollText, Settings, Lock, Users2,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/ui";
@@ -53,6 +53,7 @@ const navGroups: NavGroup[] = [
       { href: "/dashboard/domains", label: "Domains", icon: Globe },
       { href: "/dashboard/employees", label: "Employee Exposure", icon: UserCog },
       { href: "/dashboard/third-party", label: "Third-Party Risk", icon: Network },
+      { href: "/dashboard/team", label: "Team & Roles", icon: Users2 },
     ],
   },
   {
