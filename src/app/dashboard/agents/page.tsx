@@ -11,6 +11,8 @@ const statusStyle: Record<AgentStatus, string> = {
   error: "bg-risk-critical/15 text-risk-critical ring-risk-critical/30",
 };
 
+export const metadata = { title: "AI Agents" };
+
 export default async function AgentsPage() {
   const data = await (await getDataSource()).getDataset();
   const agents = data.agents;
