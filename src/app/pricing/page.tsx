@@ -2,6 +2,30 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { Shield } from "lucide-react";
 import { PricingTable } from "@/components/pricing";
+import { TrustStrip } from "@/components/landing-sections";
+
+const faqs: { q: string; a: string }[] = [
+  {
+    q: "Can I change plans or cancel anytime?",
+    a: "Yes. Upgrade, downgrade or cancel from Settings → Billing at any time. Changes prorate automatically and you keep access through the current period.",
+  },
+  {
+    q: "What's the difference between the suites?",
+    a: "PrivacyOS covers personal privacy & removals; ReputationOS handles search/news/sentiment; ExecutiveOS adds doxxing, deepfake and travel-risk protection; BusinessOS protects organizations. Most customers start with one and add suites as they grow.",
+  },
+  {
+    q: "Do the AI agents really run continuously?",
+    a: "Yes — the autonomous agent fleet runs on a 24/7 schedule, continuously discovering exposures, filing removals, re-checking results and raising alerts. You review outcomes, not busywork.",
+  },
+  {
+    q: "Is my data secure?",
+    a: "Every tenant's data is isolated by row-level security, access is role-based, and the platform is built privacy-first with GDPR/CCPA-ready workflows and an append-only audit log.",
+  },
+  {
+    q: "What do annual contracts include?",
+    a: "Annual billing saves 20%. Executive plans include a setup consultation, Enterprise plans include onboarding, and multi-year contracts are available.",
+  },
+];
 
 export const metadata: Metadata = {
   title: "Pricing — PrivacyOS",
@@ -35,11 +59,15 @@ export default function PricingPage() {
         </p>
       </section>
 
+      <div className="mb-12">
+        <TrustStrip />
+      </div>
+
       <section className="mx-auto max-w-6xl px-6 pb-16">
         <PricingTable />
       </section>
 
-      <section className="mx-auto max-w-6xl px-6 pb-24">
+      <section className="mx-auto max-w-6xl px-6 pb-16">
         <div className="rounded-2xl border border-border bg-bg-elevated/60 p-6 text-sm text-slate-400">
           <h3 className="mb-2 font-semibold text-white">Annual contracts &amp; enterprise</h3>
           <ul className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
@@ -48,6 +76,29 @@ export default function PricingPage() {
             <li>• Enterprise plans include onboarding</li>
             <li>• Multi-year contracts available</li>
           </ul>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="mx-auto max-w-3xl px-6 pb-24">
+        <h2 className="mb-8 text-center text-3xl font-bold tracking-tight text-white">
+          Frequently asked questions
+        </h2>
+        <div className="divide-y divide-border rounded-2xl border border-border bg-bg-elevated/40">
+          {faqs.map((f) => (
+            <details key={f.q} className="group px-5 py-4">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-medium text-white">
+                {f.q}
+                <span className="text-slate-500 transition group-open:rotate-45">+</span>
+              </summary>
+              <p className="mt-3 text-sm leading-relaxed text-slate-400">{f.a}</p>
+            </details>
+          ))}
+        </div>
+        <div className="mt-10 text-center">
+          <Link href="/dashboard/assistant" className="rounded-lg bg-brand px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand/90">
+            Get Protected
+          </Link>
         </div>
       </section>
 
