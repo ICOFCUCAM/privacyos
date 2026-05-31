@@ -1,7 +1,9 @@
 import Link from "next/link";
-import { Card, DataBadge, RiskBadge, Pill, StatCard } from "@/components/ui";
+import { Card, DataBadge, RiskBadge, Pill, SectionTitle, StatCard } from "@/components/ui";
+import { SeverityBar } from "@/components/viz";
 import { getModuleData } from "@/lib/data/modules";
 import { cn, timeAgo, titleCase } from "@/lib/ui";
+import type { RiskLevel } from "@/lib/types";
 
 const FILTERS = [
   { key: "all", label: "All" },
@@ -21,6 +23,10 @@ export default async function IncidentsPage({
   const { incidents } = moduleData;
   const filtered = kind === "all" ? incidents : incidents.filter((i) => i.kind === kind);
   const open = incidents.filter((i) => i.status !== "resolved" && i.status !== "dismissed");
+  const levels: RiskLevel[] = ["low", "medium", "high", "critical"];
+  const counts: Partial<Record<RiskLevel, number>> = Object.fromEntries(
+    levels.map((l) => [l, incidents.filter((i) => i.riskLevel === l).length]),
+  );
 
   return (
     <div className="space-y-6">
@@ -40,6 +46,18 @@ export default async function IncidentsPage({
         <StatCard label="Impersonation" value={incidents.filter((i) => i.kind === "impersonation").length} />
         <StatCard label="Doxxing" value={incidents.filter((i) => i.kind === "doxxing").length} accent="text-risk-high" />
       </div>
+
+      <Card>
+        <SectionTitle title="Severity distribution" subtitle={`${open.length} open · ${incidents.length} total`} />
+        <SeverityBar counts={counts} />
+        <div className="mt-3 flex flex-wrap gap-4 text-xs text-slate-400">
+          {([...levels].reverse()).map((l) => (
+            <span key={l} className="flex items-center gap-1.5">
+              <RiskBadge level={l} /> {counts[l] ?? 0}
+            </span>
+          ))}
+        </div>
+      </Card>
 
       <div className="flex flex-wrap gap-2">
         {FILTERS.map((f) => (

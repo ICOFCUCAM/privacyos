@@ -1,11 +1,18 @@
 import { UserCog } from "lucide-react";
 import { Card, DataBadge, RiskBadge, Pill, SectionTitle, StatCard } from "@/components/ui";
+import { SeverityBar } from "@/components/viz";
 import { getModuleData } from "@/lib/data/modules";
 import { timeAgo, titleCase } from "@/lib/ui";
+import type { RiskLevel } from "@/lib/types";
 
 export default async function EmployeesPage() {
   const moduleData = await getModuleData();
   const { employeeExposures, credentialLeaks } = moduleData;
+  const levels: RiskLevel[] = ["low", "medium", "high", "critical"];
+  const all = [...employeeExposures.map((e) => e.riskLevel), ...credentialLeaks.map((c) => c.riskLevel)];
+  const counts: Partial<Record<RiskLevel, number>> = Object.fromEntries(
+    levels.map((l) => [l, all.filter((x) => x === l).length]),
+  );
 
   return (
     <div className="space-y-6">
@@ -21,6 +28,18 @@ export default async function EmployeesPage() {
         </div>
         <DataBadge live={moduleData.live} />
       </div>
+
+      <Card>
+        <SectionTitle title="Workforce risk distribution" subtitle={`${all.length} findings across employees & credentials`} />
+        <SeverityBar counts={counts} />
+        <div className="mt-3 flex flex-wrap gap-4 text-xs text-slate-400">
+          {([...levels].reverse()).map((l) => (
+            <span key={l} className="flex items-center gap-1.5">
+              <RiskBadge level={l} /> {counts[l] ?? 0}
+            </span>
+          ))}
+        </div>
+      </Card>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="Employees exposed" value={employeeExposures.length} accent="text-risk-high" />
