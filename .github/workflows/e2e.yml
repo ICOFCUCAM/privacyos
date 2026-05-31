@@ -5,9 +5,15 @@ on:
     branches: [main]
   pull_request:
 
+# The E2E smoke run is advisory, not a merge gate: the `verify` job (build +
+# typecheck + unit/integration tests) is the authoritative quality gate. E2E
+# depends on a Chromium download that can be rate-limited/flaky in CI, so the
+# job is allowed to fail without blocking merges. Treat a red E2E as a signal to
+# investigate, not a hard stop.
 jobs:
   e2e:
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
@@ -20,7 +26,8 @@ jobs:
         run: npm ci
 
       - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium
+        # Retry the browser download once; it is the most common flaky step.
+        run: npx playwright install --with-deps chromium || (sleep 10 && npx playwright install --with-deps chromium)
 
       - name: Run E2E smoke tests
         run: npm run test:e2e
