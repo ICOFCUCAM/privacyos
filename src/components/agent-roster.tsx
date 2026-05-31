@@ -85,7 +85,7 @@ export function AgentRoster({
         }
       />
       <ul className={cn(
-        "-mr-1 flex-1 overflow-y-auto pr-1",
+        "-mr-1 min-h-0 flex-1 content-start overflow-y-auto pr-1",
         columns === 2 ? "grid grid-cols-1 gap-0.5 sm:grid-cols-2" : "space-y-0.5",
       )}>
         {roster.map((a) => {

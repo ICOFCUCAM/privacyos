@@ -39,7 +39,7 @@ export function ActivityStream({ events, live }: { events: FeedEvent[]; live: bo
           {live ? "LIVE" : "SAMPLE"}
         </span>
       </div>
-      <ol className="relative ml-1 max-h-[24rem] flex-1 space-y-2 overflow-y-auto border-l border-border pl-5 pt-0.5">
+      <ol className="relative ml-1 min-h-0 flex-1 space-y-2 overflow-y-auto border-l border-border pl-5 pt-0.5">
         {events.map((e) => {
           const Icon = kindIcon[e.kind];
           return (

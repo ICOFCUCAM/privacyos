@@ -145,13 +145,15 @@ export default async function OverviewPage() {
         <KpiTile icon={<Layers className="h-3.5 w-3.5 text-slate-300" />} label="Attack surface" value={surfaceTotal} sub={`${surface.filter((a) => a.count > 0).length} vectors · ${graphStats.sources} sources`} />
       </div>
 
-      {/* ── TIER 1 — score+recs · operations stream · agent fleet (2-col) ───── */}
-      <div className="grid grid-cols-1 items-stretch gap-2.5 xl:grid-cols-12">
-        {/* Left: score + axis breakdown + recommendations (fills the column) */}
+      {/* ── TIER 1 — score+recs · operations stream · agent fleet ───────────
+          Bounded hero band: on xl every column fills the same height with
+          internally-scrolling content, so no card carries trailing dead space. */}
+      <div className="grid grid-cols-1 gap-2.5 xl:h-[24rem] xl:grid-cols-12">
+        {/* Left: score + axis breakdown + recommendations (flex to fill) */}
         <div className="flex flex-col gap-2.5 xl:col-span-3">
           <Card className="p-3">
             <div className="flex items-center gap-3">
-              <ScoreGauge score={score.overall} size={96} />
+              <ScoreGauge score={score.overall} size={88} />
               <div className="min-w-0 flex-1">
                 <p className="text-[10px] uppercase tracking-wide text-slate-400">Exposure score</p>
                 <div className="mt-0.5 flex items-center gap-1.5">
@@ -173,41 +175,44 @@ export default async function OverviewPage() {
               <AxisStat label="Family" value={score.family} />
             </div>
           </Card>
-          <Card className="flex flex-1 flex-col p-3">
+          <Card className="flex min-h-0 flex-1 flex-col p-3">
             <SectionTitleRow title="AI recommendations" href="/dashboard/recommendations" />
-            <ul className="flex-1 divide-y divide-border">
-              {data.recommendations.slice(0, 5).map((r) => (
+            <ul className="min-h-0 flex-1 divide-y divide-border overflow-y-auto">
+              {data.recommendations.map((r) => (
                 <li key={r.id} className="flex items-center gap-2.5 py-1.5">
                   <Sparkles className="h-3.5 w-3.5 shrink-0 text-brand" />
                   <span className="min-w-0 flex-1 truncate text-[13px] text-white">{r.title}</span>
                   <span className="shrink-0 text-[11px] font-semibold text-risk-low">−{r.impact}</span>
+                  <span className="hidden shrink-0 text-[10px] text-slate-500 sm:inline">{titleCase(r.agent)}</span>
                 </li>
               ))}
             </ul>
           </Card>
         </div>
 
-        {/* Middle: live operations stream */}
-        <div className="xl:col-span-5">
+        {/* Middle: live operations stream (fills the band, scrolls internally) */}
+        <div className="xl:col-span-5 xl:h-full">
           <ActivityStream events={feed} live={live} />
         </div>
 
-        {/* Right: the full agent fleet in two columns + autonomous-response footer */}
-        <div className="flex flex-col gap-2.5 xl:col-span-4">
-          <div className="flex-1">
-            <AgentRoster roster={roster} online={onlineAgents} total={totalAgents} live={live} columns={2} />
-          </div>
-          <Card className="p-3">
-            <SectionTitleRow title="Autonomous response" href="/dashboard/playbooks" />
-            <div className="mt-1.5 grid grid-cols-4 gap-2">
-              <MiniStat value={`${playbooks.automationRate}%`} label="Automated" tone="text-risk-low" />
-              <MiniStat value={String(playbooks.totalRuns)} label="Runs" />
-              <MiniStat value={String(playbooks.activePlaybooks)} label="Playbooks" />
-              <MiniStat value={String(playbooks.approvalSteps)} label="To approve" tone="text-risk-medium" />
-            </div>
-          </Card>
+        {/* Right: the full agent fleet in two columns (fills the band) */}
+        <div className="xl:col-span-4 xl:h-full">
+          <AgentRoster roster={roster} online={onlineAgents} total={totalAgents} live={live} columns={2} />
         </div>
       </div>
+
+      {/* ── TIER 1 — autonomous response (full-width KPI strip) ─────────────── */}
+      <Card className="p-3">
+        <SectionTitleRow title="Autonomous response" href="/dashboard/playbooks" />
+        <div className="mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6">
+          <MiniStat value={`${playbooks.automationRate}%`} label="Steps automated" tone="text-risk-low" />
+          <MiniStat value={String(playbooks.totalRuns)} label="Workflow runs" />
+          <MiniStat value={String(playbooks.autonomousRuns)} label="Fully autonomous" />
+          <MiniStat value={String(playbooks.activePlaybooks)} label="Active playbooks" />
+          <MiniStat value={String(playbooks.approvalSteps)} label="Awaiting approval" tone="text-risk-medium" />
+          <MiniStat value={String(data.cases.filter((c) => c.status !== "resolved").length)} label="Open cases" />
+        </div>
+      </Card>
 
       {/* ── TIER 2 — operational intelligence ──────────────────────────────── */}
       <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-2">
