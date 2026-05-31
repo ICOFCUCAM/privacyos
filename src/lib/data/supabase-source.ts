@@ -114,6 +114,16 @@ export class SupabaseDataSource implements DataSource {
     const { error: runErr } = await this.db.from("agent_runs").insert(runRows);
     if (runErr) throw runErr;
 
+    // Replace (not append) the open recommendation set for this subject, so
+    // repeated protect runs don't pile up duplicate rows. Approved
+    // recommendations are preserved — they've become tracked cases.
+    const { error: delErr } = await this.db
+      .from("recommendations")
+      .delete()
+      .eq("subject_id", outcome.subjectId)
+      .eq("approved", false);
+    if (delErr) throw delErr;
+
     if (outcome.recommendations.length > 0) {
       const recRows = outcome.recommendations.map((r) => ({
         subject_id: r.subjectId,
