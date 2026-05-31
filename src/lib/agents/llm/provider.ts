@@ -44,10 +44,10 @@ export class MockProvider implements LLMProvider {
 /** Anthropic Claude provider. Lazy-loads the SDK so it stays an optional dep. */
 export class AnthropicProvider implements LLMProvider {
   readonly name = "anthropic";
-  constructor(
-    private apiKey: string,
-    private model = "claude-sonnet-4-6",
-  ) {}
+  private model: string;
+  constructor(private apiKey: string, model?: string) {
+    this.model = model || "claude-sonnet-4-6";
+  }
 
   async complete(
     messages: LLMMessage[],
@@ -87,10 +87,10 @@ export class AnthropicProvider implements LLMProvider {
 /** OpenAI provider via the Chat Completions REST API. */
 export class OpenAIProvider implements LLMProvider {
   readonly name = "openai";
-  constructor(
-    private apiKey: string,
-    private model = "gpt-4o",
-  ) {}
+  private model: string;
+  constructor(private apiKey: string, model?: string) {
+    this.model = model || "gpt-4o";
+  }
 
   async complete(
     messages: LLMMessage[],
@@ -120,23 +120,25 @@ export class OpenAIProvider implements LLMProvider {
   }
 }
 
-/** Selects a provider from environment configuration, defaulting to mock. */
+/** Selects a provider from environment configuration, defaulting to mock.
+ *
+ * Optional model overrides let you upgrade models without a code change:
+ *   ANTHROPIC_MODEL (e.g. "claude-opus-4-8"), OPENAI_MODEL (e.g. "gpt-4o").
+ */
 export function resolveProvider(
   env: Record<string, string | undefined> = process.env,
 ): LLMProvider {
   const pref = (env.PRIVACYOS_LLM_PROVIDER ?? "").toLowerCase().trim();
+  const anthropic = () => new AnthropicProvider(env.ANTHROPIC_API_KEY!, env.ANTHROPIC_MODEL || undefined);
+  const openai = () => new OpenAIProvider(env.OPENAI_API_KEY!, env.OPENAI_MODEL || undefined);
 
   // Explicit, valid preference with a matching key.
-  if (pref === "anthropic" && env.ANTHROPIC_API_KEY) {
-    return new AnthropicProvider(env.ANTHROPIC_API_KEY);
-  }
-  if (pref === "openai" && env.OPENAI_API_KEY) {
-    return new OpenAIProvider(env.OPENAI_API_KEY);
-  }
+  if (pref === "anthropic" && env.ANTHROPIC_API_KEY) return anthropic();
+  if (pref === "openai" && env.OPENAI_API_KEY) return openai();
   // Any other case (unset, "mock", or an unrecognized/misspelled value): if a
   // key is present, auto-detect rather than silently downgrading to mock — a
   // misconfigured preference should never waste a configured key.
-  if (env.ANTHROPIC_API_KEY) return new AnthropicProvider(env.ANTHROPIC_API_KEY);
-  if (env.OPENAI_API_KEY) return new OpenAIProvider(env.OPENAI_API_KEY);
+  if (env.ANTHROPIC_API_KEY) return anthropic();
+  if (env.OPENAI_API_KEY) return openai();
   return new MockProvider();
 }
