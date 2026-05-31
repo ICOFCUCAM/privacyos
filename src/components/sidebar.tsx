@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Shield, LogOut } from "lucide-react";
+import Image from "next/image";
+import { LogOut } from "lucide-react";
 import { signOut } from "@/app/auth/actions";
 import type { Feature } from "@/lib/billing/entitlements";
 import { NavList } from "@/components/nav";
@@ -28,8 +29,8 @@ export function Sidebar({
   const name = subjectName ?? "Demo Subject";
   return (
     <aside className="hidden w-64 shrink-0 border-r border-border bg-bg-subtle/60 lg:flex lg:flex-col">
-      <Link href="/" className="flex items-center gap-2 px-5 py-5">
-        <Shield className="h-6 w-6 text-brand" />
+      <Link href="/" className="flex items-center gap-2 px-5 py-4">
+        <Image src="/PrivacyLogo.png" alt="" width={28} height={28} className="h-7 w-7" />
         <span className="text-lg font-bold text-white">PrivacyOS</span>
       </Link>
 

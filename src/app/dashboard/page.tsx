@@ -213,12 +213,12 @@ export default async function OverviewPage() {
       <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-2">
         <Card className="p-3">
           <SectionTitleRow title="Exposure discovery · 30d" right={<VelocityBadge delta={velocity.deltaPct} />} />
-          <StackedTimeline buckets={expTimeline} height={72} ariaLabel="Exposures discovered per day" />
+          <StackedTimeline buckets={expTimeline} height={56} ariaLabel="Exposures discovered per day" />
           <SeverityLegend />
         </Card>
         <Card className="p-3">
           <SectionTitleRow title="Threat activity · 30d" href="/dashboard/threats" linkLabel="Feed" />
-          <StackedTimeline buckets={thrTimeline} height={72} ariaLabel="Threats detected per day" />
+          <StackedTimeline buckets={thrTimeline} height={56} ariaLabel="Threats detected per day" />
           <SeverityLegend />
         </Card>
       </div>
@@ -227,7 +227,7 @@ export default async function OverviewPage() {
         <Card className="p-3">
           <SectionTitleRow title="Attack surface" />
           <div className="flex items-center justify-between gap-2">
-            <RadarChart axes={surface} size={168} />
+            <RadarChart axes={surface} size={184} />
             <ul className="grid grid-cols-1 gap-y-0.5 text-xs">
               {surface.filter((a) => a.count > 0).sort((a, b) => b.count - a.count).slice(0, 6).map((a) => (
                 <li key={a.key} className="flex items-center justify-between gap-3">
@@ -249,7 +249,7 @@ export default async function OverviewPage() {
       </div>
 
       {/* ── TIER 3 — detailed analytics ────────────────────────────────────── */}
-      <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-3">
+      <div className="grid grid-cols-1 items-start gap-2.5 lg:grid-cols-3">
         <Card className="p-3 lg:col-span-2">
           <SectionTitleRow
             title="Threat correlation"
@@ -257,7 +257,7 @@ export default async function OverviewPage() {
           />
           <div className="grid grid-cols-1 items-center gap-3 sm:grid-cols-2">
             <div className="flex items-center justify-center">
-              <CorrelationGraphView graph={graph} size={300} />
+              <CorrelationGraphView graph={graph} size={340} />
             </div>
             <div className="space-y-2">
               <CorrelationLegend />
@@ -448,7 +448,7 @@ function SeverityLegend() {
     { level: "low", label: "Low" },
   ];
   return (
-    <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+    <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1">
       {items.map((it) => (
         <span key={it.level} className="inline-flex items-center gap-1.5 text-[11px] text-slate-500">
           <span className={cn("h-2 w-2 rounded-full", `bg-risk-${it.level}`)} />
