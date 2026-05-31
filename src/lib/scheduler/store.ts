@@ -23,6 +23,7 @@ import type {
   Threat,
 } from "@/lib/types";
 import type { ProtectOutcome } from "@/lib/agents/orchestrator";
+import type { AssessedRisk } from "@/lib/domains/dns";
 
 export interface Footprint {
   userId: string;
@@ -57,6 +58,7 @@ export interface ScheduledRunSummary {
   recommendations: number;
   removalsAdvanced: number;
   mentionsCollected: number;
+  domainRisksFound: number;
   ranAt: string;
 }
 
@@ -64,6 +66,12 @@ export interface ScheduledRunSummary {
 export interface ReputationData {
   mentions: Omit<Mention, "id" | "subjectId">[];
   sentimentByDay: SentimentDay[];
+}
+
+/** Domain scan output ready to persist. */
+export interface DomainScanData {
+  domain: string;
+  risks: AssessedRisk[];
 }
 
 /** A removal request paired with its owning tenant. */
@@ -93,4 +101,6 @@ export interface SchedulerStore {
   saveRemoval(userId: string, request: RemovalRequest): Promise<void>;
   /** Replace the subject's mentions + sentiment series from a reputation scan. */
   saveReputation(userId: string, subjectId: string, data: ReputationData): Promise<void>;
+  /** Upsert the domain and replace its risks from a DNS/email-security scan. */
+  saveDomainRisks(userId: string, data: DomainScanData): Promise<void>;
 }

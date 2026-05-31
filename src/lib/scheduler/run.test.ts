@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { runScheduledCycle } from "./run";
 import type {
+  DomainScanData,
   Footprint,
   NewAgentAction,
   NewNotification,
@@ -10,6 +11,7 @@ import type {
   SchedulerStore,
 } from "./store";
 import type { MentionSource } from "@/lib/reputation/collect";
+import { DohClient } from "@/lib/domains/dns";
 import type { RemovalRequest } from "@/lib/types";
 import { createRemoval, isRemovalDue } from "@/lib/brokers/removal";
 import { MockProvider } from "@/lib/agents/llm/provider";
@@ -42,6 +44,7 @@ class MemoryStore implements SchedulerStore {
   notifications: NewNotification[][] = [];
   savedRemovals: RemovalRequest[] = [];
   reputation: ReputationData[] = [];
+  domainScans: DomainScanData[] = [];
 
   async listFootprints() {
     return this.footprints;
@@ -74,6 +77,9 @@ class MemoryStore implements SchedulerStore {
   }
   async saveReputation(_u: string, _s: string, data: ReputationData) {
     this.reputation.push(data);
+  }
+  async saveDomainRisks(_u: string, data: DomainScanData) {
+    this.domainScans.push(data);
   }
 }
 
@@ -115,6 +121,11 @@ const critSource: DiscoverySource = {
   },
 };
 
+// Deterministic DNS client (no network) — fetch always fails → sample assessment.
+const domClient = new DohClient((async () => {
+  throw new Error("blocked");
+}) as unknown as typeof fetch);
+
 describe("runScheduledCycle", () => {
   it("processes every subject and records runs, scores and recommendations", async () => {
     const store = new MemoryStore([
@@ -125,6 +136,7 @@ describe("runScheduledCycle", () => {
       sources: [critSource],
       provider: new MockProvider(),
       reputationSource: repSource,
+      domainClient: domClient,
     });
 
     expect(summary.subjectsProcessed).toBe(2);
@@ -146,6 +158,7 @@ describe("runScheduledCycle", () => {
       sources: [],
       provider: new MockProvider(),
       reputationSource: repSource,
+      domainClient: domClient,
     });
     expect(summary.mentionsCollected).toBe(2);
     expect(store.reputation[0].mentions).toHaveLength(2);
@@ -153,6 +166,9 @@ describe("runScheduledCycle", () => {
     // sentiment was actually computed (not seeded)
     expect(store.reputation[0].mentions.some((m) => m.sentiment === "positive")).toBe(true);
     expect(store.reputation[0].mentions.some((m) => m.sentiment === "negative")).toBe(true);
+    // domain scan also ran (sample assessment for example.com → email-auth risks)
+    expect(summary.domainRisksFound).toBeGreaterThan(0);
+    expect(store.domainScans[0].domain).toBe("example.com");
   });
 
   it("advances due data-broker removals autonomously", async () => {
@@ -164,7 +180,7 @@ describe("runScheduledCycle", () => {
       [{ userId: "u1", subject: subject("a", "u1"), exposures: [], threats: [] }],
       [removal],
     );
-    const summary = await runScheduledCycle(store, { sources: [], provider: new MockProvider(), reputationSource: repSource });
+    const summary = await runScheduledCycle(store, { sources: [], provider: new MockProvider(), reputationSource: repSource, domainClient: domClient });
     expect(summary.removalsAdvanced).toBe(1);
     // requested → in_progress on this tick
     expect(store.savedRemovals[0].status).toBe("in_progress");
@@ -174,7 +190,7 @@ describe("runScheduledCycle", () => {
     const store = new MemoryStore([
       { userId: "u1", subject: subject("a", "u1"), exposures: [], threats: [] },
     ]);
-    await runScheduledCycle(store, { sources: [critSource], provider: new MockProvider(), reputationSource: repSource });
+    await runScheduledCycle(store, { sources: [critSource], provider: new MockProvider(), reputationSource: repSource, domainClient: domClient });
     const overall = store.scores[0].find((s) => s.kind === "overall")!;
     expect(overall.value).toBeGreaterThan(0);
   });

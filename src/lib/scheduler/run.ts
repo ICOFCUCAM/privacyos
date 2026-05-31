@@ -17,6 +17,8 @@ import type { DiscoverySource } from "@/lib/discovery/source";
 import { computeRiskScore } from "@/lib/scoring/risk-score";
 import { advanceRemoval, shouldReappear } from "@/lib/brokers/removal";
 import { collectReputation, type MentionSource } from "@/lib/reputation/collect";
+import { scanDomain } from "@/lib/domains/scan";
+import { DohClient } from "@/lib/domains/dns";
 import type {
   NewAgentAction,
   NewNotification,
@@ -31,6 +33,8 @@ export interface SchedulerDeps {
   provider?: LLMProvider;
   /** Override the reputation mention source (tests inject deterministic ones). */
   reputationSource?: MentionSource;
+  /** Override the DNS client for domain scans (tests inject deterministic ones). */
+  domainClient?: DohClient;
 }
 
 export async function runScheduledCycle(
@@ -42,6 +46,7 @@ export async function runScheduledCycle(
   let newThreats = 0;
   let recommendations = 0;
   let mentionsCollected = 0;
+  let domainRisksFound = 0;
 
   for (const fp of footprints) {
     // 1. Discover — only genuinely new findings come back (deduped).
@@ -129,6 +134,25 @@ export async function runScheduledCycle(
       console.error("[privacyos] reputation collection failed:", err);
     }
 
+    // 8. Refresh BusinessOS domain monitoring: DNS/email-security assessment.
+    try {
+      const dom = await scanDomain(fp.subject, deps.domainClient ?? new DohClient());
+      if (dom.domain) {
+        await store.saveDomainRisks(fp.userId, { domain: dom.domain, risks: dom.risks });
+        await store.recordActions(fp.userId, fp.subject.id, [
+          {
+            agent: "business",
+            kind: "monitor",
+            summary: `Domain scan of ${dom.domain}: ${dom.risks.length} risk(s).`,
+            status: "completed",
+          },
+        ]);
+        domainRisksFound += dom.risks.length;
+      }
+    } catch (err) {
+      console.error("[privacyos] domain scan failed:", err);
+    }
+
     newExposures += finding.exposures.length;
     newThreats += finding.threats.length;
     recommendations += outcome.recommendations.length;
@@ -151,6 +175,7 @@ export async function runScheduledCycle(
     recommendations,
     removalsAdvanced,
     mentionsCollected,
+    domainRisksFound,
     ranAt: new Date().toISOString(),
   };
 }
