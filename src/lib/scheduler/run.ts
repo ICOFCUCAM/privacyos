@@ -114,7 +114,7 @@ export async function runScheduledCycle(
 
     // 7. Refresh ReputationOS: collect news mentions + sentiment for this subject.
     try {
-      const rep = await collectReputation(fp.subject, deps.reputationSource);
+      const rep = await collectReputation(fp.subject, deps.reputationSource, { provider: deps.provider });
       await store.saveReputation(fp.userId, fp.subject.id, {
         mentions: rep.mentions,
         sentimentByDay: rep.sentimentByDay,

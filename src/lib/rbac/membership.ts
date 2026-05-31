@@ -47,6 +47,9 @@ export async function getMembership(): Promise<Membership | null> {
     const { data: { user } } = await db.auth.getUser();
     if (!user) return DEMO_MEMBERSHIP;
 
+    // Claim any pending invites addressed to this user's email (idempotent).
+    await db.rpc("accept_org_invites").then(undefined, () => {});
+
     const { data, error } = await db
       .from("org_members")
       .select("org_id,role,organizations(name)")

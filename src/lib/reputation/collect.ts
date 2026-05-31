@@ -8,7 +8,9 @@
 
 import type { Mention, SentimentDay } from "@/lib/suite-types";
 import type { Subject } from "@/lib/types";
+import type { LLMProvider } from "@/lib/agents/llm/provider";
 import { analyzeSentiment } from "./sentiment";
+import { classifyMentionsLLM } from "./sentiment-llm";
 import { NewsMentionSource, type RawMention } from "./news-connector";
 
 const DEFAMATORY_TERMS = ["fraud", "scam", "defamation", "defamatory", "liar", "criminal"];
@@ -17,6 +19,8 @@ export interface CollectResult {
   mentions: Omit<Mention, "id" | "subjectId">[];
   sentimentByDay: SentimentDay[];
   live: boolean;
+  /** Whether the LLM classifier produced the sentiment (vs. lexicon). */
+  llmSentiment: boolean;
   log: string[];
 }
 
@@ -24,10 +28,16 @@ export interface MentionSource {
   fetch(query: string, limit?: number): Promise<{ mentions: RawMention[]; live: boolean }>;
 }
 
+export interface CollectOptions {
+  /** When a real (non-mock) provider is supplied, sentiment is LLM-classified. */
+  provider?: LLMProvider;
+}
+
 /** Turn raw mentions into scored Mention rows + a daily sentiment series. */
 export async function collectReputation(
   subject: Pick<Subject, "displayName">,
   source: MentionSource = new NewsMentionSource(),
+  opts: CollectOptions = {},
 ): Promise<CollectResult> {
   const { mentions: raw, live } = await source.fetch(subject.displayName);
 
@@ -40,9 +50,16 @@ export async function collectReputation(
     return true;
   });
 
-  const mentions = deduped.map((m) => {
-    const s = analyzeSentiment(`${m.title} ${m.excerpt}`);
-    const lower = `${m.title} ${m.excerpt}`.toLowerCase();
+  // Sentiment: prefer a real LLM provider, fall back to the lexicon per item.
+  const texts = deduped.map((m) => `${m.title} ${m.excerpt}`);
+  const useLlm = Boolean(opts.provider && opts.provider.name !== "mock");
+  const llm = useLlm ? await classifyMentionsLLM(texts, opts.provider!) : [];
+  let llmSentiment = false;
+
+  const mentions = deduped.map((m, i) => {
+    const s = (useLlm && llm[i]) || analyzeSentiment(texts[i]);
+    if (useLlm && llm[i]) llmSentiment = true;
+    const lower = texts[i].toLowerCase();
     return {
       channel: m.channel,
       sourceName: m.sourceName,
@@ -81,6 +98,10 @@ export async function collectReputation(
     mentions,
     sentimentByDay,
     live,
-    log: [`Collected ${mentions.length} mention(s)${live ? " from GDELT" : " (sample fallback)"}.`],
+    llmSentiment,
+    log: [
+      `Collected ${mentions.length} mention(s)${live ? " from GDELT" : " (sample fallback)"}; ` +
+        `sentiment via ${llmSentiment ? "LLM" : "lexicon"}.`,
+    ],
   };
 }

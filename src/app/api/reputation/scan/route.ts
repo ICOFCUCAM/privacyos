@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getDataSource } from "@/lib/data";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { collectReputation } from "@/lib/reputation/collect";
+import { NewsMentionSource } from "@/lib/reputation/news-connector";
+import { resolveProvider } from "@/lib/agents/llm/provider";
 
 /**
  * POST /api/reputation/scan — collect real news mentions for the primary
@@ -17,7 +19,11 @@ export async function POST() {
     return NextResponse.json({ error: "No subject to scan." }, { status: 400 });
   }
 
-  const result = await collectReputation({ displayName: subject.displayName });
+  const result = await collectReputation(
+    { displayName: subject.displayName },
+    new NewsMentionSource(),
+    { provider: resolveProvider() },
+  );
 
   let persisted = false;
   if (ds.live) {

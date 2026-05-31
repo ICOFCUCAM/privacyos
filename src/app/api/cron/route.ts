@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { runScheduledCycle } from "@/lib/scheduler/run";
 import { SupabaseSchedulerStore } from "@/lib/scheduler/supabase-store";
+import { resolveProvider } from "@/lib/agents/llm/provider";
 
 /**
  * The scheduled protection cycle endpoint (always-on monitoring).
@@ -30,7 +31,9 @@ async function handle(req: Request): Promise<NextResponse> {
     );
   }
 
-  const summary = await runScheduledCycle(new SupabaseSchedulerStore(admin));
+  const summary = await runScheduledCycle(new SupabaseSchedulerStore(admin), {
+    provider: resolveProvider(),
+  });
   return NextResponse.json({ ok: true, ...summary });
 }
 
