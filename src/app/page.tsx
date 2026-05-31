@@ -16,6 +16,7 @@ import {
   ActivitySection,
   EcosystemSection,
 } from "@/components/landing-sections";
+import { SecurityArchitecture } from "@/components/security-architecture";
 
 const modules = [
   { icon: Search, title: "Privacy Discovery", desc: "Find every discoverable exposure across the public internet, brokers and breaches." },
@@ -37,6 +38,12 @@ export default function LandingPage() {
           <span className="text-lg font-bold text-white">PrivacyOS</span>
         </div>
         <div className="flex items-center gap-2">
+          <Link
+            href="/security"
+            className="hidden rounded-lg px-4 py-2 text-sm font-semibold text-slate-200 transition hover:bg-bg-elevated sm:block"
+          >
+            Security
+          </Link>
           <Link
             href="/pricing"
             className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-200 transition hover:bg-bg-elevated"
@@ -61,6 +68,8 @@ export default function LandingPage() {
       <AgentsSection />
 
       <ActivitySection />
+
+      <SecurityArchitecture />
 
       {/* Capability modules */}
       <section className="mx-auto max-w-6xl px-6 py-24">
