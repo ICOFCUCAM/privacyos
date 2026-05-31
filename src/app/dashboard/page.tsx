@@ -90,12 +90,25 @@ export default async function OverviewPage() {
   ]);
   const playbooks = summarizeRuns(playbookRuns);
 
+  // Surface the most recent autonomous playbook executions in the live stream.
+  const playbookFeed = playbookRuns.slice(0, 6).map((r, i) => ({
+    id: `${r.playbookId}-${r.finding.id}-${i}`,
+    at: new Date(Date.now() - (i + 1) * 11 * 60_000).toISOString(),
+    playbookName: r.playbookName,
+    owner: r.owner,
+    fullyAutonomous: r.fullyAutonomous,
+    autoSteps: r.autoSteps,
+    approvalSteps: r.approvalSteps,
+    level: r.finding.riskLevel,
+  }));
+
   const feed = buildFeed({
     agentActions: mod.agentActions,
     auditLog,
     threats: data.threats,
     incidents: mod.incidents,
     removals,
+    playbookRuns: playbookFeed,
   });
   const sev = activeSeverityCount(feed);
   const live = ds.live;
