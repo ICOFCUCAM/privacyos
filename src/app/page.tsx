@@ -30,7 +30,7 @@ const modules = [
 
 export default function LandingPage() {
   return (
-    <main className="bg-grid min-h-screen">
+    <main id="content" className="bg-grid min-h-screen">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
         <div className="flex items-center gap-2">
           <Shield className="h-6 w-6 text-brand" />

@@ -46,7 +46,7 @@ export default async function DashboardLayout({
             {ds.live ? "Live data" : "Demo data"}
           </span>
         </header>
-        <main className="flex-1 overflow-y-auto p-6">
+        <main id="content" className="flex-1 overflow-y-auto p-6">
           {locked && gatedSuite ? (
             <UpgradeGate
               suite={gatedSuite.label}
