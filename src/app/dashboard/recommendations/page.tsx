@@ -1,5 +1,5 @@
 import { Sparkles } from "lucide-react";
-import { Card, PageHeader, RiskBadge, Pill } from "@/components/ui";
+import { buttonClasses, Card, PageHeader, RiskBadge, Pill } from "@/components/ui";
 import { getDataSource } from "@/lib/data";
 import { titleCase } from "@/lib/ui";
 import { approveRecommendationAction } from "@/app/dashboard/actions";
@@ -51,7 +51,7 @@ export default async function RecommendationsPage() {
               <input type="hidden" name="id" value={r.id} />
               <button
                 type="submit"
-                className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90"
+                className={buttonClasses("primary", "md")}
               >
                 {r.actionLabel}
               </button>

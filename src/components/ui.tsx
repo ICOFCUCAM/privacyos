@@ -1,7 +1,59 @@
-import type { ReactNode } from "react";
+import type { ButtonHTMLAttributes, ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { cn, riskBg, titleCase } from "@/lib/ui";
 import type { RiskLevel } from "@/lib/types";
+
+export type ButtonVariant = "primary" | "secondary" | "ghost";
+export type ButtonSize = "sm" | "md" | "lg";
+
+const buttonVariant: Record<ButtonVariant, string> = {
+  primary: "bg-brand text-white hover:bg-brand/90",
+  secondary: "border border-border text-slate-200 hover:bg-bg-elevated",
+  ghost: "border border-border bg-bg-subtle text-white hover:bg-bg-elevated",
+};
+
+const buttonSize: Record<ButtonSize, string> = {
+  sm: "gap-1.5 rounded-md px-3 py-1.5 text-xs",
+  md: "gap-2 rounded-lg px-4 py-2 text-sm",
+  lg: "gap-2 rounded-lg px-6 py-3 text-sm",
+};
+
+/**
+ * Shared button class string — single source of truth for the app's buttons and
+ * button-styled links. Keeps Server Components able to render anchors/forms with
+ * identical styling without pulling in a client component.
+ */
+export function buttonClasses(
+  variant: ButtonVariant = "primary",
+  size: ButtonSize = "md",
+  className?: string,
+): string {
+  return cn(
+    "inline-flex items-center justify-center font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 disabled:cursor-not-allowed disabled:opacity-60",
+    buttonVariant[variant],
+    buttonSize[size],
+    className,
+  );
+}
+
+/** Styled <button> built on {@link buttonClasses}. */
+export function Button({
+  variant = "primary",
+  size = "md",
+  className,
+  type = "button",
+  children,
+  ...props
+}: {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+} & ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button type={type} className={buttonClasses(variant, size, className)} {...props}>
+      {children}
+    </button>
+  );
+}
 
 /** Consistent page header: optional icon, title, subtitle and an actions slot. */
 export function PageHeader({

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Settings, CreditCard } from "lucide-react";
-import { Card, PageHeader, Pill, SectionTitle } from "@/components/ui";
+import { buttonClasses, Card, PageHeader, Pill, SectionTitle } from "@/components/ui";
 import { SubjectSettingsForm } from "@/components/subject-settings-form";
 import { getDataSource } from "@/lib/data";
 import { getSubscription } from "@/lib/billing/subscription";
@@ -61,12 +61,12 @@ export default async function SettingsPage() {
           </div>
           {plan ? (
             <form action={openBillingPortal}>
-              <button type="submit" className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-slate-200 transition hover:bg-bg-elevated">
+              <button type="submit" className={buttonClasses("secondary", "md")}>
                 Manage billing
               </button>
             </form>
           ) : (
-            <Link href="/pricing" className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90">
+            <Link href="/pricing" className={buttonClasses("primary", "md")}>
               View plans
             </Link>
           )}

@@ -1,5 +1,5 @@
 import { Bell, CheckCheck } from "lucide-react";
-import { Card, PageHeader, RiskBadge, Pill, StatCard } from "@/components/ui";
+import { buttonClasses, Card, PageHeader, RiskBadge, Pill, StatCard } from "@/components/ui";
 import { getModuleData } from "@/lib/data/modules";
 import { timeAgo, titleCase } from "@/lib/ui";
 import { markAllReadAction } from "./actions";
@@ -19,7 +19,7 @@ export default async function NotificationsPage() {
             <form action={markAllReadAction}>
               <button
                 type="submit"
-                className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-slate-200 transition hover:bg-bg-elevated"
+                className={buttonClasses("secondary", "md")}
               >
                 <CheckCheck className="h-4 w-4" /> Mark all read
               </button>

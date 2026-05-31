@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Trash2, RefreshCw } from "lucide-react";
-import { Card, PageHeader, Pill, SectionTitle, StatCard } from "@/components/ui";
+import { buttonClasses, Card, PageHeader, Pill, SectionTitle, StatCard } from "@/components/ui";
 import { getDataSource } from "@/lib/data";
 import { getEntitlements } from "@/lib/billing/subscription";
 import { BROKERS } from "@/lib/brokers/registry";
@@ -63,7 +63,7 @@ export default async function RemovalsPage({
             You&apos;ve reached your plan&apos;s broker-removal limit
             {Number.isFinite(brokerRemovalLimit) ? ` of ${brokerRemovalLimit}` : ""}. Upgrade for more (or unlimited) removals.
           </p>
-          <Link href="/pricing#personal" className="shrink-0 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90">
+          <Link href="/pricing#personal" className={buttonClasses("primary", "md", "shrink-0")}>
             Upgrade
           </Link>
         </div>
@@ -78,7 +78,7 @@ export default async function RemovalsPage({
               {BROKERS.map((b) => <option key={b.id} value={b.name}>{b.name} · {b.category}</option>)}
             </select>
           </label>
-          <button type="submit" disabled={atLimit} className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90 disabled:cursor-not-allowed disabled:opacity-50">
+          <button type="submit" disabled={atLimit} className={buttonClasses("primary", "md")}>
             <Trash2 className="h-4 w-4" /> File opt-out
           </button>
         </form>
@@ -100,7 +100,7 @@ export default async function RemovalsPage({
               </div>
               <form action={recheckRemovalAction}>
                 <input type="hidden" name="id" value={r.id} />
-                <button type="submit" className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:bg-bg-elevated">
+                <button type="submit" className={buttonClasses("secondary", "sm")}>
                   <RefreshCw className="h-3.5 w-3.5" /> Run re-check
                 </button>
               </form>

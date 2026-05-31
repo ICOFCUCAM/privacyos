@@ -1,4 +1,4 @@
-import { Card, PageHeader, RiskBadge, Pill } from "@/components/ui";
+import { buttonClasses, Card, PageHeader, RiskBadge, Pill } from "@/components/ui";
 import { getDataSource } from "@/lib/data";
 import { timeAgo, titleCase } from "@/lib/ui";
 import { acknowledgeThreatAction } from "@/app/dashboard/actions";
@@ -40,7 +40,7 @@ export default async function ThreatsPage() {
                 <input type="hidden" name="id" value={t.id} />
                 <button
                   type="submit"
-                  className="shrink-0 self-center rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:bg-bg-elevated"
+                  className={buttonClasses("secondary", "sm", "shrink-0 self-center")}
                 >
                   Acknowledge
                 </button>
