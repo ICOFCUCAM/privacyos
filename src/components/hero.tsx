@@ -143,10 +143,10 @@ export function Hero() {
       <div className="relative border-b border-border bg-bg-subtle/40">
         <div className="mx-auto grid max-w-6xl grid-cols-2 gap-6 px-6 py-8 sm:grid-cols-4">
           {[
-            { v: "200M+", l: "Threats Analyzed" },
-            { v: "50M+", l: "Broker Records Monitored" },
-            { v: "1.2M+", l: "Users Protected" },
-            { v: "24/7", l: "AI Monitoring" },
+            { v: "8", l: "Autonomous AI Agents" },
+            { v: "29", l: "Security Data Models" },
+            { v: "24/7", l: "Continuous Monitoring" },
+            { v: "Multi-Layer", l: "Risk Intelligence" },
           ].map((s) => (
             <div key={s.l} className="text-center">
               <p className="bg-gradient-to-b from-white to-slate-400 bg-clip-text text-2xl font-bold text-transparent sm:text-3xl">
