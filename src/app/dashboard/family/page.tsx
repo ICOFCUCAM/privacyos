@@ -1,21 +1,29 @@
 import { Users } from "lucide-react";
-import { Card, RiskBadge, SectionTitle, StatCard } from "@/components/ui";
+import { Card, DataBadge, RiskBadge, SectionTitle, StatCard } from "@/components/ui";
+import { RiskDonut } from "@/components/viz";
 import { getModuleData } from "@/lib/data/modules";
+import type { RiskLevel } from "@/lib/types";
 
 export default async function FamilyPage() {
-  const { familyMembers } = await getModuleData();
+  const moduleData = await getModuleData();
+  const { familyMembers } = moduleData;
   const minors = familyMembers.filter((m) => m.isMinor);
+  const levels: RiskLevel[] = ["low", "medium", "high", "critical"];
+  const byLevel = levels.map((level) => ({ level, value: familyMembers.filter((m) => m.riskLevel === level).length }));
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Users className="h-7 w-7 text-brand" />
-        <div>
-          <h1 className="text-2xl font-bold text-white">Family Protection</h1>
-          <p className="mt-1 text-sm text-slate-400">
-            Protect children, parents and elderly relatives — data, photos, school and location exposure.
-          </p>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <Users className="h-7 w-7 text-brand" />
+          <div>
+            <h1 className="text-2xl font-bold text-white">Family Protection</h1>
+            <p className="mt-1 text-sm text-slate-400">
+              Protect children, parents and elderly relatives — data, photos, school and location exposure.
+            </p>
+          </div>
         </div>
+        <DataBadge live={moduleData.live} />
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -24,6 +32,18 @@ export default async function FamilyPage() {
         <StatCard label="Minors monitored" value={minors.length} accent="text-risk-high" hint="Heightened safeguards" />
         <StatCard label="At elevated risk" value={familyMembers.filter((m) => m.riskLevel !== "low").length} accent="text-risk-high" />
       </div>
+
+      <Card className="flex items-center gap-5">
+        <RiskDonut segments={byLevel} label="members" />
+        <div className="space-y-1.5 text-sm">
+          {([...levels].reverse()).map((l) => (
+            <div key={l} className="flex items-center gap-2">
+              <RiskBadge level={l} />
+              <span className="text-slate-300">{byLevel.find((b) => b.level === l)?.value ?? 0} member(s)</span>
+            </div>
+          ))}
+        </div>
+      </Card>
 
       <Card>
         <SectionTitle title="Family members" />
