@@ -1,10 +1,12 @@
-import { Card, RiskBadge, Pill, SectionTitle } from "@/components/ui";
+import { Card, PageHeader, RiskBadge, Pill, SectionTitle } from "@/components/ui";
 import { RiskDonut, SeverityBar } from "@/components/viz";
 import { ScanButton } from "@/components/scan-button";
 import { getDataSource } from "@/lib/data";
 import { clusterExposures } from "@/lib/discovery/entity-resolution";
 import { cn, timeAgo, titleCase } from "@/lib/ui";
 import type { RiskLevel } from "@/lib/types";
+
+export const metadata = { title: "Exposures" };
 
 export default async function ExposuresPage() {
   const { exposures } = await (await getDataSource()).getDataset();
@@ -24,17 +26,13 @@ export default async function ExposuresPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Exposure Inventory</h1>
-          <p className="mt-1 text-sm text-slate-400">
-            {clusters.length} unique exposure{clusters.length === 1 ? "" : "s"}
-            {exposures.length !== clusters.length && ` resolved from ${exposures.length} raw signals`} —
-            classified by risk and remediation status.
-          </p>
-        </div>
-        <ScanButton />
-      </div>
+      <PageHeader
+        title="Exposure Inventory"
+        subtitle={`${clusters.length} unique exposure${clusters.length === 1 ? "" : "s"}${
+          exposures.length !== clusters.length ? ` resolved from ${exposures.length} raw signals` : ""
+        } — classified by risk and remediation status.`}
+        actions={<ScanButton />}
+      />
 
       {/* Visual summary */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">

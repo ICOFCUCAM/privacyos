@@ -1,9 +1,11 @@
 import { Network } from "lucide-react";
-import { Card, DataBadge, RiskBadge, Pill, SectionTitle, StatCard } from "@/components/ui";
+import { Card, DataBadge, PageHeader, RiskBadge, Pill, SectionTitle, StatCard } from "@/components/ui";
 import { RiskDonut, SeverityBar } from "@/components/viz";
 import { getModuleData } from "@/lib/data/modules";
 import { timeAgo } from "@/lib/ui";
 import type { RiskLevel } from "@/lib/types";
+
+export const metadata = { title: "Third-Party Risk" };
 
 export default async function ThirdPartyPage() {
   const moduleData = await getModuleData();
@@ -15,18 +17,12 @@ export default async function ThirdPartyPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Network className="h-7 w-7 text-brand" />
-          <div>
-            <h1 className="text-2xl font-bold text-white">Third-Party Risk Intelligence</h1>
-            <p className="mt-1 text-sm text-slate-400">
-              Continuous risk assessment of vendors and partners with access to your data and brand.
-            </p>
-          </div>
-        </div>
-        <DataBadge live={moduleData.live} />
-      </div>
+      <PageHeader
+        icon={Network}
+        title="Third-Party Risk Intelligence"
+        subtitle="Continuous risk assessment of vendors and partners with access to your data and brand."
+        actions={<DataBadge live={moduleData.live} />}
+      />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="Vendors assessed" value={thirdPartyRisks.length} />

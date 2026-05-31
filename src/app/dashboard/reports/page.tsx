@@ -1,5 +1,5 @@
 import { FileText, ExternalLink, Download } from "lucide-react";
-import { Card, Pill } from "@/components/ui";
+import { Card, PageHeader, Pill } from "@/components/ui";
 import { REPORT_TITLES } from "@/lib/reports/engine";
 import type { ReportType } from "@/lib/suite-types";
 
@@ -18,12 +18,11 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Reports</h1>
-        <p className="mt-1 text-sm text-slate-400">
-          Generate executive, compliance and risk reports. Each opens a print-ready document — use your browser to Save as PDF.
-        </p>
-      </div>
+      <PageHeader
+        icon={FileText}
+        title="Reports"
+        subtitle="Generate executive, compliance and risk reports. Each opens a print-ready document — use your browser to Save as PDF."
+      />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {types.map((t) => (

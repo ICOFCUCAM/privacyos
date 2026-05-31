@@ -1,9 +1,11 @@
 import { Scale, Download } from "lucide-react";
-import { Card, Pill, SectionTitle, StatCard } from "@/components/ui";
+import { Card, PageHeader, Pill, SectionTitle, StatCard } from "@/components/ui";
 import { getModuleData } from "@/lib/data/modules";
 import { LEGAL_TYPE_LABELS } from "@/lib/legal/engine";
 import { cn, timeAgo, titleCase } from "@/lib/ui";
 import type { LegalRequestStatus, LegalRequestType } from "@/lib/suite-types";
+
+export const metadata = { title: "Legal Automation" };
 
 const statusStyle: Record<LegalRequestStatus, string> = {
   draft: "text-slate-400",
@@ -21,15 +23,11 @@ export default async function LegalPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Scale className="h-7 w-7 text-brand" />
-        <div>
-          <h1 className="text-2xl font-bold text-white">Legal Automation</h1>
-          <p className="mt-1 text-sm text-slate-400">
-            Generate GDPR/CCPA requests, broker opt-outs, defamation complaints, platform-abuse and privacy-violation notices.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={Scale}
+        title="Legal Automation"
+        subtitle="Generate GDPR/CCPA requests, broker opt-outs, defamation complaints, platform-abuse and privacy-violation notices."
+      />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="Requests" value={legalRequests.length} />

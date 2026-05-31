@@ -1,7 +1,9 @@
 import { Building2 } from "lucide-react";
-import { Card, DataBadge, RiskBadge, SectionTitle, StatCard } from "@/components/ui";
+import { Card, DataBadge, PageHeader, RiskBadge, SectionTitle, StatCard } from "@/components/ui";
 import { getModuleData } from "@/lib/data/modules";
 import { titleCase } from "@/lib/ui";
+
+export const metadata = { title: "Business Intelligence" };
 
 export default async function BusinessPage() {
   const data = await getModuleData();
@@ -11,18 +13,12 @@ export default async function BusinessPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Building2 className="h-7 w-7 text-brand" />
-          <div>
-            <h1 className="text-2xl font-bold text-white">Business Intelligence</h1>
-            <p className="mt-1 text-sm text-slate-400">
-              Organization exposure: employee credentials, leaked assets, domain risks and brand impersonation.
-            </p>
-          </div>
-        </div>
-        <DataBadge live={data.live} />
-      </div>
+      <PageHeader
+        icon={Building2}
+        title="Business Intelligence"
+        subtitle="Organization exposure: employee credentials, leaked assets, domain risks and brand impersonation."
+        actions={<DataBadge live={data.live} />}
+      />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="Employees exposed" value={employeeExposures.length} accent="text-risk-critical" />

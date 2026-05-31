@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Trash2, RefreshCw } from "lucide-react";
-import { Card, Pill, SectionTitle, StatCard } from "@/components/ui";
+import { Card, PageHeader, Pill, SectionTitle, StatCard } from "@/components/ui";
 import { getDataSource } from "@/lib/data";
 import { getEntitlements } from "@/lib/billing/subscription";
 import { BROKERS } from "@/lib/brokers/registry";
@@ -17,6 +17,8 @@ const statusStyle: Record<string, string> = {
 };
 
 const order: ExposureStatus[] = ["reappeared", "removal_requested", "in_progress", "monitoring", "removed"];
+
+export const metadata = { title: "Data Broker Removals" };
 
 export default async function RemovalsPage({
   searchParams,
@@ -42,15 +44,11 @@ export default async function RemovalsPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Trash2 className="h-7 w-7 text-brand" />
-        <div>
-          <h1 className="text-2xl font-bold text-white">Data Broker Removals</h1>
-          <p className="mt-1 text-sm text-slate-400">
-            Automated opt-outs with 30/60/90-day reappearance re-checks across {BROKERS.length}+ brokers.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={Trash2}
+        title="Data Broker Removals"
+        subtitle={`Automated opt-outs with 30/60/90-day reappearance re-checks across ${BROKERS.length}+ brokers.`}
+      />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="In progress" value={active} accent="text-risk-medium" />

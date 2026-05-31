@@ -1,9 +1,11 @@
 import Link from "next/link";
-import { Card, DataBadge, RiskBadge, Pill, SectionTitle, StatCard } from "@/components/ui";
+import { Card, DataBadge, PageHeader, RiskBadge, Pill, SectionTitle, StatCard } from "@/components/ui";
 import { SeverityBar } from "@/components/viz";
 import { getModuleData } from "@/lib/data/modules";
 import { cn, timeAgo, titleCase } from "@/lib/ui";
 import type { RiskLevel } from "@/lib/types";
+
+export const metadata = { title: "Incidents" };
 
 const FILTERS = [
   { key: "all", label: "All" },
@@ -30,15 +32,11 @@ export default async function IncidentsPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Incidents</h1>
-          <p className="mt-1 text-sm text-slate-400">
-            Deepfake, impersonation, doxxing and location-exposure incidents with evidence and takedown workflow.
-          </p>
-        </div>
-        <DataBadge live={moduleData.live} />
-      </div>
+      <PageHeader
+        title="Incidents"
+        subtitle="Deepfake, impersonation, doxxing and location-exposure incidents with evidence and takedown workflow."
+        actions={<DataBadge live={moduleData.live} />}
+      />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="Open incidents" value={open.length} accent="text-risk-high" />

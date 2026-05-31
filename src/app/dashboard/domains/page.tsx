@@ -1,10 +1,12 @@
 import { Globe } from "lucide-react";
-import { Card, DataBadge, RiskBadge, Pill, SectionTitle, StatCard } from "@/components/ui";
+import { Card, DataBadge, PageHeader, RiskBadge, Pill, SectionTitle, StatCard } from "@/components/ui";
 import { RiskDonut, SeverityBar } from "@/components/viz";
 import { DomainScanButton } from "@/components/domain-scan-button";
 import { getModuleData } from "@/lib/data/modules";
 import { timeAgo, titleCase } from "@/lib/ui";
 import type { RiskLevel } from "@/lib/types";
+
+export const metadata = { title: "Domain Monitoring" };
 
 export default async function DomainsPage() {
   const moduleData = await getModuleData();
@@ -18,21 +20,17 @@ export default async function DomainsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Globe className="h-7 w-7 text-brand" />
-          <div>
-            <h1 className="text-2xl font-bold text-white">Domain Monitoring</h1>
-            <p className="mt-1 text-sm text-slate-400">
-              Typosquats, spoofable mail, expiring certs, DNS takeover and exposed subdomains.
-            </p>
+      <PageHeader
+        icon={Globe}
+        title="Domain Monitoring"
+        subtitle="Typosquats, spoofable mail, expiring certs, DNS takeover and exposed subdomains."
+        actions={
+          <div className="flex flex-col items-end gap-2">
+            <DataBadge live={moduleData.live} />
+            <DomainScanButton />
           </div>
-        </div>
-        <div className="flex flex-col items-end gap-2">
-          <DataBadge live={moduleData.live} />
-          <DomainScanButton />
-        </div>
-      </div>
+        }
+      />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="Monitored domains" value={domains.length} />

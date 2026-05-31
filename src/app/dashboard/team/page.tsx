@@ -1,5 +1,5 @@
 import { Users2, UserPlus } from "lucide-react";
-import { Card, DataBadge, Pill, SectionTitle, StatCard } from "@/components/ui";
+import { Card, DataBadge, PageHeader, Pill, SectionTitle, StatCard } from "@/components/ui";
 import { getMembership, listTeam } from "@/lib/rbac/membership";
 import { assignableRoles, can, canManageMember, ROLE_LABEL, type OrgRole } from "@/lib/rbac/roles";
 import { cn } from "@/lib/ui";
@@ -34,18 +34,12 @@ export default async function TeamPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Users2 className="h-7 w-7 text-brand" />
-          <div>
-            <h1 className="text-2xl font-bold text-white">Team & Roles</h1>
-            <p className="mt-1 text-sm text-slate-400">
-              {membership.orgName} · your role: <span className="font-medium text-white">{ROLE_LABEL[membership.role]}</span>
-            </p>
-          </div>
-        </div>
-        <DataBadge live={membership.live} />
-      </div>
+      <PageHeader
+        icon={Users2}
+        title="Team & Roles"
+        subtitle={`${membership.orgName} · your role: ${ROLE_LABEL[membership.role]}`}
+        actions={<DataBadge live={membership.live} />}
+      />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="Members" value={team.filter((m) => m.status === "active").length} />
