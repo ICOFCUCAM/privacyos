@@ -1,4 +1,4 @@
-import { FileText, ExternalLink } from "lucide-react";
+import { FileText, ExternalLink, Download } from "lucide-react";
 import { Card, Pill } from "@/components/ui";
 import { REPORT_TITLES } from "@/lib/reports/engine";
 import type { ReportType } from "@/lib/suite-types";
@@ -38,14 +38,22 @@ export default function ReportsPage() {
               <h2 className="font-semibold text-white">{REPORT_TITLES[t]}</h2>
               <p className="mt-1 text-sm text-slate-400">{meta[t].desc}</p>
             </div>
-            <a
-              href={`/api/reports/${t}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-auto inline-flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-slate-200 transition hover:bg-bg-elevated"
-            >
-              <ExternalLink className="h-4 w-4" /> Generate report
-            </a>
+            <div className="mt-auto flex gap-2">
+              <a
+                href={`/api/reports/${t}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-slate-200 transition hover:bg-bg-elevated"
+              >
+                <ExternalLink className="h-4 w-4" /> View
+              </a>
+              <a
+                href={`/api/reports/${t}?format=pdf`}
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-white transition hover:bg-brand/90"
+              >
+                <Download className="h-4 w-4" /> PDF
+              </a>
+            </div>
           </Card>
         ))}
       </div>
