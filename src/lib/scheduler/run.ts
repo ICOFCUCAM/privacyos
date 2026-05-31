@@ -16,6 +16,7 @@ import { runDiscovery } from "@/lib/discovery/pipeline";
 import type { DiscoverySource } from "@/lib/discovery/source";
 import { computeRiskScore } from "@/lib/scoring/risk-score";
 import { advanceRemoval, shouldReappear } from "@/lib/brokers/removal";
+import { planAutoFilings } from "@/lib/brokers/auto-file";
 import { collectReputation, type MentionSource } from "@/lib/reputation/collect";
 import { scanDomain } from "@/lib/domains/scan";
 import { DohClient } from "@/lib/domains/dns";
@@ -42,9 +43,11 @@ export async function runScheduledCycle(
   deps: SchedulerDeps = {},
 ): Promise<ScheduledRunSummary> {
   const footprints = await store.listFootprints();
+  const now = new Date().toISOString();
   let newExposures = 0;
   let newThreats = 0;
   let recommendations = 0;
+  let removalsFiled = 0;
   let mentionsCollected = 0;
   let domainRisksFound = 0;
 
@@ -112,6 +115,29 @@ export async function runScheduledCycle(
       await store.addNotifications(fp.userId, notifs);
     }
 
+    // 6b. Auto-file broker opt-outs for newly-discovered broker/public-record
+    // exposures — the Privacy Agent files them so the removal pipeline populates
+    // itself from real discoveries (no manual step required).
+    try {
+      const existing = await store.listRemovalsForSubject(fp.subject.id);
+      const filings = planAutoFilings(fp.subject.id, exposures, existing, { now });
+      if (filings.requests.length > 0) {
+        await store.createRemovals(fp.userId, fp.subject.id, filings.requests);
+        await store.recordActions(fp.userId, fp.subject.id, [
+          {
+            agent: "privacy",
+            kind: "remove",
+            summary: `Auto-filed ${filings.requests.length} broker opt-out(s) for new listings; 30/60/90-day re-checks scheduled.`,
+            status: "completed",
+          },
+        ]);
+        removalsFiled += filings.requests.length;
+      }
+    } catch (err) {
+      // Auto-filing is best-effort; never fail the whole cycle.
+      console.error("[privacyos] auto-file removals failed:", err);
+    }
+
     // 7. Refresh ReputationOS: collect news mentions + sentiment for this subject.
     try {
       const rep = await collectReputation(fp.subject, deps.reputationSource, { provider: deps.provider });
@@ -158,8 +184,7 @@ export async function runScheduledCycle(
     recommendations += outcome.recommendations.length;
   }
 
-  // 7. Advance any data-broker removals that are due (autonomous 30/60/90 re-checks).
-  const now = new Date().toISOString();
+  // 8. Advance any data-broker removals that are due (autonomous 30/60/90 re-checks).
   const due = await store.listDueRemovals(now);
   let removalsAdvanced = 0;
   for (const { userId, request } of due) {
@@ -174,6 +199,7 @@ export async function runScheduledCycle(
     newThreats,
     recommendations,
     removalsAdvanced,
+    removalsFiled,
     mentionsCollected,
     domainRisksFound,
     ranAt: new Date().toISOString(),

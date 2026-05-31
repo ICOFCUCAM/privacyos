@@ -162,6 +162,27 @@ export class SupabaseSchedulerStore implements SchedulerStore {
       .filter((o) => isRemovalDue(o.request, now));
   }
 
+  async listRemovalsForSubject(subjectId: string): Promise<RemovalRequest[]> {
+    const { data } = await this.db.from("removal_requests").select("*").eq("subject_id", subjectId);
+    return (data ?? []).map(mapRemoval);
+  }
+
+  async createRemovals(userId: string, subjectId: string, requests: Omit<RemovalRequest, "id">[]): Promise<void> {
+    if (requests.length === 0) return;
+    await this.db.from("removal_requests").insert(
+      requests.map((r) => ({
+        user_id: userId,
+        subject_id: subjectId,
+        exposure_id: r.exposureId ?? null,
+        broker_name: r.brokerName,
+        status: r.status,
+        submitted_at: r.submittedAt,
+        next_check_at: r.nextCheckAt ?? null,
+        history: r.history,
+      })),
+    );
+  }
+
   async saveRemoval(_userId: string, request: RemovalRequest): Promise<void> {
     await this.db
       .from("removal_requests")

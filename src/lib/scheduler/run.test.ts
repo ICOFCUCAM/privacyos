@@ -44,6 +44,7 @@ class MemoryStore implements SchedulerStore {
   scores: ScoreEntry[][] = [];
   notifications: NewNotification[][] = [];
   savedRemovals: RemovalRequest[] = [];
+  createdRemovals: Omit<RemovalRequest, "id">[] = [];
   reputation: ReputationData[] = [];
   domainScans: DomainScanData[] = [];
 
@@ -54,6 +55,12 @@ class MemoryStore implements SchedulerStore {
     return this.removals
       .filter((r) => isRemovalDue(r, now))
       .map((request) => ({ userId: "u1", request }));
+  }
+  async listRemovalsForSubject(_s: string): Promise<RemovalRequest[]> {
+    return this.removals;
+  }
+  async createRemovals(_u: string, _s: string, requests: Omit<RemovalRequest, "id">[]) {
+    this.createdRemovals.push(...requests);
   }
   async saveRemoval(_u: string, request: RemovalRequest) {
     this.savedRemovals.push(request);
@@ -149,6 +156,41 @@ describe("runScheduledCycle", () => {
     expect(store.scores[0].map((s) => s.kind)).toEqual(["privacy", "identity", "overall"]);
     // critical threat raised a notification
     expect(store.notifications[0][0].riskLevel).toBe("critical");
+  });
+
+  it("auto-files broker opt-outs for discovered broker exposures", async () => {
+    const brokerSource: DiscoverySource = {
+      id: "broker-test",
+      name: "Broker test source",
+      async scan({ subject }) {
+        return {
+          threats: [],
+          exposures: [
+            {
+              id: `e-${subject.id}`, subjectId: subject.id, category: "address",
+              source: "data_broker", sourceName: "Spokeo", snippet: "", riskLevel: "high",
+              riskScore: 30, status: "discovered", discoveredAt: new Date().toISOString(),
+              lastSeenAt: new Date().toISOString(),
+            },
+          ],
+          log: ["found 1 broker listing"],
+        };
+      },
+    };
+    const store = new MemoryStore([
+      { userId: "u1", subject: subject("a", "u1"), exposures: [], threats: [] },
+    ]);
+    const summary = await runScheduledCycle(store, {
+      sources: [brokerSource],
+      provider: new MockProvider(),
+      reputationSource: repSource,
+      domainClient: domClient,
+    });
+
+    expect(summary.removalsFiled).toBe(1);
+    expect(store.createdRemovals).toHaveLength(1);
+    expect(store.createdRemovals[0].brokerName).toBe("Spokeo");
+    expect(store.createdRemovals[0].status).toBe("removal_requested");
   });
 
   it("collects reputation mentions + sentiment each cycle", async () => {

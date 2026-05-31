@@ -57,6 +57,8 @@ export interface ScheduledRunSummary {
   newThreats: number;
   recommendations: number;
   removalsAdvanced: number;
+  /** New broker opt-outs auto-filed from discovered exposures this cycle. */
+  removalsFiled: number;
   mentionsCollected: number;
   domainRisksFound: number;
   ranAt: string;
@@ -97,6 +99,10 @@ export interface SchedulerStore {
   addNotifications(userId: string, notifs: NewNotification[]): Promise<void>;
   /** Removal requests due for processing / a re-check at `now`. */
   listDueRemovals(now: string): Promise<OwnedRemoval[]>;
+  /** Existing removals for a subject (to avoid double-filing). */
+  listRemovalsForSubject(subjectId: string): Promise<RemovalRequest[]>;
+  /** Insert newly auto-filed removal requests. */
+  createRemovals(userId: string, subjectId: string, requests: Omit<RemovalRequest, "id">[]): Promise<void>;
   /** Persist an advanced removal request. */
   saveRemoval(userId: string, request: RemovalRequest): Promise<void>;
   /** Replace the subject's mentions + sentiment series from a reputation scan. */
