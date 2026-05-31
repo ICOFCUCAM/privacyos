@@ -1,29 +1,35 @@
-import { Globe } from "lucide-react";
-import { Card, DataBadge, PageHeader, RiskBadge, Pill, SectionTitle, StatCard } from "@/components/ui";
-import { RiskDonut, SeverityBar } from "@/components/viz";
+import { Globe, ShieldCheck, AlertTriangle, CheckCircle2, Wrench, Clock } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { Card, DataBadge, PageHeader, RiskBadge, SectionTitle } from "@/components/ui";
 import { DomainScanButton } from "@/components/domain-scan-button";
 import { getModuleData } from "@/lib/data/modules";
-import { timeAgo, titleCase } from "@/lib/ui";
-import type { RiskLevel } from "@/lib/types";
+import {
+  summarizeDomains, domainRegister,
+  type DomainPostureLevel, type DomainRiskAssessment,
+} from "@/lib/intelligence/domain-risk-intel";
+import { cn, timeAgo, titleCase } from "@/lib/ui";
 
 export const metadata = { title: "Domain Monitoring" };
+
+const POSTURE: Record<DomainPostureLevel, { label: string; cls: string; bg: string; ring: string }> = {
+  secure: { label: "Secure", cls: "text-risk-low", bg: "bg-risk-low/10", ring: "ring-risk-low/30" },
+  elevated: { label: "Elevated", cls: "text-risk-medium", bg: "bg-risk-medium/10", ring: "ring-risk-medium/30" },
+  critical: { label: "Critical", cls: "text-risk-high", bg: "bg-risk-high/10", ring: "ring-risk-high/30" },
+};
 
 export default async function DomainsPage() {
   const moduleData = await getModuleData();
   const { domains, domainRisks } = moduleData;
-  const open = domainRisks.filter((d) => !d.resolved);
-  const levels: RiskLevel[] = ["low", "medium", "high", "critical"];
-  const byLevel = levels.map((level) => ({ level, value: open.filter((d) => d.riskLevel === level).length }));
-  const counts: Partial<Record<RiskLevel, number>> = Object.fromEntries(byLevel.map((b) => [b.level, b.value]));
-  const byKind = open.reduce<Record<string, number>>((a, d) => ((a[d.kind] = (a[d.kind] ?? 0) + 1), a), {});
-  const topKinds = Object.entries(byKind).sort((x, y) => y[1] - x[1]).slice(0, 5);
+  const posture = summarizeDomains(domains, domainRisks);
+  const register = domainRegister(domainRisks);
+  const P = POSTURE[posture.postureLevel];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <PageHeader
         icon={Globe}
         title="Domain Monitoring"
-        subtitle="Typosquats, spoofable mail, expiring certs, DNS takeover and exposed subdomains."
+        subtitle="A remediation register for typosquats, spoofable mail, expiring certs, DNS takeover and exposed subdomains — each with a fix action, owner and re-scan cadence."
         actions={
           <div className="flex flex-col items-end gap-2">
             <DataBadge live={moduleData.live} />
@@ -32,87 +38,103 @@ export default async function DomainsPage() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Monitored domains" value={domains.length} />
-        <StatCard label="Open risks" value={open.length} accent="text-risk-high" />
-        <StatCard label="Typosquats" value={domainRisks.filter((d) => d.kind === "typosquat").length} accent="text-risk-high" />
-        <StatCard label="Critical/High" value={open.filter((d) => ["high", "critical"].includes(d.riskLevel)).length} accent="text-risk-critical" />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <Kpi label="Monitored domains" value={String(posture.monitoredDomains)} icon={Globe} tone="text-white" />
+        <Kpi label="Open risks" value={String(posture.openRisks)} icon={AlertTriangle} tone={posture.openRisks > 0 ? "text-risk-high" : "text-risk-low"} />
+        <Kpi label="Critical / High" value={String(posture.critical)} icon={AlertTriangle} tone={posture.critical > 0 ? "text-risk-high" : "text-risk-low"} />
+        <Kpi label="Resolved" value={String(posture.resolved)} icon={CheckCircle2} tone="text-risk-low" />
+        <Kpi label="Domain posture" value={String(posture.posture)} icon={ShieldCheck} tone={P.cls} />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card className="flex items-center gap-5">
-          <RiskDonut segments={byLevel} label="open risks" />
-          <div className="space-y-1.5 text-sm">
-            {([...levels].reverse()).map((l) => (
-              <div key={l} className="flex items-center gap-2">
-                <RiskBadge level={l} />
-                <span className="text-slate-300">{counts[l] ?? 0}</span>
-              </div>
+      {posture.byKind.length > 0 && (
+        <Card className="p-4">
+          <SectionTitle title="Open risks by type" subtitle="Where domain exposure is concentrated" />
+          <div className="flex flex-wrap gap-2">
+            {posture.byKind.map((k) => (
+              <span key={k.kind} className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-bg-subtle/40 px-2.5 py-1.5 text-xs text-slate-300">
+                {titleCase(k.kind)}
+                <span className="rounded bg-bg-elevated px-1.5 py-0.5 text-[10px] font-semibold text-white">{k.count}</span>
+              </span>
             ))}
           </div>
         </Card>
-        <Card className="lg:col-span-2">
-          <SectionTitle title="Risk severity" subtitle="Open domain & email-security risks" />
-          <SeverityBar counts={counts} />
-          <div className="mt-6 space-y-2">
-            {topKinds.map(([kind, n]) => (
-              <div key={kind} className="flex items-center gap-3">
-                <span className="w-40 shrink-0 text-xs text-slate-400">{titleCase(kind)}</span>
-                <div className="h-2 flex-1 overflow-hidden rounded-full bg-bg-subtle">
-                  <div className="h-full rounded-full bg-brand" style={{ width: `${(n / (open.length || 1)) * 100}%` }} />
-                </div>
-                <span className="w-6 text-right text-xs text-slate-300">{n}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </div>
+      )}
 
-      <Card>
-        <SectionTitle title="Monitored domains" />
-        <ul className="divide-y divide-border">
-          {domains.map((d) => (
-            <li key={d.id} className="flex items-center justify-between py-3">
-              <div className="flex items-center gap-2">
-                <p className="font-mono text-sm text-white">{d.domain}</p>
-                {d.isPrimary && <Pill>Primary</Pill>}
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-slate-400">{d.riskCount} risks</span>
-                <RiskBadge level={d.highestRisk} />
-              </div>
-            </li>
-          ))}
+      <Card className="p-4">
+        <SectionTitle title="Remediation register" subtitle="Open + highest-severity first" action={<span className="text-xs text-slate-500">{register.length} findings</span>} />
+        <ul className="space-y-2">
+          {register.map((a) => <DomainRow key={a.risk.id} a={a} />)}
         </ul>
       </Card>
-
-      <Card className="p-0">
-        <div className="border-b border-border p-5"><SectionTitle title="Domain risks" /></div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-border text-xs uppercase tracking-wide text-slate-500">
-              <tr>
-                <th className="px-5 py-3 font-medium">Domain / asset</th>
-                <th className="px-5 py-3 font-medium">Risk type</th>
-                <th className="px-5 py-3 font-medium">Detail</th>
-                <th className="px-5 py-3 font-medium">Severity</th>
-                <th className="px-5 py-3 font-medium">Detected</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {domainRisks.map((d) => (
-                <tr key={d.id} className="hover:bg-bg-elevated/50">
-                  <td className="px-5 py-3 font-mono text-white">{d.domain}</td>
-                  <td className="px-5 py-3"><Pill>{titleCase(d.kind)}</Pill></td>
-                  <td className="max-w-xs px-5 py-3 text-slate-400">{d.detail}</td>
-                  <td className="px-5 py-3"><RiskBadge level={d.riskLevel} /></td>
-                  <td className="px-5 py-3 text-slate-500">{timeAgo(d.detectedAt)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
     </div>
+  );
+}
+
+function DomainRow({ a }: { a: DomainRiskAssessment }) {
+  const r = a.risk;
+  const overdue = a.ageDays > a.cadenceDays;
+  return (
+    <li className={cn("rounded-xl border border-border bg-bg-subtle/40", r.resolved && "opacity-60")}>
+      <details className="group">
+        <summary className="flex cursor-pointer list-none items-center gap-3 p-3.5">
+          <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ring-1", r.resolved ? "bg-risk-low/10 text-risk-low ring-risk-low/30" : "bg-bg-elevated text-brand-fg ring-border")}>
+            {r.resolved ? <CheckCircle2 className="h-4 w-4" /> : <Wrench className="h-4 w-4" />}
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="truncate text-sm font-semibold text-white">{r.domain}</p>
+              <span className="rounded bg-bg-elevated px-1.5 py-0.5 text-[10px] font-medium text-slate-300 ring-1 ring-border">{titleCase(r.kind)}</span>
+              <RiskBadge level={r.riskLevel} />
+              {r.resolved && <span className="text-[10px] font-semibold text-risk-low">Resolved</span>}
+            </div>
+            <p className="truncate text-[11px] text-slate-500">{r.detail}</p>
+          </div>
+        </summary>
+        <div className="space-y-3 border-t border-border px-3.5 py-3">
+          <div className="flex items-start gap-2 rounded-lg border border-border bg-bg-subtle/40 px-3 py-2">
+            <Wrench className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-fg" />
+            <p className="text-xs font-medium text-white">{a.action}</p>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <Meta label="Owner" value={a.owner} />
+            <Meta label="Re-scan" value={`Every ${a.cadenceDays}d`} />
+            <Meta label="Detected" value={`${a.ageDays}d ago`} tone={overdue && !r.resolved ? "text-risk-high" : undefined} />
+          </div>
+          <div>
+            <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+              <Clock className="h-3.5 w-3.5" /> Remediation workflow
+            </p>
+            <ol className="space-y-1">
+              {a.workflow.map((w, i) => (
+                <li key={i} className="flex items-center gap-2 text-xs text-slate-300">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-bg-elevated text-[10px] font-bold text-slate-400">{i + 1}</span> {w}
+                </li>
+              ))}
+            </ol>
+          </div>
+        </div>
+      </details>
+    </li>
+  );
+}
+
+function Meta({ label, value, tone }: { label: string; value: string; tone?: string }) {
+  return (
+    <div className="rounded-lg border border-border bg-bg-subtle/40 px-2.5 py-1.5">
+      <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">{label}</p>
+      <p className={cn("text-xs font-medium text-white", tone)}>{value}</p>
+    </div>
+  );
+}
+
+function Kpi({ label, value, icon: Icon, tone }: { label: string; value: string; icon: LucideIcon; tone?: string }) {
+  return (
+    <Card className="p-4">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-medium uppercase tracking-wide text-slate-400">{label}</span>
+        <Icon className="h-3.5 w-3.5 text-slate-500" />
+      </div>
+      <p className={cn("mt-1 text-2xl font-bold", tone)}>{value}</p>
+    </Card>
   );
 }
