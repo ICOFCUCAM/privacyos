@@ -3,6 +3,8 @@ import { getDataSource } from "@/lib/data";
 import { timeAgo, titleCase } from "@/lib/ui";
 import { acknowledgeThreatAction } from "@/app/dashboard/actions";
 
+export const metadata = { title: "Threat Feed" };
+
 export default async function ThreatsPage() {
   const ds = await getDataSource();
   const { threats } = await ds.getDataset();
