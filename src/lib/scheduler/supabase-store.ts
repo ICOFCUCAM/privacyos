@@ -10,6 +10,7 @@ import type { ProtectOutcome } from "@/lib/agents/orchestrator";
 import { mapExposure, mapRemoval, mapSubject, mapThreat } from "@/lib/data/mappers";
 import { isRemovalDue } from "@/lib/brokers/removal";
 import type {
+  DomainScanData,
   Footprint,
   NewAgentAction,
   NewNotification,
@@ -204,6 +205,38 @@ export class SupabaseSchedulerStore implements SchedulerStore {
           neutral: d.neutral,
           negative: d.negative,
           net_score: d.netScore,
+        })),
+      );
+    }
+  }
+
+  async saveDomainRisks(userId: string, data: DomainScanData): Promise<void> {
+    // Upsert the domain row, then replace its risks with the fresh assessment.
+    const { data: existing } = await this.db
+      .from("domains")
+      .select("id")
+      .eq("domain", data.domain)
+      .maybeSingle();
+    let domainId = existing?.id as string | undefined;
+    if (!domainId) {
+      const { data: inserted } = await this.db
+        .from("domains")
+        .insert({ user_id: userId, domain: data.domain, is_primary: true })
+        .select("id")
+        .single();
+      domainId = inserted?.id;
+    }
+    if (!domainId) return;
+    await this.db.from("domain_risks").delete().eq("domain_id", domainId);
+    if (data.risks.length > 0) {
+      await this.db.from("domain_risks").insert(
+        data.risks.map((r) => ({
+          user_id: userId,
+          domain_id: domainId,
+          kind: r.kind,
+          detail: r.detail,
+          risk_level: r.riskLevel,
+          resolved: false,
         })),
       );
     }
