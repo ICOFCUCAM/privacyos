@@ -59,11 +59,14 @@ export function AgentRoster({
   online,
   total = 8,
   live,
+  columns = 1,
 }: {
   roster: AgentRosterEntry[];
   online: number;
   total?: number;
   live: boolean;
+  /** Render the roster as a multi-column grid to reduce vertical height. */
+  columns?: 1 | 2;
 }) {
   const lockedCount = roster.filter((a) => a.locked).length;
   return (
@@ -81,7 +84,10 @@ export function AgentRoster({
           </span>
         }
       />
-      <ul className="-mr-1 flex-1 space-y-0.5 overflow-y-auto pr-1">
+      <ul className={cn(
+        "-mr-1 flex-1 overflow-y-auto pr-1",
+        columns === 2 ? "grid grid-cols-1 gap-0.5 sm:grid-cols-2" : "space-y-0.5",
+      )}>
         {roster.map((a) => {
           const Icon = a.locked ? Lock : AGENT_ICON[a.kind];
           return (

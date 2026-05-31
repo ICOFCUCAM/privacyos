@@ -145,9 +145,10 @@ export default async function OverviewPage() {
         <KpiTile icon={<Layers className="h-3.5 w-3.5 text-slate-300" />} label="Attack surface" value={surfaceTotal} sub={`${surface.filter((a) => a.count > 0).length} vectors · ${graphStats.sources} sources`} />
       </div>
 
-      {/* ── TIER 1 — score · operations stream · agents (above the fold) ───── */}
-      <div className="grid grid-cols-1 gap-2.5 xl:grid-cols-12">
-        <div className="space-y-2.5 xl:col-span-3">
+      {/* ── TIER 1 — score+recs · operations stream · agent fleet (2-col) ───── */}
+      <div className="grid grid-cols-1 items-stretch gap-2.5 xl:grid-cols-12">
+        {/* Left: score + axis breakdown + recommendations (fills the column) */}
+        <div className="flex flex-col gap-2.5 xl:col-span-3">
           <Card className="p-3">
             <div className="flex items-center gap-3">
               <ScoreGauge score={score.overall} size={96} />
@@ -172,41 +173,40 @@ export default async function OverviewPage() {
               <AxisStat label="Family" value={score.family} />
             </div>
           </Card>
+          <Card className="flex flex-1 flex-col p-3">
+            <SectionTitleRow title="AI recommendations" href="/dashboard/recommendations" />
+            <ul className="flex-1 divide-y divide-border">
+              {data.recommendations.slice(0, 5).map((r) => (
+                <li key={r.id} className="flex items-center gap-2.5 py-1.5">
+                  <Sparkles className="h-3.5 w-3.5 shrink-0 text-brand" />
+                  <span className="min-w-0 flex-1 truncate text-[13px] text-white">{r.title}</span>
+                  <span className="shrink-0 text-[11px] font-semibold text-risk-low">−{r.impact}</span>
+                </li>
+              ))}
+            </ul>
+          </Card>
         </div>
 
-        <div className="xl:col-span-6">
+        {/* Middle: live operations stream */}
+        <div className="xl:col-span-5">
           <ActivityStream events={feed} live={live} />
         </div>
 
-        <div className="xl:col-span-3">
-          <AgentRoster roster={roster} online={onlineAgents} total={totalAgents} live={live} />
-        </div>
-      </div>
-
-      {/* ── TIER 1 — recommendations · autonomous response (horizontal) ────── */}
-      <div className="grid grid-cols-1 items-start gap-2.5 lg:grid-cols-2">
-        <Card className="p-3">
-          <SectionTitleRow title="AI recommendations" href="/dashboard/recommendations" />
-          <ul className="mt-1 divide-y divide-border">
-            {data.recommendations.slice(0, 3).map((r) => (
-              <li key={r.id} className="flex items-center gap-2.5 py-1.5">
-                <Sparkles className="h-3.5 w-3.5 shrink-0 text-brand" />
-                <span className="min-w-0 flex-1 truncate text-sm text-white">{r.title}</span>
-                <span className="shrink-0 text-[11px] font-semibold text-risk-low">−{r.impact}</span>
-                <span className="hidden shrink-0 text-[10px] text-slate-500 sm:inline">{titleCase(r.agent)}</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
-        <Card className="p-3">
-          <SectionTitleRow title="Autonomous response" href="/dashboard/playbooks" />
-          <div className="mt-1.5 grid grid-cols-4 gap-2">
-            <MiniStat value={`${playbooks.automationRate}%`} label="Automated" tone="text-risk-low" />
-            <MiniStat value={String(playbooks.totalRuns)} label="Runs" />
-            <MiniStat value={String(playbooks.activePlaybooks)} label="Playbooks" />
-            <MiniStat value={String(playbooks.approvalSteps)} label="To approve" tone="text-risk-medium" />
+        {/* Right: the full agent fleet in two columns + autonomous-response footer */}
+        <div className="flex flex-col gap-2.5 xl:col-span-4">
+          <div className="flex-1">
+            <AgentRoster roster={roster} online={onlineAgents} total={totalAgents} live={live} columns={2} />
           </div>
-        </Card>
+          <Card className="p-3">
+            <SectionTitleRow title="Autonomous response" href="/dashboard/playbooks" />
+            <div className="mt-1.5 grid grid-cols-4 gap-2">
+              <MiniStat value={`${playbooks.automationRate}%`} label="Automated" tone="text-risk-low" />
+              <MiniStat value={String(playbooks.totalRuns)} label="Runs" />
+              <MiniStat value={String(playbooks.activePlaybooks)} label="Playbooks" />
+              <MiniStat value={String(playbooks.approvalSteps)} label="To approve" tone="text-risk-medium" />
+            </div>
+          </Card>
+        </div>
       </div>
 
       {/* ── TIER 2 — operational intelligence ──────────────────────────────── */}
