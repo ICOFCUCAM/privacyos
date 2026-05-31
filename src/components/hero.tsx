@@ -8,12 +8,10 @@ const trust = [
   "Dark Web Intelligence",
 ];
 
-// Frameless integration: fade the asset's edges into the page so the globe and
-// dashboard emerge from the background as one composition (no screenshot frame).
-const blend: React.CSSProperties = {
-  maskImage: "radial-gradient(115% 92% at 52% 44%, #000 56%, rgba(0,0,0,0.55) 74%, transparent 100%)",
-  WebkitMaskImage: "radial-gradient(115% 92% at 52% 44%, #000 56%, rgba(0,0,0,0.55) 74%, transparent 100%)",
-  filter: "drop-shadow(0 30px 70px rgba(79,70,229,0.4))",
+// The asset is now background-free (transparent), so it integrates directly —
+// no frame, no mask. A soft drop-shadow gives it depth on the page.
+const render: React.CSSProperties = {
+  filter: "drop-shadow(0 24px 60px rgba(79,70,229,0.4))",
 };
 
 export function Hero() {
@@ -77,16 +75,19 @@ export function Hero() {
             <div className="animate-spin-slow-rev absolute inset-[20%] rounded-full border border-brand/10" />
           </div>
 
-          {/* Frameless, edge-masked composition — bleeds slightly left under the copy */}
+          {/* Background-free render — integrates directly, bleeds under the copy */}
           <div className="hero-float relative z-10 lg:-ml-10 lg:-mr-12">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/hero-dashboard.png"
-              alt="PrivacyOS — live digital risk command center over a global intelligence network"
-              className="w-full select-none"
-              style={blend}
-              draggable={false}
-            />
+            <picture>
+              <source srcSet="/hero-dashboard.webp" type="image/webp" />
+              <img
+                src="/hero-dashboard.png"
+                alt="PrivacyOS — live digital risk command center over a global intelligence network"
+                className="w-full select-none"
+                style={render}
+                draggable={false}
+              />
+            </picture>
           </div>
         </div>
       </div>
