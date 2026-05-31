@@ -1,5 +1,29 @@
 import { describe, expect, it } from "vitest";
-import { availableAgents, DEMO_ENTITLEMENTS, entitlementsFor, isEntitled } from "./entitlements";
+import {
+  ADMIN_ENTITLEMENTS, availableAgents, DEMO_ENTITLEMENTS, entitlementsFor, isAdminEmail, isEntitled,
+} from "./entitlements";
+
+describe("isAdminEmail", () => {
+  const env = { PRIVACYOS_ADMIN_EMAILS: "tchamer@aol.com, founder@privacyos.app" };
+  it("matches an allowlisted email case-insensitively", () => {
+    expect(isAdminEmail("tchamer@aol.com", env)).toBe(true);
+    expect(isAdminEmail("TCHAMER@AOL.COM", env)).toBe(true);
+    expect(isAdminEmail("  tchamer@aol.com ", env)).toBe(true);
+  });
+  it("rejects non-listed or empty emails", () => {
+    expect(isAdminEmail("someone@else.com", env)).toBe(false);
+    expect(isAdminEmail(null, env)).toBe(false);
+    expect(isAdminEmail("tchamer@aol.com", {})).toBe(false); // no allowlist set
+  });
+});
+
+describe("ADMIN_ENTITLEMENTS", () => {
+  it("grants every feature + the full agent fleet", () => {
+    expect(Object.values(ADMIN_ENTITLEMENTS.features).every(Boolean)).toBe(true);
+    expect(ADMIN_ENTITLEMENTS.entitled).toBe(true);
+    expect(availableAgents(ADMIN_ENTITLEMENTS).size).toBe(13);
+  });
+});
 
 describe("entitlements", () => {
   it("treats active/trialing/past_due as entitled, others not", () => {

@@ -8,8 +8,10 @@
 
 import { getSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import {
+  ADMIN_ENTITLEMENTS,
   DEMO_ENTITLEMENTS,
   entitlementsFor,
+  isAdminEmail,
   type Entitlements,
   type Subscription,
 } from "./entitlements";
@@ -54,6 +56,8 @@ export async function getEntitlements(): Promise<Entitlements> {
       data: { user },
     } = await db.auth.getUser();
     if (!user) return DEMO_ENTITLEMENTS;
+    // Admins (PRIVACYOS_ADMIN_EMAILS allowlist) get full access to every suite.
+    if (isAdminEmail(user.email)) return ADMIN_ENTITLEMENTS;
   } catch {
     return DEMO_ENTITLEMENTS;
   }

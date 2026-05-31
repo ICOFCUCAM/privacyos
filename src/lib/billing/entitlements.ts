@@ -84,6 +84,40 @@ export const DEMO_ENTITLEMENTS: Entitlements = {
   familySeats: 6,
 };
 
+/**
+ * Admin entitlements — full access to every suite and feature, unlimited
+ * allowances. Granted to all-listed admin emails (see isAdminEmail) regardless
+ * of subscription, so operators/founders can access the whole platform.
+ */
+export const ADMIN_ENTITLEMENTS: Entitlements = {
+  planId: "admin",
+  category: null,
+  entitled: true,
+  features: {
+    reputation: true, executive: true, business: true, family: true,
+    ai_agent: true, deep_web: true, priority_support: true,
+  },
+  brokerRemovalLimit: Infinity,
+  familySeats: 6,
+};
+
+/**
+ * Admin allowlist. Emails come from the PRIVACYOS_ADMIN_EMAILS env var
+ * (comma-separated), so admins are configured without code changes and no
+ * address is hard-coded into the bundle. Matching is case-insensitive.
+ */
+export function isAdminEmail(
+  email: string | null | undefined,
+  env: Record<string, string | undefined> = process.env,
+): boolean {
+  if (!email) return false;
+  const allow = (env.PRIVACYOS_ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  return allow.includes(email.trim().toLowerCase());
+}
+
 /** Resolve entitlements from a subscription (or null → unsubscribed). */
 export function entitlementsFor(sub: Subscription | null): Entitlements {
   if (!sub || !isEntitled(sub.status)) return NONE;
@@ -148,8 +182,8 @@ const FEATURE_AGENTS: { feature: Feature; agents: AgentKind[] }[] = [
  * stays fully explorable.
  */
 export function availableAgents(ent: Entitlements): Set<AgentKind> {
-  // Demo mode: everything online.
-  if (ent.planId === "demo") return new Set<AgentKind>(ALL_AGENT_KINDS);
+  // Demo and admin: the full fleet online.
+  if (ent.planId === "demo" || ent.planId === "admin") return new Set<AgentKind>(ALL_AGENT_KINDS);
   if (!ent.entitled) return new Set<AgentKind>();
   const set = new Set<AgentKind>(CORE_AGENTS);
   for (const { feature, agents } of FEATURE_AGENTS) {
