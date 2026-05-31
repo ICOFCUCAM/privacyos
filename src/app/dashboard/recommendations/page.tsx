@@ -4,6 +4,7 @@ import { getDataSource } from "@/lib/data";
 import { scoreToLevel } from "@/lib/scoring/risk-score";
 import { titleCase } from "@/lib/ui";
 import { synthesizeRecommendations } from "@/lib/agents/synthesis";
+import { applyMemory } from "@/lib/agents/memory";
 import { adviseOnPlan } from "@/lib/agents/llm-advisor";
 import { resolveProvider } from "@/lib/agents/llm/provider";
 import { approveRecommendationAction } from "@/app/dashboard/actions";
@@ -16,7 +17,12 @@ export default async function RecommendationsPage() {
   const { recommendations } = data;
   // Synthesize the raw per-agent stream into one coordinated, de-duplicated,
   // confidence-ranked action plan (the orchestrator's job).
-  const { plan, rawCount, deduped, projectedImpact } = synthesizeRecommendations(recommendations);
+  const synth = synthesizeRecommendations(recommendations);
+  const { rawCount, deduped, projectedImpact } = synth;
+  // Memory loop: suppress work already in flight as a case, and re-weight by
+  // each agent's approval track record (learning from history).
+  const memory = applyMemory(synth.plan, data.cases);
+  const plan = memory.plan;
   const maxPriority = Math.max(1, ...plan.map((r) => r.priority));
 
   // Analyst briefing — LLM-authored when a provider is configured, otherwise a
@@ -62,9 +68,13 @@ export default async function RecommendationsPage() {
         </div>
       </Card>
 
-      {deduped > 0 && (
+      {(deduped > 0 || memory.suppressed > 0 || memory.reinforcedAgents.length > 0) && (
         <p className="text-xs text-slate-500">
-          Synthesized {rawCount} agent signals into {plan.length} prioritized action{plan.length === 1 ? "" : "s"} — {deduped} duplicate/overlapping item{deduped === 1 ? "" : "s"} merged.
+          Synthesized {rawCount} agent signals into {plan.length} prioritized action{plan.length === 1 ? "" : "s"}
+          {deduped > 0 && <> — {deduped} duplicate/overlapping item{deduped === 1 ? "" : "s"} merged</>}
+          {memory.suppressed > 0 && <> · {memory.suppressed} already in progress as a case, suppressed</>}
+          {memory.reinforcedAgents.length > 0 && <> · {memory.reinforcedAgents.length} agent{memory.reinforcedAgents.length === 1 ? "" : "s"} reinforced from approval history</>}
+          .
         </p>
       )}
 
