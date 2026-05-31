@@ -18,7 +18,8 @@ const RISK_HEX: Record<RiskLevel, string> = {
 export function CorrelationGraphView({ graph, size = 380 }: { graph: CorrelationGraph; size?: number }) {
   const cx = size / 2;
   const cy = size / 2;
-  const r = size / 2 - 54;
+  // Tighter margin so the node ring fills more of the canvas (labels still fit).
+  const r = size / 2 - 42;
   const subject = graph.nodes.find((n) => n.kind === "subject");
   const sources = graph.nodes.filter((n) => n.kind === "source");
   const categories = graph.nodes.filter((n) => n.kind === "category");

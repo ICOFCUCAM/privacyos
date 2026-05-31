@@ -231,11 +231,11 @@ export default async function OverviewPage() {
       <div className="grid grid-cols-1 items-start gap-2.5 lg:grid-cols-3">
         <Card className="p-3">
           <SectionTitleRow title="Attack surface" />
-          <div className="flex items-center justify-between gap-2">
-            <RadarChart axes={surface} size={184} />
-            <ul className="grid grid-cols-1 gap-y-0.5 text-xs">
+          <div className="flex items-center gap-4">
+            <RadarChart axes={surface} size={196} />
+            <ul className="flex-1 space-y-1 text-xs">
               {surface.filter((a) => a.count > 0).sort((a, b) => b.count - a.count).slice(0, 6).map((a) => (
-                <li key={a.key} className="flex items-center justify-between gap-3">
+                <li key={a.key} className="flex items-center justify-between gap-3 border-b border-border/50 pb-1 last:border-0">
                   <span className="text-slate-400">{a.label}</span>
                   <span className="font-semibold text-white">{a.count}</span>
                 </li>
@@ -260,11 +260,13 @@ export default async function OverviewPage() {
             title="Threat correlation"
             right={<span className="text-[10px] text-slate-500">{graphStats.sources} src · {graphStats.categories} cat · {graphStats.criticalLinks} high-risk</span>}
           />
-          <div className="grid grid-cols-1 items-center gap-3 sm:grid-cols-2">
-            <div className="flex items-center justify-center">
-              <CorrelationGraphView graph={graph} size={340} />
+          <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center">
+            {/* graph takes the lion's share; scales up to fill the card */}
+            <div className="flex flex-1 items-center justify-center">
+              <CorrelationGraphView graph={graph} size={300} />
             </div>
-            <div className="space-y-2">
+            {/* compact, fixed-width insight column — no trailing dead space */}
+            <div className="w-full shrink-0 space-y-2 sm:w-56">
               <CorrelationLegend />
               {graphStats.topSource && (
                 <div className="rounded-lg border border-border bg-bg-subtle/50 p-2.5">
@@ -285,13 +287,13 @@ export default async function OverviewPage() {
         </Card>
         <Card className="p-3">
           <SectionTitleRow title="Suite risk scores" />
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-1.5">
             {suiteScores.map((s) => {
               const level = scoreToLevel(s.value);
               return (
-                <div key={s.label} className="rounded-lg border border-border bg-bg-subtle/60 p-2 text-center">
-                  <p className={cn("text-lg font-bold", `text-risk-${level}`)}>{s.value}</p>
-                  <p className="text-[10px] text-slate-400">{s.label}</p>
+                <div key={s.label} className="rounded-lg border border-border bg-bg-subtle/60 px-1 py-1.5 text-center">
+                  <p className={cn("text-base font-bold", `text-risk-${level}`)}>{s.value}</p>
+                  <p className="text-[9px] uppercase tracking-wide text-slate-500">{s.label}</p>
                 </div>
               );
             })}
