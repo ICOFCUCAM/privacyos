@@ -22,6 +22,9 @@ export default async function ReputationPage() {
   const negatives = mentions.filter((m) => m.sentiment === "negative");
   const defamatory = mentions.filter((m) => m.isDefamatory);
   const net = sentimentTrend.at(-1)?.netScore ?? 0;
+  const byChannel = mentions.reduce<Record<string, number>>((a, m) => ((a[m.channel] = (a[m.channel] ?? 0) + 1), a), {});
+  const channels = Object.entries(byChannel).sort((x, y) => y[1] - x[1]);
+  const maxCh = Math.max(1, ...channels.map(([, n]) => n));
 
   return (
     <div className="space-y-6">
@@ -65,6 +68,21 @@ export default async function ReputationPage() {
           </ol>
         </Card>
       </div>
+
+      <Card>
+        <SectionTitle title="Mentions by channel" subtitle="Where the conversation is happening" />
+        <div className="space-y-2">
+          {channels.map(([ch, n]) => (
+            <div key={ch} className="flex items-center gap-3">
+              <span className="w-24 shrink-0 text-xs text-slate-400">{titleCase(ch)}</span>
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-bg-subtle">
+                <div className="h-full rounded-full bg-brand" style={{ width: `${(n / maxCh) * 100}%` }} />
+              </div>
+              <span className="w-6 text-right text-xs text-slate-300">{n}</span>
+            </div>
+          ))}
+        </div>
+      </Card>
 
       <Card className="p-0">
         <div className="border-b border-border p-5"><SectionTitle title="Mentions" subtitle="Brand, news, search, social, forums & reviews" /></div>
