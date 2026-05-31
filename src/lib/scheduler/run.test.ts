@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { runScheduledCycle } from "./run";
+import { AGENT_COUNT } from "@/lib/agents/orchestrator";
 import type {
   DomainScanData,
   Footprint,
@@ -142,8 +143,8 @@ describe("runScheduledCycle", () => {
     expect(summary.subjectsProcessed).toBe(2);
     expect(summary.newThreats).toBe(2);
     expect(store.runs).toHaveLength(2);
-    // 8 agent states per run
-    expect(store.runs[0].agentStates).toHaveLength(8);
+    // one agent state per fleet member, per run
+    expect(store.runs[0].agentStates).toHaveLength(AGENT_COUNT);
     // three score snapshots per subject
     expect(store.scores[0].map((s) => s.kind)).toEqual(["privacy", "identity", "overall"]);
     // critical threat raised a notification

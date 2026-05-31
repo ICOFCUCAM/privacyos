@@ -140,7 +140,13 @@ export type AgentKind =
   | "security"
   | "deepfake"
   | "executive"
-  | "business";
+  | "business"
+  // ── Coordination & response roles (added beyond the original 8 specialists) ──
+  | "orchestrator"
+  | "incident"
+  | "compliance"
+  | "threat_intel"
+  | "vendor";
 
 export type AgentStatus = "idle" | "running" | "blocked" | "error";
 

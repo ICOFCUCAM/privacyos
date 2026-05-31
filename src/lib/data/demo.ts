@@ -134,6 +134,11 @@ export const demoAgents: AgentState[] = [
   { kind: "deepfake", name: "Deepfake Agent", description: "Detects synthetic media and voice clones.", status: "blocked", lastRunAt: iso(0), itemsHandled: 3 },
   { kind: "executive", name: "Executive Protection Agent", description: "VIP-grade physical & digital protection.", status: "running", lastRunAt: iso(0), itemsHandled: 7 },
   { kind: "business", name: "Business Intelligence Agent", description: "Org credential, asset and brand protection.", status: "idle", lastRunAt: iso(0), itemsHandled: 0 },
+  { kind: "orchestrator", name: "Orchestrator Agent", description: "Triages, prioritizes and routes work across the fleet.", status: "running", lastRunAt: iso(0), itemsHandled: 142 },
+  { kind: "incident", name: "Incident Response Agent", description: "Runs response playbooks; automates safe steps, escalates the rest.", status: "running", lastRunAt: iso(0), itemsHandled: 28 },
+  { kind: "compliance", name: "Compliance Agent", description: "Monitors SOC 2 control posture and SLA attainment.", status: "idle", lastRunAt: iso(0), itemsHandled: 15 },
+  { kind: "threat_intel", name: "Threat Intelligence Agent", description: "Correlates signals into emerging-threat narratives.", status: "running", lastRunAt: iso(0), itemsHandled: 61 },
+  { kind: "vendor", name: "Vendor Risk Agent", description: "Assesses third-party and supply-chain risk.", status: "idle", lastRunAt: iso(0), itemsHandled: 9 },
 ];
 
 export const demoRecommendations: Recommendation[] = [

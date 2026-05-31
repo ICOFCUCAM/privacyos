@@ -30,7 +30,7 @@ const modules = [
   { icon: Scale, title: "Legal Automation", desc: "Auto-drafts GDPR/CCPA requests and takedowns." },
   { icon: Building2, title: "Business Intelligence", desc: "Credential leaks, exposed assets, brand abuse." },
   { icon: Users, title: "Family & Executive", desc: "VIP-grade protection for leaders and families." },
-  { icon: Bot, title: "Autonomous Agents", desc: "Eight specialists defending you 24/7." },
+  { icon: Bot, title: "Autonomous Agents", desc: "A coordinated fleet defending you 24/7." },
 ];
 
 export default function LandingPage() {

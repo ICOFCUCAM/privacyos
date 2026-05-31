@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   Search, ShieldCheck, Scale, Star, Lock, ScanFace, Crown, Building2, ArrowRight,
+  Network, Zap, BadgeCheck, Radar, Boxes,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Card, SectionTitle } from "@/components/ui";
@@ -17,6 +18,11 @@ const AGENT_ICON: Record<AgentKind, LucideIcon> = {
   deepfake: ScanFace,
   executive: Crown,
   business: Building2,
+  orchestrator: Network,
+  incident: Zap,
+  compliance: BadgeCheck,
+  threat_intel: Radar,
+  vendor: Boxes,
 };
 
 const statusDot: Record<RosterStatus, string> = {

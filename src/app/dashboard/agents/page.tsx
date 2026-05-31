@@ -25,11 +25,11 @@ export default async function AgentsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Agent Dashboard"
-        subtitle="Eight specialized agents defend you continuously. You see outcomes, not complexity."
+        subtitle={`${agents.length} specialized agents defend you continuously. You see outcomes, not complexity.`}
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-        <StatCard label="Agents online" value={`${agents.filter((a) => a.status === "running").length}/8`} accent="text-risk-low" />
+        <StatCard label="Agents online" value={`${agents.filter((a) => a.status === "running").length}/${agents.length}`} accent="text-risk-low" />
         <StatCard label="Discoveries" value={data.exposures.length + data.threats.length} />
         <StatCard label="Actions completed" value={completed} />
         <StatCard label="Escalations" value={escalations} accent="text-risk-high" />

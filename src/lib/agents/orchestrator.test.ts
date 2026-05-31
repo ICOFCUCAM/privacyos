@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { protect } from "./orchestrator";
+import { protect, AGENT_COUNT } from "./orchestrator";
 import { MockProvider } from "./llm/provider";
 import type { Exposure, Subject, Threat } from "@/lib/types";
 
@@ -60,7 +60,7 @@ const threats: Threat[] = [
 describe("orchestrator", () => {
   it("runs all agents and returns prioritized recommendations", async () => {
     const out = await protect({ subject, exposures, threats, provider: new MockProvider() });
-    expect(out.agentStates).toHaveLength(8);
+    expect(out.agentStates).toHaveLength(AGENT_COUNT);
     expect(out.recommendations.length).toBeGreaterThan(0);
     // highest-impact recommendation first
     for (let i = 1; i < out.recommendations.length; i++) {

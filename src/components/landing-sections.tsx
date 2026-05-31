@@ -2,7 +2,7 @@ import Link from "next/link";
 import {
   BadgeCheck, Lock, Server, KeyRound, ShieldCheck,
   Search, Trash2, Star, ShieldAlert, ScanFace, Crown, Scale, Building2,
-  Radar, Eye, Sparkles, ArrowRight,
+  Radar, Eye, Sparkles, ArrowRight, Network, Zap, Boxes,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { buttonClasses } from "@/components/ui";
@@ -46,6 +46,11 @@ const agentIcon: Record<AgentKind, LucideIcon> = {
   executive: Crown,
   legal: Scale,
   business: Building2,
+  orchestrator: Network,
+  incident: Zap,
+  compliance: BadgeCheck,
+  threat_intel: Radar,
+  vendor: Boxes,
 };
 
 export function AgentsSection() {
@@ -54,7 +59,7 @@ export function AgentsSection() {
       <div className="mx-auto max-w-2xl text-center">
         <span className="text-xs font-semibold uppercase tracking-wider text-brand-fg">Autonomous Agent Layer</span>
         <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">
-          Eight specialized agents. One continuous defense.
+          A coordinated fleet. One continuous defense.
         </h2>
         <p className="mt-4 text-lg text-slate-400">
           A fleet of autonomous AI agents finds exposures, removes them, and defends you 24/7.

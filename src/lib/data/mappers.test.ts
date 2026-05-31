@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aggregateAgentStates, mapExposure, mapThreat } from "./mappers";
+import { aggregateAgentStates, AGENT_CATALOG, mapExposure, mapThreat } from "./mappers";
 
 describe("mappers", () => {
   it("maps a snake_case exposure row to the domain model", () => {
@@ -37,13 +37,13 @@ describe("mappers", () => {
     expect(t.detail).toBe("");
   });
 
-  it("aggregates agent runs into all 8 agent cards", () => {
+  it("aggregates agent runs into the full fleet of agent cards", () => {
     const states = aggregateAgentStates([
       { agent: "security", items_handled: 3, ran_at: "2026-01-01T00:00:00Z" },
       { agent: "security", items_handled: 2, ran_at: "2026-01-02T00:00:00Z" },
       { agent: "privacy", items_handled: 5, ran_at: "2026-01-01T00:00:00Z" },
     ]);
-    expect(states).toHaveLength(8);
+    expect(states).toHaveLength(AGENT_CATALOG.length);
     const security = states.find((s) => s.kind === "security")!;
     expect(security.itemsHandled).toBe(5);
     expect(security.lastRunAt).toBe("2026-01-02T00:00:00Z");

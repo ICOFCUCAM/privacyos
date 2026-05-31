@@ -116,31 +116,40 @@ export function entitlementsFor(sub: Subscription | null): Entitlements {
 
 /* ── Agent availability by plan ──────────────────────────────────────────── */
 
-/** The agents always included with any active plan (core protection). */
-const CORE_AGENTS: AgentKind[] = ["discovery", "privacy", "security"];
+/** Every agent in the fleet — the demo/full roster. */
+export const ALL_AGENT_KINDS: AgentKind[] = [
+  "discovery", "privacy", "legal", "reputation", "security", "deepfake", "executive", "business",
+  "orchestrator", "incident", "compliance", "threat_intel", "vendor",
+];
+
+/**
+ * The agents always included with any active plan. Beyond core protection
+ * (Discovery, Privacy, Security), the coordination roles — Orchestrator,
+ * Incident Response and Threat Intelligence — run on every plan because they
+ * operate the fleet itself.
+ */
+const CORE_AGENTS: AgentKind[] = [
+  "discovery", "privacy", "security", "orchestrator", "incident", "threat_intel",
+];
 
 /** Which additional agents each feature/suite unlocks. */
 const FEATURE_AGENTS: { feature: Feature; agents: AgentKind[] }[] = [
   { feature: "reputation", agents: ["reputation"] },
   { feature: "executive", agents: ["executive", "reputation"] },
-  { feature: "business", agents: ["business"] },
+  { feature: "business", agents: ["business", "compliance", "vendor"] },
   { feature: "ai_agent", agents: ["legal", "deepfake", "reputation"] },
 ];
 
 /**
- * Resolve which of the 8 specialist agents are online for a given set of
- * entitlements. Core agents (Discovery, Privacy, Security) are always on for an
- * entitled plan; suite/add-on agents come online only when their feature is
- * unlocked. Demo/unauthenticated entitlements light up the full fleet so the
- * product stays fully explorable.
+ * Resolve which agents are online for a given set of entitlements. Core agents
+ * (protection + coordination roles) are always on for an entitled plan;
+ * suite/add-on agents come online only when their feature is unlocked.
+ * Demo/unauthenticated entitlements light up the full fleet so the product
+ * stays fully explorable.
  */
 export function availableAgents(ent: Entitlements): Set<AgentKind> {
   // Demo mode: everything online.
-  if (ent.planId === "demo") {
-    return new Set<AgentKind>([
-      "discovery", "privacy", "legal", "reputation", "security", "deepfake", "executive", "business",
-    ]);
-  }
+  if (ent.planId === "demo") return new Set<AgentKind>(ALL_AGENT_KINDS);
   if (!ent.entitled) return new Set<AgentKind>();
   const set = new Set<AgentKind>(CORE_AGENTS);
   for (const { feature, agents } of FEATURE_AGENTS) {

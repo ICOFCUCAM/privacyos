@@ -46,22 +46,30 @@ describe("entitlements", () => {
 
 describe("availableAgents", () => {
   it("brings the full fleet online in demo mode", () => {
-    expect(availableAgents(DEMO_ENTITLEMENTS).size).toBe(8);
+    expect(availableAgents(DEMO_ENTITLEMENTS).size).toBe(13);
   });
 
   it("brings no agents online for a lapsed/none plan", () => {
     expect(availableAgents(entitlementsFor(null)).size).toBe(0);
   });
 
-  it("always includes the 3 core agents on any entitled plan", () => {
+  it("always includes the core protection + coordination agents on any entitled plan", () => {
     const agents = availableAgents(entitlementsFor({ planId: "starter", status: "active" }));
+    // Protection core
     expect(agents.has("discovery")).toBe(true);
     expect(agents.has("privacy")).toBe(true);
     expect(agents.has("security")).toBe(true);
+    // Coordination roles run on every plan (they operate the fleet itself)
+    expect(agents.has("orchestrator")).toBe(true);
+    expect(agents.has("incident")).toBe(true);
+    expect(agents.has("threat_intel")).toBe(true);
     // Starter has no AI add-on → legal/deepfake stay offline.
     expect(agents.has("legal")).toBe(false);
     expect(agents.has("deepfake")).toBe(false);
-    expect(agents.size).toBe(3);
+    // …and no business suite → compliance/vendor stay offline.
+    expect(agents.has("compliance")).toBe(false);
+    expect(agents.has("vendor")).toBe(false);
+    expect(agents.size).toBe(6);
   });
 
   it("unlocks suite agents by feature", () => {
@@ -74,6 +82,8 @@ describe("availableAgents", () => {
 
     const biz = availableAgents(entitlementsFor({ planId: "biz-growth", status: "active" }));
     expect(biz.has("business")).toBe(true);
+    expect(biz.has("compliance")).toBe(true);
+    expect(biz.has("vendor")).toBe(true);
   });
 
   it("unlocks legal + deepfake agents with the AI add-on / higher tiers", () => {

@@ -85,7 +85,7 @@ export function AgentWorkflowDiagram() {
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-risk-low opacity-75" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-risk-low" />
           </span>
-          8 agents running
+          13 agents running
         </span>
         <span className="text-xs font-semibold text-risk-low">~90% handled autonomously</span>
       </div>
