@@ -12,6 +12,9 @@ import {
 import {
   automationMoat, blendedAccuracy, dataCorpus, scoreDetectors, type DetectionSample,
 } from "@/lib/business/moat-metrics";
+import { businessHealth } from "@/lib/business/health";
+import { readiness } from "@/lib/compliance/posture";
+import { exposureToFinding, runPlaybooks, summarizeRuns, threatToFinding } from "@/lib/agents/playbooks";
 import { getModuleData } from "@/lib/data/modules";
 import { getDataSource } from "@/lib/data";
 import { topExposureSources } from "@/lib/intelligence/command-center";
@@ -84,6 +87,25 @@ export default async function BusinessIntelligencePage() {
   const ltvHealthy = ue.ltvToCac >= 3;
   const nrrHealthy = ret.nrr >= 100;
 
+  // Composite business health — blends growth, retention, efficiency,
+  // defensibility, compliance and enterprise mix into one board-ready score.
+  const compliance = readiness();
+  const playbooks = summarizeRuns(
+    runPlaybooks([...data.exposures.map(exposureToFinding), ...data.threats.map(threatToFinding)]),
+  );
+  const health = businessHealth({
+    nrr: ret.nrr,
+    netNewMrr: movement.netNewMrr,
+    ltvToCac: ue.ltvToCac,
+    paybackMonths: ue.paybackMonths,
+    detectionAccuracy: accuracy,
+    automationRate: playbooks.automationRate,
+    compliance: compliance.readiness,
+    enterpriseShare: ent.mrrShare,
+  });
+  const gradeColor =
+    health.grade === "A" ? "text-risk-low" : health.grade === "B" ? "text-risk-low" : health.grade === "C" ? "text-risk-medium" : "text-risk-high";
+
   // A simple synthetic ARR ramp for the headline chart (deterministic from current ARR).
   const arrRamp = [0.42, 0.5, 0.57, 0.63, 0.71, 0.78, 0.85, 0.91, 0.96, 1].map((f) => Math.round(annual * f));
 
@@ -102,6 +124,44 @@ export default async function BusinessIntelligencePage() {
           </span>
         }
       />
+
+      {/* Executive health band — board-ready composite */}
+      <Card className="p-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+          <div className="flex items-center gap-4 sm:border-r sm:border-border sm:pr-6">
+            <div className="relative flex h-20 w-20 shrink-0 items-center justify-center">
+              <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90">
+                <circle cx="60" cy="60" r="50" fill="none" stroke="#1f2430" strokeWidth="10" />
+                <circle
+                  cx="60" cy="60" r="50" fill="none" strokeWidth="10" strokeLinecap="round"
+                  stroke={health.grade === "A" || health.grade === "B" ? "#22c55e" : health.grade === "C" ? "#eab308" : "#ef4444"}
+                  strokeDasharray={`${(health.score / 100) * 2 * Math.PI * 50} ${2 * Math.PI * 50}`}
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className={cn("text-2xl font-bold", gradeColor)}>{health.grade}</span>
+                <span className="text-[10px] text-slate-400">{health.score}/100</span>
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Business health</p>
+              <p className="text-lg font-bold text-white">Enterprise-infrastructure grade</p>
+              <p className="text-xs text-slate-500">Growth · retention · efficiency · moat · compliance · enterprise mix</p>
+            </div>
+          </div>
+          <div className="grid flex-1 grid-cols-3 gap-2.5 sm:grid-cols-6">
+            {health.dimensions.map((d) => (
+              <div key={d.key} className="rounded-lg border border-border bg-bg-subtle/50 p-2.5 text-center">
+                <p className={cn("text-lg font-bold", d.score >= 70 ? "text-risk-low" : d.score >= 50 ? "text-risk-medium" : "text-risk-high")}>
+                  {d.score}
+                </p>
+                <p className="mt-0.5 text-[10px] text-slate-400">{d.label}</p>
+                <p className="text-[9px] text-slate-600">{d.verdict}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Card>
 
       {/* Headline metrics investors underwrite */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
