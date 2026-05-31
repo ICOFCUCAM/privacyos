@@ -24,6 +24,10 @@ yarn-error.log*
 .env
 .env*.local
 
+# local MCP override (may contain tokens) — keep out of version control
+.mcp.local.json
+.claude/settings.local.json
+
 # typescript
 *.tsbuildinfo
 
