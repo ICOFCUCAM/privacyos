@@ -30,6 +30,7 @@ import {
 } from "@/lib/intelligence/command-center";
 import { buildCorrelationGraph, correlationStats } from "@/lib/intelligence/correlation";
 import { exposureToFinding, runPlaybooks, summarizeRuns, threatToFinding } from "@/lib/agents/playbooks";
+import { synthesizeRecommendations } from "@/lib/agents/synthesis";
 import { cn, timeAgo, titleCase } from "@/lib/ui";
 import type { RiskLevel } from "@/lib/types";
 
@@ -86,6 +87,7 @@ export default async function OverviewPage() {
     ...data.threats.map(threatToFinding),
   ]);
   const playbooks = summarizeRuns(playbookRuns);
+  const topRecs = synthesizeRecommendations(data.recommendations).plan.slice(0, 6);
 
   // Surface the most recent autonomous playbook executions in the live stream.
   const playbookFeed = playbookRuns.slice(0, 6).map((r, i) => ({
@@ -178,7 +180,7 @@ export default async function OverviewPage() {
           <Card className="p-3">
             <SectionTitleRow title="AI recommendations" href="/dashboard/recommendations" />
             <ul className="divide-y divide-border">
-              {data.recommendations.slice(0, 6).map((r) => (
+              {topRecs.map((r) => (
                 <li key={r.id} className="flex items-center gap-2.5 py-1.5">
                   <Sparkles className="h-3.5 w-3.5 shrink-0 text-brand" />
                   <span className="min-w-0 flex-1 truncate text-[13px] text-white">{r.title}</span>
