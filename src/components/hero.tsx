@@ -15,6 +15,12 @@ const render: React.CSSProperties = {
     "drop-shadow(0 22px 45px rgba(79,70,229,0.32)) drop-shadow(0 50px 110px rgba(0,0,0,0.6))",
 };
 
+// Grounding reflection: a flipped copy that fades out beneath the render.
+const reflect: React.CSSProperties = {
+  maskImage: "linear-gradient(to bottom, rgba(0,0,0,0.55), transparent 42%)",
+  WebkitMaskImage: "linear-gradient(to bottom, rgba(0,0,0,0.55), transparent 42%)",
+};
+
 export function Hero() {
   return (
     <section className="relative overflow-hidden">
@@ -110,6 +116,20 @@ export function Hero() {
                 draggable={false}
               />
             </picture>
+            {/* Grounding reflection (absolute → no layout shift) */}
+            <div aria-hidden className="pointer-events-none absolute inset-x-0 top-full -z-0 -mt-3 hidden lg:block">
+              <picture>
+                <source srcSet="/hero-dashboard.webp" type="image/webp" />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/hero-dashboard.png"
+                  alt=""
+                  className="w-full -scale-y-100 select-none opacity-[0.16] blur-[2px]"
+                  style={reflect}
+                  draggable={false}
+                />
+              </picture>
+            </div>
           </div>
         </div>
       </div>
@@ -120,8 +140,11 @@ export function Hero() {
         className="pointer-events-none absolute inset-x-0 bottom-[88px] h-32 bg-gradient-to-b from-transparent to-bg"
       />
 
+      {/* Gradient section divider */}
+      <div aria-hidden className="h-px w-full bg-gradient-to-r from-transparent via-brand/45 to-transparent" />
+
       {/* Social proof bar */}
-      <div className="relative border-y border-border bg-bg-subtle/40">
+      <div className="relative border-b border-border bg-bg-subtle/40">
         <div className="mx-auto grid max-w-6xl grid-cols-2 gap-6 px-6 py-8 sm:grid-cols-4">
           {[
             { v: "200M+", l: "Threats Analyzed" },
