@@ -97,10 +97,6 @@ export function Hero() {
                   "conic-gradient(from 210deg at 55% 45%, rgba(99,102,241,0.18), transparent 35%, rgba(165,180,252,0.12) 60%, transparent 85%)",
               }}
             />
-            {/* refined orbit rings */}
-            <div className="animate-spin-slow absolute inset-[6%] rounded-full border border-brand/15" />
-            <div className="animate-spin-slow-rev absolute inset-[19%] rounded-full border border-white/[0.06]" />
-            <div className="absolute inset-[33%] rounded-full border border-brand/10" />
           </div>
 
           {/* Static, background-free composition — bleeds under the copy */}
