@@ -1,9 +1,14 @@
-import { Card, RiskBadge, Pill } from "@/components/ui";
+import { Card, RiskBadge, Pill, SectionTitle, StatCard } from "@/components/ui";
+import { RiskDonut } from "@/components/viz";
 import { getDataSource } from "@/lib/data";
 import { timeAgo, titleCase } from "@/lib/ui";
+import type { RiskLevel } from "@/lib/types";
 
 export default async function CasesPage() {
   const { cases } = await (await getDataSource()).getDataset();
+  const levels: RiskLevel[] = ["low", "medium", "high", "critical"];
+  const byLevel = levels.map((level) => ({ level, value: cases.filter((c) => c.riskLevel === level).length }));
+  const openCount = cases.filter((c) => c.status !== "resolved").length;
   const columns: { key: string; label: string }[] = [
     { key: "open", label: "Open" },
     { key: "in_progress", label: "In Progress" },
@@ -18,6 +23,32 @@ export default async function CasesPage() {
         <p className="mt-1 text-sm text-slate-400">
           Remediation work, mostly driven autonomously by your agents.
         </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Card className="flex items-center gap-5">
+          <RiskDonut segments={byLevel} label="cases" />
+          <div className="space-y-1.5 text-sm">
+            {([...levels].reverse()).map((l) => (
+              <div key={l} className="flex items-center gap-2">
+                <RiskBadge level={l} />
+                <span className="text-slate-300">{byLevel.find((b) => b.level === l)?.value ?? 0}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+        <Card className="lg:col-span-2">
+          <SectionTitle title="Case pipeline" subtitle={`${openCount} open · ${cases.length} total`} />
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {columns.map((col) => (
+              <StatCard
+                key={col.key}
+                label={col.label}
+                value={cases.filter((c) => c.status === col.key || (col.key === "in_progress" && c.status === "escalated")).length}
+              />
+            ))}
+          </div>
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
