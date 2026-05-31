@@ -10,6 +10,12 @@ import {
   ScanFace,
 } from "lucide-react";
 import { Hero } from "@/components/hero";
+import {
+  TrustStrip,
+  AgentsSection,
+  ActivitySection,
+  EcosystemSection,
+} from "@/components/landing-sections";
 
 const modules = [
   { icon: Search, title: "Privacy Discovery", desc: "Find every discoverable exposure across the public internet, brokers and breaches." },
@@ -48,7 +54,22 @@ export default function LandingPage() {
 
       <Hero />
 
-      <section className="mx-auto max-w-6xl px-6 py-28">
+      <TrustStrip />
+
+      <EcosystemSection />
+
+      <AgentsSection />
+
+      <ActivitySection />
+
+      {/* Capability modules */}
+      <section className="mx-auto max-w-6xl px-6 py-24">
+        <div className="mx-auto mb-12 max-w-2xl text-center">
+          <span className="text-xs font-semibold uppercase tracking-wider text-brand-fg">Capabilities</span>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            Everything it takes to defend your digital life.
+          </h2>
+        </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {modules.map((m) => (
             <div
@@ -63,8 +84,28 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Final CTA */}
+      <section className="border-t border-border bg-bg-subtle/30">
+        <div className="mx-auto max-w-3xl px-6 py-20 text-center">
+          <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            Take control of your digital footprint.
+          </h2>
+          <p className="mx-auto mt-4 max-w-xl text-lg text-slate-400">
+            Discover what&apos;s exposed, remove it, and let autonomous agents defend you around the clock.
+          </p>
+          <div className="mt-8 flex items-center justify-center gap-3">
+            <Link href="/dashboard/assistant" className="rounded-lg bg-brand px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand/90">
+              Get Protected
+            </Link>
+            <Link href="/pricing" className="rounded-lg border border-border px-6 py-3 text-sm font-semibold text-slate-200 transition hover:bg-bg-elevated">
+              View Pricing
+            </Link>
+          </div>
+        </div>
+      </section>
+
       <footer className="border-t border-border py-8 text-center text-sm text-slate-500">
-        PrivacyOS — Privacy, Reputation, Identity & Digital Risk Management.
+        PrivacyOS — Privacy, Reputation, Identity &amp; Digital Risk Management.
       </footer>
     </main>
   );
