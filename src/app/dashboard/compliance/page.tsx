@@ -9,7 +9,7 @@ import { getAuditLog } from "@/lib/audit/audit";
 import {
   CONTROLS, postureByCriterion, readiness, slaReport, type ControlStatus, type TrustCriterion,
 } from "@/lib/compliance/posture";
-import { blendedAccuracy, type DetectionSample } from "@/lib/business/moat-metrics";
+import { liveDetectorAccuracy } from "@/lib/detection/live-accuracy";
 import { exposureToFinding, runPlaybooks, summarizeRuns, threatToFinding } from "@/lib/agents/playbooks";
 import { allFrameworkCoverage, overallFrameworkCoverage, COMPLIANCE_TASKS } from "@/lib/compliance/frameworks";
 import { cn } from "@/lib/ui";
@@ -42,14 +42,15 @@ export default async function CompliancePage() {
   const posture = postureByCriterion();
   const ready = readiness();
 
-  // Detection accuracy — same grounding as the operator console.
-  const detectionSamples: DetectionSample[] = [
-    { detector: "deepfake", truePositives: mod.incidents.filter((i) => i.kind === "deepfake").length * 9 + 86, falsePositives: 4, falseNegatives: 3 },
-    { detector: "impersonation", truePositives: mod.incidents.filter((i) => i.kind === "impersonation").length * 7 + 72, falsePositives: 9, falseNegatives: 6 },
-    { detector: "credential", truePositives: Math.max(mod.credentialLeaks.length, 1) * 11 + 64, falsePositives: 3, falseNegatives: 4 },
-    { detector: "threat", truePositives: data.threats.length * 8 + 50, falsePositives: 6, falseNegatives: 5 },
-  ];
-  const accuracy = blendedAccuracy(detectionSamples);
+  // Detection accuracy — computed by the live scoring algorithms (same as the
+  // operator console), not modeled samples.
+  const { blended: accuracy } = liveDetectorAccuracy({
+    incidents: mod.incidents,
+    credentialLeaks: mod.credentialLeaks,
+    domainRisks: mod.domainRisks,
+    exposures: data.exposures,
+    primaryDomain: mod.domains.find((d) => d.isPrimary)?.domain ?? mod.domains[0]?.domain,
+  });
   // Auto-remediation rate = the share of response-playbook steps that execute
   // without a human — the single source of truth shared with the playbooks view.
   const playbooks = summarizeRuns(
