@@ -1,15 +1,5 @@
 import Link from "next/link";
-import {
-  ShieldCheck,
-  PlayCircle,
-  Check,
-  Radar,
-  Trash2,
-  Bot,
-  AlertTriangle,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
-import { cn } from "@/lib/ui";
+import { ShieldCheck, PlayCircle, Check } from "lucide-react";
 
 const trust = [
   "AI-Powered Monitoring",
@@ -18,69 +8,21 @@ const trust = [
   "Dark Web Intelligence",
 ];
 
-interface Callout {
-  icon: LucideIcon;
-  label: string;
-  value: string;
-  tone: string;
-  pos: string;
-  delay: string;
-}
-
-const callouts: Callout[] = [
-  { icon: Radar, value: "126", label: "Exposures Found", tone: "text-brand-fg", pos: "-left-6 top-10 sm:-left-10", delay: "0s" },
-  { icon: ShieldCheck, value: "38", label: "Risks Blocked", tone: "text-risk-low", pos: "-left-4 bottom-24 sm:-left-12", delay: "1.1s" },
-  { icon: Trash2, value: "14", label: "Removal Requests Active", tone: "text-risk-medium", pos: "-right-4 top-24 sm:-right-10", delay: "0.5s" },
-  { icon: Bot, value: "8", label: "AI Agents Online", tone: "text-risk-low", pos: "-right-2 bottom-16 sm:-right-8", delay: "1.6s" },
-  { icon: AlertTriangle, value: "Dark Web", label: "Match Detected", tone: "text-risk-critical", pos: "right-1/4 -bottom-6", delay: "0.8s" },
-];
-
-function CalloutCard({ c }: { c: Callout }) {
-  const Icon = c.icon;
-  return (
-    <div
-      className={cn(
-        "callout-float absolute z-20 hidden items-center gap-2.5 rounded-xl border border-border/80 bg-bg-elevated/80 px-3.5 py-2.5 shadow-2xl backdrop-blur-md md:flex",
-        c.pos,
-      )}
-      style={{ animationDelay: c.delay }}
-    >
-      <span className={cn("flex h-8 w-8 items-center justify-center rounded-lg bg-white/5", c.tone)}>
-        <Icon className="h-4 w-4" />
-      </span>
-      <div className="leading-tight">
-        <p className={cn("text-sm font-bold", c.tone)}>{c.value}</p>
-        <p className="text-[11px] text-slate-400">{c.label}</p>
-      </div>
-    </div>
-  );
-}
+// Frameless integration: fade the asset's edges into the page so the globe and
+// dashboard emerge from the background as one composition (no screenshot frame).
+const blend: React.CSSProperties = {
+  maskImage: "radial-gradient(115% 92% at 52% 44%, #000 56%, rgba(0,0,0,0.55) 74%, transparent 100%)",
+  WebkitMaskImage: "radial-gradient(115% 92% at 52% 44%, #000 56%, rgba(0,0,0,0.55) 74%, transparent 100%)",
+  filter: "drop-shadow(0 30px 70px rgba(79,70,229,0.4))",
+};
 
 export function Hero() {
   return (
     <section className="relative overflow-hidden">
-      {/* Background intelligence network */}
-      <div aria-hidden className="pointer-events-none absolute inset-0">
-        {/* Glowing globe behind the dashboard */}
-        <div className="absolute right-[5%] top-1/2 h-[820px] w-[820px] -translate-y-1/2 lg:right-[18%]">
-          <div className="animate-pulse-glow absolute inset-0 rounded-full bg-brand/20 blur-3xl" />
-          <div className="animate-spin-slow absolute inset-0 rounded-full border border-brand/20" />
-          <div className="animate-spin-slow-rev absolute inset-[8%] rounded-full border border-brand/15" />
-          <div className="absolute inset-[16%] rounded-full border border-brand/10" />
-          <div className="absolute inset-[24%] rounded-full border border-brand/10" />
-          {/* orbiting nodes */}
-          <div className="animate-spin-slow absolute inset-0">
-            <span className="absolute left-1/2 top-0 h-2 w-2 -translate-x-1/2 rounded-full bg-brand-fg shadow-[0_0_12px] shadow-brand" />
-            <span className="absolute bottom-[10%] right-[8%] h-1.5 w-1.5 rounded-full bg-brand-fg/70" />
-          </div>
-        </div>
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-bg/40 to-bg" />
-      </div>
-
-      <div className="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-10 px-6 py-20 lg:grid-cols-12 lg:py-28">
+      <div className="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-4 px-6 pb-8 pt-16 lg:grid-cols-12 lg:gap-0 lg:pb-16 lg:pt-24">
         {/* LEFT — copy */}
-        <div className="lg:col-span-5">
-          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-bg-elevated px-3 py-1 text-xs font-medium text-brand-fg">
+        <div className="relative z-10 lg:col-span-5">
+          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-bg-elevated/70 px-3 py-1 text-xs font-medium text-brand-fg backdrop-blur">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand" />
             The Operating System for Digital Privacy
           </span>
@@ -123,25 +65,34 @@ export function Hero() {
           </ul>
         </div>
 
-        {/* RIGHT — floating dashboard */}
+        {/* RIGHT — the product render, blended into the page (no frame) */}
         <div className="relative lg:col-span-7">
-          <div className="hero-float relative mx-auto w-full max-w-[1200px]">
-            {/* glow */}
-            <div aria-hidden className="absolute -inset-6 rounded-3xl bg-brand/25 blur-3xl" />
-            <div className="hero-tilt relative">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/hero-dashboard.png"
-                alt="PrivacyOS dashboard — live digital risk overview"
-                className="relative z-10 w-full rounded-xl border border-white/10 shadow-[0_40px_120px_-20px_rgba(99,102,241,0.55)] ring-1 ring-white/5"
-              />
-            </div>
-            {callouts.map((c) => (
-              <CalloutCard key={c.label} c={c} />
-            ))}
+          {/* Ambient global-network lighting behind the asset (extends past it) */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute left-1/2 top-1/2 -z-0 h-[150%] w-[150%] -translate-x-1/2 -translate-y-1/2"
+          >
+            <div className="animate-pulse-glow absolute inset-[12%] rounded-full bg-brand/15 blur-3xl" />
+            <div className="animate-spin-slow absolute inset-[6%] rounded-full border border-brand/10" />
+            <div className="animate-spin-slow-rev absolute inset-[20%] rounded-full border border-brand/10" />
+          </div>
+
+          {/* Frameless, edge-masked composition — bleeds slightly left under the copy */}
+          <div className="hero-float relative z-10 lg:-ml-10 lg:-mr-12">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/hero-dashboard.png"
+              alt="PrivacyOS — live digital risk command center over a global intelligence network"
+              className="w-full select-none"
+              style={blend}
+              draggable={false}
+            />
           </div>
         </div>
       </div>
+
+      {/* Soft transition into the social-proof bar */}
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-[88px] h-32 bg-gradient-to-b from-transparent to-bg" />
 
       {/* Social proof bar */}
       <div className="relative border-y border-border bg-bg-subtle/40">
