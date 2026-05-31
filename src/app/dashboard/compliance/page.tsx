@@ -9,7 +9,8 @@ import { getAuditLog } from "@/lib/audit/audit";
 import {
   CONTROLS, postureByCriterion, readiness, slaReport, type ControlStatus, type TrustCriterion,
 } from "@/lib/compliance/posture";
-import { automationMoat, blendedAccuracy, type DetectionSample } from "@/lib/business/moat-metrics";
+import { blendedAccuracy, type DetectionSample } from "@/lib/business/moat-metrics";
+import { exposureToFinding, runPlaybooks, summarizeRuns, threatToFinding } from "@/lib/agents/playbooks";
 import { cn } from "@/lib/ui";
 
 export const metadata = { title: "Compliance & SLAs" };
@@ -48,12 +49,16 @@ export default async function CompliancePage() {
     { detector: "threat", truePositives: data.threats.length * 8 + 50, falsePositives: 6, falseNegatives: 5 },
   ];
   const accuracy = blendedAccuracy(detectionSamples);
-  const moat = automationMoat(mod.agentActions);
+  // Auto-remediation rate = the share of response-playbook steps that execute
+  // without a human — the single source of truth shared with the playbooks view.
+  const playbooks = summarizeRuns(
+    runPlaybooks([...data.exposures.map(exposureToFinding), ...data.threats.map(threatToFinding)]),
+  );
 
   const sla = slaReport({
     mttdMinutes: 11,
     mttrHours: 3.2,
-    autoRemediationRate: moat.automationRate,
+    autoRemediationRate: playbooks.automationRate,
     detectionAccuracy: accuracy,
     uptime: 99.97,
   });

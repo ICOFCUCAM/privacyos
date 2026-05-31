@@ -32,6 +32,7 @@ import {
   onlineAgentCount, remediationProgress, threatTimeline, topExposureSources,
 } from "@/lib/intelligence/command-center";
 import { buildCorrelationGraph, correlationStats } from "@/lib/intelligence/correlation";
+import { exposureToFinding, runPlaybooks, summarizeRuns, threatToFinding } from "@/lib/agents/playbooks";
 import { cn, timeAgo, titleCase } from "@/lib/ui";
 import type { RiskLevel } from "@/lib/types";
 
@@ -83,6 +84,11 @@ export default async function OverviewPage() {
   const surfaceTotal = surface.reduce((s, a) => s + a.count, 0);
   const graph = buildCorrelationGraph(data.subject.displayName, data.exposures, data.threats);
   const graphStats = correlationStats(graph);
+  const playbookRuns = runPlaybooks([
+    ...data.exposures.map(exposureToFinding),
+    ...data.threats.map(threatToFinding),
+  ]);
+  const playbooks = summarizeRuns(playbookRuns);
 
   const feed = buildFeed({
     agentActions: mod.agentActions,
@@ -197,6 +203,41 @@ export default async function OverviewPage() {
           <AgentRoster roster={roster} online={onlineAgents} total={totalAgents} live={live} />
         </div>
       </div>
+
+      {/* Autonomous response — the automation moat at a glance */}
+      <Card className="p-4">
+        <SectionTitle
+          title="Autonomous response"
+          subtitle="Live findings matched to response playbooks and executed step by step"
+          action={
+            <Link href="/dashboard/playbooks" className="text-xs font-medium text-brand-fg hover:underline">
+              View playbooks
+            </Link>
+          }
+        />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
+          <div className="rounded-lg border border-border bg-bg-subtle/50 p-3">
+            <p className="text-2xl font-bold text-risk-low">{playbooks.automationRate}%</p>
+            <p className="mt-0.5 text-[11px] text-slate-500">Steps automated</p>
+          </div>
+          <div className="rounded-lg border border-border bg-bg-subtle/50 p-3">
+            <p className="text-2xl font-bold text-white">{playbooks.totalRuns}</p>
+            <p className="mt-0.5 text-[11px] text-slate-500">Workflow runs</p>
+          </div>
+          <div className="rounded-lg border border-border bg-bg-subtle/50 p-3">
+            <p className="text-2xl font-bold text-white">{playbooks.autonomousRuns}</p>
+            <p className="mt-0.5 text-[11px] text-slate-500">Fully autonomous</p>
+          </div>
+          <div className="rounded-lg border border-border bg-bg-subtle/50 p-3">
+            <p className="text-2xl font-bold text-white">{playbooks.activePlaybooks}</p>
+            <p className="mt-0.5 text-[11px] text-slate-500">Active playbooks</p>
+          </div>
+          <div className="rounded-lg border border-border bg-bg-subtle/50 p-3">
+            <p className="text-2xl font-bold text-risk-medium">{playbooks.approvalSteps}</p>
+            <p className="mt-0.5 text-[11px] text-slate-500">Awaiting approval</p>
+          </div>
+        </div>
+      </Card>
 
       {/* Intelligence row: exposure timeline + threat timeline */}
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
