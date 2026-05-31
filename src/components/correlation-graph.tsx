@@ -16,10 +16,15 @@ const RISK_HEX: Record<RiskLevel, string> = {
  * dependencies — readable in a dense Command Center card.
  */
 export function CorrelationGraphView({ graph, size = 380 }: { graph: CorrelationGraph; size?: number }) {
-  const cx = size / 2;
-  const cy = size / 2;
-  // Tighter margin so the node ring fills more of the canvas (labels still fit).
-  const r = size / 2 - 42;
+  // Flatten into a wide ellipse: full horizontal radius, compressed vertical, so
+  // the canvas height is ~68% of its width — removing the empty top/bottom bands
+  // a square layout leaves while keeping every node and label visible.
+  const width = size;
+  const height = Math.round(size * 0.68);
+  const cx = width / 2;
+  const cy = height / 2;
+  const rx = width / 2 - 46;
+  const ry = height / 2 - 26;
   const subject = graph.nodes.find((n) => n.kind === "subject");
   const sources = graph.nodes.filter((n) => n.kind === "source");
   const categories = graph.nodes.filter((n) => n.kind === "category");
@@ -32,8 +37,8 @@ export function CorrelationGraphView({ graph, size = 380 }: { graph: Correlation
       const angle = fromAngle + (toAngle - fromAngle) * t;
       return {
         node,
-        x: cx + Math.cos(angle) * r,
-        y: cy + Math.sin(angle) * r,
+        x: cx + Math.cos(angle) * rx,
+        y: cy + Math.sin(angle) * ry,
       };
     });
   }
@@ -43,7 +48,7 @@ export function CorrelationGraphView({ graph, size = 380 }: { graph: Correlation
   const posById = new Map(positioned.map((p) => [p.node.id, p]));
 
   return (
-    <svg viewBox={`0 0 ${size} ${size}`} className="w-full" style={{ maxWidth: size }} role="img" aria-label="Threat correlation graph">
+    <svg viewBox={`0 0 ${width} ${height}`} className="w-full" style={{ maxWidth: width }} role="img" aria-label="Threat correlation graph">
       {/* edges */}
       {graph.edges.map((e, i) => {
         const p = posById.get(e.to);

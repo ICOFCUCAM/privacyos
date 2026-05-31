@@ -263,7 +263,7 @@ export default async function OverviewPage() {
           <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center">
             {/* graph takes the lion's share; scales up to fill the card */}
             <div className="flex flex-1 items-center justify-center">
-              <CorrelationGraphView graph={graph} size={300} />
+              <CorrelationGraphView graph={graph} size={420} />
             </div>
             {/* compact, fixed-width insight column — no trailing dead space */}
             <div className="w-full shrink-0 space-y-2 sm:w-56">
