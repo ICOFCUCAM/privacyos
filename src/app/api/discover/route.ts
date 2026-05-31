@@ -19,6 +19,7 @@ export async function POST() {
   const finding = await runDiscovery({
     subject: data.subject,
     existing: data.exposures,
+    existingThreats: data.threats,
   });
 
   if (ds.live) {

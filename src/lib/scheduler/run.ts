@@ -54,7 +54,7 @@ export async function runScheduledCycle(
   for (const fp of footprints) {
     // 1. Discover — only genuinely new findings come back (deduped).
     const finding = await runDiscovery(
-      { subject: fp.subject, existing: fp.exposures },
+      { subject: fp.subject, existing: fp.exposures, existingThreats: fp.threats },
       deps.sources,
     );
     if (finding.exposures.length || finding.threats.length) {

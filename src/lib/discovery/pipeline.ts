@@ -79,8 +79,9 @@ export async function runDiscovery(
   const newExposures = removeKnownEntities(clustered, input.existing);
   const merged = exactNew.length - newExposures.length;
 
-  // Dedupe threats within this batch (kind + title).
-  const seenThreat = new Set<string>();
+  // Dedupe threats against the known footprint AND within this batch
+  // (kind + title), so repeated cycles never re-emit the same threat.
+  const seenThreat = new Set<string>((input.existingThreats ?? []).map(threatKey));
   const newThreats: Threat[] = [];
   for (const t of threats) {
     const k = threatKey(t);

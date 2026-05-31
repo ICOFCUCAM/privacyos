@@ -58,6 +58,18 @@ describe("runDiscovery pipeline", () => {
     expect(second.exposures).toHaveLength(0);
   });
 
+  it("dedupes THREATS against the existing footprint (no re-emit each run)", async () => {
+    const conn = new BreachConnector(undefined);
+    const first = await runDiscovery({ subject, existing: [] }, [conn]);
+    expect(first.threats.length).toBeGreaterThan(0); // breach raises threats
+    // Re-scan passing the prior exposures AND threats as existing — nothing new.
+    const second = await runDiscovery(
+      { subject, existing: first.exposures, existingThreats: first.threats },
+      [conn],
+    );
+    expect(second.threats).toHaveLength(0);
+  });
+
   it("isolates a failing source", async () => {
     const ok = new BreachConnector(undefined);
     const boom: DiscoverySource = {
