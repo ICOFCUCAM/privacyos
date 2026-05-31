@@ -7,7 +7,7 @@ import {
   Bot, Building2, Users, Crown, FileText, Sparkles,
   Globe, Plane, UserCog, Network, Scale, Bell, Siren, MessageSquareHeart,
   Trash2, ScrollText, Settings, Lock, Users2, TrendingUp, Workflow, BadgeCheck, GitBranch, Blocks,
-  LayoutTemplate, Gauge,
+  LayoutTemplate, Gauge, FileLock2,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/ui";
@@ -32,6 +32,7 @@ export const navGroups: NavGroup[] = [
       { href: "/dashboard/removals", label: "Broker Removals", icon: Trash2 },
       { href: "/dashboard/threats", label: "Threat Feed", icon: ShieldAlert },
       { href: "/dashboard/cases", label: "Active Cases", icon: FolderKanban },
+      { href: "/dashboard/evidence", label: "Evidence Vault", icon: FileLock2 },
       { href: "/dashboard/recommendations", label: "AI Recommendations", icon: Sparkles },
     ],
   },
