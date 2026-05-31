@@ -7,6 +7,7 @@ import { approveRecommendationAction } from "@/app/dashboard/actions";
 export default async function RecommendationsPage() {
   const { recommendations } = await (await getDataSource()).getDataset();
   const totalImpact = recommendations.reduce((s, r) => s + r.impact, 0);
+  const maxImpact = Math.max(1, ...recommendations.map((r) => r.impact));
 
   return (
     <div className="space-y-6">
@@ -38,6 +39,12 @@ export default async function RecommendationsPage() {
               <div className="mt-2 flex items-center gap-2">
                 <Pill>{titleCase(r.agent)} agent</Pill>
                 <Pill>−{r.impact} pts</Pill>
+              </div>
+              <div className="mt-2 flex items-center gap-2">
+                <div className="h-1.5 max-w-xs flex-1 overflow-hidden rounded-full bg-bg-subtle">
+                  <div className="h-full rounded-full bg-risk-low" style={{ width: `${(r.impact / maxImpact) * 100}%` }} />
+                </div>
+                <span className="text-[11px] text-slate-500">impact</span>
               </div>
             </div>
             <form action={approveRecommendationAction} className="shrink-0 self-center">
