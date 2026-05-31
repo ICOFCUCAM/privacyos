@@ -70,3 +70,10 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .hero-float, .callout-float, .animate-spin-slow, .animate-spin-slow-rev, .animate-pulse-glow { animation: none; }
 }
+
+/* ── Accessibility: visible keyboard focus everywhere ───────────────────── */
+*:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+  border-radius: 4px;
+}

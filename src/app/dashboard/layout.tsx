@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/sidebar";
+import { MobileNav } from "@/components/mobile-nav";
 import { UpgradeGate } from "@/components/upgrade-gate";
 import { getDataSource } from "@/lib/data";
 import { getEntitlements } from "@/lib/billing/subscription";
@@ -24,16 +25,14 @@ export default async function DashboardLayout({
   const needed = requiredFeature(pathname);
   const locked = needed !== null && !entitlements.features[needed];
   const gatedSuite = needed ? GATED_SUITES.find((s) => s.feature === needed) : undefined;
+  const lockedFeatures = GATED_SUITES.filter((s) => !entitlements.features[s.feature]).map((s) => s.feature);
 
   return (
     <div className="flex min-h-screen">
-      <Sidebar
-        subjectName={subject?.displayName}
-        live={ds.live}
-        lockedFeatures={GATED_SUITES.filter((s) => !entitlements.features[s.feature]).map((s) => s.feature)}
-      />
+      <Sidebar subjectName={subject?.displayName} live={ds.live} lockedFeatures={lockedFeatures} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-border px-6 py-3">
+        <MobileNav subjectName={subject?.displayName} live={ds.live} lockedFeatures={lockedFeatures} />
+        <header className="hidden items-center justify-between border-b border-border px-6 py-3 lg:flex">
           <p className="text-sm text-slate-400">
             Protecting <span className="font-medium text-white">{name}</span>
           </p>
@@ -47,7 +46,7 @@ export default async function DashboardLayout({
             {ds.live ? "Live data" : "Demo data"}
           </span>
         </header>
-        <main className="flex-1 overflow-y-auto p-6">
+        <main id="content" className="flex-1 overflow-y-auto p-6">
           {locked && gatedSuite ? (
             <UpgradeGate
               suite={gatedSuite.label}
