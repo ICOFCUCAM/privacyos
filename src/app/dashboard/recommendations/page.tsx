@@ -1,19 +1,32 @@
-import { Sparkles, Users } from "lucide-react";
+import { Sparkles, Users, BrainCircuit } from "lucide-react";
 import { buttonClasses, Card, PageHeader, RiskBadge, Pill } from "@/components/ui";
 import { getDataSource } from "@/lib/data";
+import { scoreToLevel } from "@/lib/scoring/risk-score";
 import { titleCase } from "@/lib/ui";
 import { synthesizeRecommendations } from "@/lib/agents/synthesis";
+import { adviseOnPlan } from "@/lib/agents/llm-advisor";
+import { resolveProvider } from "@/lib/agents/llm/provider";
 import { approveRecommendationAction } from "@/app/dashboard/actions";
 
 export const metadata = { title: "AI Recommendations" };
 
 export default async function RecommendationsPage() {
   const ds = await getDataSource();
-  const { recommendations } = await ds.getDataset();
+  const data = await ds.getDataset();
+  const { recommendations } = data;
   // Synthesize the raw per-agent stream into one coordinated, de-duplicated,
   // confidence-ranked action plan (the orchestrator's job).
   const { plan, rawCount, deduped, projectedImpact } = synthesizeRecommendations(recommendations);
   const maxPriority = Math.max(1, ...plan.map((r) => r.priority));
+
+  // Analyst briefing — LLM-authored when a provider is configured, otherwise a
+  // deterministic narrative (always returns something useful, no key required).
+  const briefing = await adviseOnPlan(resolveProvider(), {
+    subjectName: data.subject.displayName,
+    exposureScore: data.riskScore.overall,
+    threatLevel: scoreToLevel(data.riskScore.overall),
+    activeThreats: data.threats.filter((t) => !t.acknowledged).length,
+  }, plan);
 
   return (
     <div className="space-y-6">
@@ -33,6 +46,21 @@ export default async function RecommendationsPage() {
           Sample data — approvals are illustrative in demo mode. Connect your account to execute them and open real cases.
         </div>
       )}
+
+      {/* Analyst briefing */}
+      <Card className="flex items-start gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand/15">
+          <BrainCircuit className="h-4 w-4 text-brand-fg" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-semibold text-white">Analyst briefing</p>
+            <Pill>{briefing.source === "llm" ? `${titleCase(briefing.provider)} AI` : "Deterministic"}</Pill>
+          </div>
+          <p className="mt-1 text-sm text-slate-300">{briefing.summary}</p>
+          <p className="mt-1 text-xs text-slate-500">{briefing.rationale}</p>
+        </div>
+      </Card>
 
       {deduped > 0 && (
         <p className="text-xs text-slate-500">
