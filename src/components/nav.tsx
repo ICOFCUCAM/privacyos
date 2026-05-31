@@ -7,7 +7,7 @@ import {
   Bot, Building2, Users, Crown, FileText, Sparkles,
   Globe, Plane, UserCog, Network, Scale, Bell, Siren, MessageSquareHeart,
   Trash2, ScrollText, Settings, Lock, Users2, TrendingUp, Workflow, BadgeCheck, GitBranch, Blocks,
-  LayoutTemplate,
+  LayoutTemplate, Gauge,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/ui";
@@ -17,7 +17,13 @@ export type NavItem = { href: string; label: string; icon: LucideIcon };
 export type NavGroup = { group: string; items: NavItem[]; feature?: Feature };
 
 export const navGroups: NavGroup[] = [
-  { group: "", items: [{ href: "/dashboard", label: "Overview", icon: LayoutDashboard }] },
+  {
+    group: "",
+    items: [
+      { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+      { href: "/dashboard/mission-control", label: "Mission Control", icon: Gauge },
+    ],
+  },
   {
     group: "PrivacyOS",
     items: [
