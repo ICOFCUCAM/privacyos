@@ -1,89 +1,16 @@
 /**
- * Proprietary-data, detection-accuracy and automation-moat metrics.
+ * Automation-moat and proprietary-data metrics.
  *
- * These are the defensibility metrics investors underwrite an AI-security
- * platform on: how accurate the detection models are, how much work the
- * autonomous agents do without a human (the automation moat), and how large the
- * proprietary intelligence corpus has grown. Pure and unit-tested — derived from
- * the same domain dataset the product runs on.
+ * Defensibility metrics investors underwrite an AI-security platform on: how
+ * much work the autonomous agents do without a human (the automation moat) and
+ * how large the proprietary intelligence corpus has grown. Detection accuracy
+ * now lives in lib/detection (real scoring algorithms), not here. Pure and
+ * unit-tested — derived from the same domain dataset the product runs on.
  */
 
 import type { AgentAction } from "@/lib/suite-types";
 
 const pct = (n: number) => Math.round(n * 1000) / 10;
-
-/* ── Detection accuracy ──────────────────────────────────────────────────── */
-
-export interface DetectionStats {
-  truePositives: number;
-  falsePositives: number;
-  falseNegatives: number;
-  /** precision = TP / (TP + FP). */
-  precision: number;
-  /** recall = TP / (TP + FN). */
-  recall: number;
-  /** F1 = harmonic mean of precision & recall. */
-  f1: number;
-  /** Overall accuracy headline, 0–100. */
-  accuracy: number;
-}
-
-export interface DetectorScore {
-  detector: string;
-  label: string;
-  stats: DetectionStats;
-}
-
-export interface DetectionSample {
-  detector: string;
-  truePositives: number;
-  falsePositives: number;
-  falseNegatives: number;
-}
-
-const DETECTOR_LABEL: Record<string, string> = {
-  deepfake: "Deepfake Detection",
-  impersonation: "Impersonation Detection",
-  credential: "Credential-Leak Detection",
-  broker: "Broker Match Resolution",
-  sentiment: "Sentiment Classification",
-  threat: "Threat Correlation",
-};
-
-export function detectionStats(s: DetectionSample): DetectionStats {
-  const precision = s.truePositives + s.falsePositives === 0 ? 0 : s.truePositives / (s.truePositives + s.falsePositives);
-  const recall = s.truePositives + s.falseNegatives === 0 ? 0 : s.truePositives / (s.truePositives + s.falseNegatives);
-  const f1 = precision + recall === 0 ? 0 : (2 * precision * recall) / (precision + recall);
-  return {
-    truePositives: s.truePositives,
-    falsePositives: s.falsePositives,
-    falseNegatives: s.falseNegatives,
-    precision: pct(precision),
-    recall: pct(recall),
-    f1: pct(f1),
-    accuracy: pct(f1),
-  };
-}
-
-export function scoreDetectors(samples: DetectionSample[]): DetectorScore[] {
-  return samples.map((s) => ({
-    detector: s.detector,
-    label: DETECTOR_LABEL[s.detector] ?? s.detector,
-    stats: detectionStats(s),
-  }));
-}
-
-/** Weighted blended accuracy across all detectors (by sample volume). */
-export function blendedAccuracy(samples: DetectionSample[]): number {
-  let weightedF1 = 0;
-  let total = 0;
-  for (const s of samples) {
-    const vol = s.truePositives + s.falsePositives + s.falseNegatives;
-    weightedF1 += detectionStats(s).f1 * vol;
-    total += vol;
-  }
-  return total === 0 ? 0 : Math.round((weightedF1 / total) * 10) / 10;
-}
 
 /* ── Automation moat ─────────────────────────────────────────────────────── */
 
