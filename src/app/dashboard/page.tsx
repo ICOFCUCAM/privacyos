@@ -195,9 +195,9 @@ export default async function OverviewPage() {
           <ActivityStream events={feed} live={live} />
         </div>
 
-        {/* Right: the full agent fleet in two columns */}
+        {/* Right: the full agent fleet as a 4-column icon-tile grid (benchmark) */}
         <div className="xl:col-span-4">
-          <AgentRoster roster={roster} online={onlineAgents} total={totalAgents} live={live} columns={2} />
+          <AgentRoster roster={roster} online={onlineAgents} total={totalAgents} live={live} columns="tiles" />
         </div>
       </div>
 
