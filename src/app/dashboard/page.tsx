@@ -13,6 +13,8 @@ import {
 import { ActivityStream } from "@/components/activity-stream";
 import { ScoreTrendCard } from "@/components/score-trend";
 import { AgentRoster } from "@/components/agent-roster";
+import { LiveRefresh } from "@/components/live-refresh";
+import { CorrelationGraphView, CorrelationLegend } from "@/components/correlation-graph";
 import {
   AreaChart, AxisLabels, ProgressMeter, RadarChart, RankedBars, StackedTimeline,
 } from "@/components/viz-advanced";
@@ -29,6 +31,7 @@ import {
   agentRoster, attackSurface, discoveryVelocity, exposureTimeline,
   onlineAgentCount, remediationProgress, threatTimeline, topExposureSources,
 } from "@/lib/intelligence/command-center";
+import { buildCorrelationGraph, correlationStats } from "@/lib/intelligence/correlation";
 import { cn, timeAgo, titleCase } from "@/lib/ui";
 import type { RiskLevel } from "@/lib/types";
 
@@ -78,6 +81,8 @@ export default async function OverviewPage() {
   const sources = topExposureSources(data.exposures, 6);
   const surface = attackSurface(data.exposures);
   const surfaceTotal = surface.reduce((s, a) => s + a.count, 0);
+  const graph = buildCorrelationGraph(data.subject.displayName, data.exposures, data.threats);
+  const graphStats = correlationStats(graph);
 
   const feed = buildFeed({
     agentActions: mod.agentActions,
@@ -100,10 +105,13 @@ export default async function OverviewPage() {
             Live defense console for your digital identity — every surface, every agent, in real time.
           </p>
         </div>
-        <span className="hidden items-center gap-2 rounded-full border border-border bg-bg-elevated px-3 py-1.5 text-xs font-medium text-slate-300 sm:inline-flex">
-          <ShieldCheck className="h-3.5 w-3.5 text-risk-low" />
-          {onlineAgents}/{totalAgents} agents · 24/7 monitoring
-        </span>
+        <div className="hidden items-center gap-2 sm:flex">
+          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-bg-elevated px-3 py-1.5 text-xs font-medium text-slate-300">
+            <ShieldCheck className="h-3.5 w-3.5 text-risk-low" />
+            {onlineAgents}/{totalAgents} agents · 24/7
+          </span>
+          <LiveRefresh intervalMs={30_000} />
+        </div>
       </div>
 
       {/* Threat-level banner */}
@@ -281,6 +289,44 @@ export default async function OverviewPage() {
           )}
         </Card>
       </div>
+
+      {/* Threat correlation graph */}
+      <Card className="p-4">
+        <SectionTitle
+          title="Threat correlation"
+          subtitle="How your identity connects to the sources and data categories exposing it"
+          action={
+            <span className="text-xs text-slate-500">
+              {graphStats.sources} sources · {graphStats.categories} categories · {graphStats.criticalLinks} high-risk links
+            </span>
+          }
+        />
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <div className="flex items-center justify-center lg:col-span-2">
+            <CorrelationGraphView graph={graph} />
+          </div>
+          <div className="space-y-3">
+            <CorrelationLegend />
+            {graphStats.topSource && (
+              <div className="rounded-lg border border-border bg-bg-subtle/50 p-3">
+                <p className="text-[11px] uppercase tracking-wide text-slate-500">Most-exposed source</p>
+                <p className="mt-0.5 text-sm font-semibold text-white">{graphStats.topSource.label}</p>
+                <p className="text-xs text-slate-400">{graphStats.topSource.weight} items · {graphStats.topSource.level} severity</p>
+              </div>
+            )}
+            {graphStats.topCategory && (
+              <div className="rounded-lg border border-border bg-bg-subtle/50 p-3">
+                <p className="text-[11px] uppercase tracking-wide text-slate-500">Most-exposed data type</p>
+                <p className="mt-0.5 text-sm font-semibold text-white">{graphStats.topCategory.label}</p>
+                <p className="text-xs text-slate-400">{graphStats.topCategory.weight} items · {graphStats.topCategory.level} severity</p>
+              </div>
+            )}
+            <Link href="/dashboard/exposures" className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-fg hover:underline">
+              Explore exposure inventory <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+        </div>
+      </Card>
 
       {/* Suite risk scores */}
       <Card className="p-4">
