@@ -1,7 +1,8 @@
-import { Users2, UserPlus } from "lucide-react";
+import { Users2, UserPlus, ShieldCheck, AlertTriangle, Info } from "lucide-react";
 import { buttonClasses, Card, DataBadge, PageHeader, Pill, SectionTitle, StatCard } from "@/components/ui";
 import { getMembership, listTeam } from "@/lib/rbac/membership";
 import { assignableRoles, can, canManageMember, ROLE_LABEL, type OrgRole } from "@/lib/rbac/roles";
+import { analyzeTeam, type GovernanceFinding, type GovernanceLevel } from "@/lib/rbac/team-posture";
 import { cn } from "@/lib/ui";
 import { changeRoleAction, inviteMemberAction, removeMemberAction } from "./actions";
 
@@ -11,6 +12,15 @@ const roleColor: Record<OrgRole, string> = {
   member: "text-slate-300",
   viewer: "text-slate-400",
 };
+
+const GOV_LEVEL: Record<GovernanceLevel, { label: string; cls: string; bg: string; ring: string }> = {
+  strong: { label: "Strong", cls: "text-risk-low", bg: "bg-risk-low/10", ring: "ring-risk-low/30" },
+  review: { label: "Review", cls: "text-risk-medium", bg: "bg-risk-medium/10", ring: "ring-risk-medium/30" },
+  at_risk: { label: "At risk", cls: "text-risk-high", bg: "bg-risk-high/10", ring: "ring-risk-high/30" },
+};
+
+const FINDING_ICON = { high: AlertTriangle, medium: AlertTriangle, info: Info } as const;
+const FINDING_CLS = { high: "text-risk-high", medium: "text-risk-medium", info: "text-slate-400" } as const;
 
 export default async function TeamPage() {
   const membership = await getMembership();
@@ -31,6 +41,8 @@ export default async function TeamPage() {
   const team = await listTeam(membership.orgId);
   const manage = can(membership.role, "manage_members");
   const assignable = assignableRoles(membership.role);
+  const posture = analyzeTeam(team);
+  const G = GOV_LEVEL[posture.level];
 
   return (
     <div className="space-y-6">
@@ -47,6 +59,37 @@ export default async function TeamPage() {
         <StatCard label="Admins" value={team.filter((m) => m.role === "owner" || m.role === "admin").length} />
         <StatCard label="Your access" value={ROLE_LABEL[membership.role]} accent="text-brand-fg" />
       </div>
+
+      {/* Access governance */}
+      <Card>
+        <SectionTitle title="Access governance" subtitle="Least-privilege posture across the organization" />
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+          <div className={cn("flex shrink-0 flex-col items-center justify-center rounded-xl px-5 py-3 ring-1", G.bg, G.ring)}>
+            <span className={cn("text-3xl font-bold", G.cls)}>{posture.governanceScore}</span>
+            <span className={cn("text-[11px] font-semibold uppercase tracking-wide", G.cls)}>{G.label}</span>
+          </div>
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <p className="text-xs text-slate-400">
+              {posture.admins} privileged · {posture.activeMembers} active · {posture.pendingInvites} pending ·{" "}
+              {Math.round(posture.adminRatio * 100)}% admin ratio
+            </p>
+            <ul className="space-y-1.5">
+              {posture.findings.map((f: GovernanceFinding, i) => {
+                const Icon = FINDING_ICON[f.severity];
+                return (
+                  <li key={i} className="flex items-start gap-2 rounded-lg border border-border bg-bg-subtle/40 px-2.5 py-1.5">
+                    <Icon className={cn("mt-0.5 h-3.5 w-3.5 shrink-0", FINDING_CLS[f.severity])} />
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-white">{f.label}</p>
+                      <p className="text-[11px] text-slate-500">{f.detail}</p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </div>
+      </Card>
 
       {manage && (
         <Card>
