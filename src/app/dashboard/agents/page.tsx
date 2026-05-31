@@ -14,6 +14,7 @@ const statusStyle: Record<AgentStatus, string> = {
 export default async function AgentsPage() {
   const data = await (await getDataSource()).getDataset();
   const agents = data.agents;
+  const maxItems = Math.max(1, ...agents.map((a) => a.itemsHandled));
   const { agentActions } = await getModuleData();
   const completed = agentActions.filter((a) => a.status === "completed").length;
   const escalations = agentActions.filter((a) => a.kind === "escalate").length;
