@@ -1,5 +1,5 @@
 import { Sparkles } from "lucide-react";
-import { Card, RiskBadge, Pill } from "@/components/ui";
+import { Card, PageHeader, RiskBadge, Pill } from "@/components/ui";
 import { getDataSource } from "@/lib/data";
 import { titleCase } from "@/lib/ui";
 import { approveRecommendationAction } from "@/app/dashboard/actions";
@@ -13,18 +13,16 @@ export default async function RecommendationsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-end justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">AI Recommendations</h1>
-          <p className="mt-1 text-sm text-slate-400">
-            Prioritized actions from your agents. Approve to let PrivacyOS execute them.
-          </p>
-        </div>
-        <div className="rounded-lg border border-border bg-bg-elevated px-4 py-2 text-right">
-          <p className="text-xs text-slate-400">Projected score drop</p>
-          <p className="text-xl font-bold text-risk-low">−{totalImpact} pts</p>
-        </div>
-      </div>
+      <PageHeader
+        title="AI Recommendations"
+        subtitle="Prioritized actions from your agents. Approve to let PrivacyOS execute them."
+        actions={
+          <div className="rounded-lg border border-border bg-bg-elevated px-4 py-2 text-right">
+            <p className="text-xs text-slate-400">Projected score drop</p>
+            <p className="text-xl font-bold text-risk-low">−{totalImpact} pts</p>
+          </div>
+        }
+      />
 
       <div className="space-y-3">
         {recommendations.map((r) => (

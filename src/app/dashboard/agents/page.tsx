@@ -1,4 +1,4 @@
-import { Card, Pill, SectionTitle, StatCard } from "@/components/ui";
+import { Card, PageHeader, Pill, SectionTitle, StatCard } from "@/components/ui";
 import { getDataSource } from "@/lib/data";
 import { getModuleData } from "@/lib/data/modules";
 import { cn, timeAgo, titleCase } from "@/lib/ui";
@@ -23,12 +23,10 @@ export default async function AgentsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Agent Dashboard</h1>
-        <p className="mt-1 text-sm text-slate-400">
-          Eight specialized agents defend you continuously. You see outcomes, not complexity.
-        </p>
-      </div>
+      <PageHeader
+        title="Agent Dashboard"
+        subtitle="Eight specialized agents defend you continuously. You see outcomes, not complexity."
+      />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
         <StatCard label="Agents online" value={`${agents.filter((a) => a.status === "running").length}/8`} accent="text-risk-low" />

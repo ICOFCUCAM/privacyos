@@ -1,4 +1,4 @@
-import { Card, RiskBadge, Pill } from "@/components/ui";
+import { Card, PageHeader, RiskBadge, Pill } from "@/components/ui";
 import { getDataSource } from "@/lib/data";
 import { timeAgo, titleCase } from "@/lib/ui";
 import { acknowledgeThreatAction } from "@/app/dashboard/actions";
@@ -10,12 +10,10 @@ export default async function ThreatsPage() {
   const { threats } = await ds.getDataset();
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Threat Feed</h1>
-        <p className="mt-1 text-sm text-slate-400">
-          Time-ordered alerts from dark-web, breach, deepfake and impersonation monitoring.
-        </p>
-      </div>
+      <PageHeader
+        title="Threat Feed"
+        subtitle="Time-ordered alerts from dark-web, breach, deepfake and impersonation monitoring."
+      />
 
       <div className="space-y-3">
         {threats.map((t) => (
