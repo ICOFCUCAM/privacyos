@@ -1,5 +1,5 @@
 import { ScrollText } from "lucide-react";
-import { Card, Pill, SectionTitle, StatCard } from "@/components/ui";
+import { Card, PageHeader, Pill, SectionTitle, StatCard } from "@/components/ui";
 import { getAuditLog, describeAudit } from "@/lib/audit/audit";
 import { timeAgo } from "@/lib/ui";
 
@@ -10,15 +10,11 @@ export default async function AuditPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <ScrollText className="h-7 w-7 text-brand" />
-        <div>
-          <h1 className="text-2xl font-bold text-white">Compliance Center — Audit Log</h1>
-          <p className="mt-1 text-sm text-slate-400">
-            Append-only record of every protection action, for compliance and accountability.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={ScrollText}
+        title="Compliance Center — Audit Log"
+        subtitle="Append-only record of every protection action, for compliance and accountability."
+      />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="Logged events" value={entries.length} />

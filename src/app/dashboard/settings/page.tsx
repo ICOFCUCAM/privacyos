@@ -8,6 +8,8 @@ import { PLANS } from "@/lib/billing/plans";
 import { titleCase } from "@/lib/ui";
 import { openBillingPortal } from "./billing-actions";
 
+export const metadata = { title: "Settings" };
+
 export default async function SettingsPage() {
   const ds = await getDataSource();
   const subject = await ds.getPrimarySubject();

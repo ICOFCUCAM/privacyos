@@ -4,6 +4,8 @@ import { getDataSource } from "@/lib/data";
 import { titleCase } from "@/lib/ui";
 import { approveRecommendationAction } from "@/app/dashboard/actions";
 
+export const metadata = { title: "AI Recommendations" };
+
 export default async function RecommendationsPage() {
   const { recommendations } = await (await getDataSource()).getDataset();
   const totalImpact = recommendations.reduce((s, r) => s + r.impact, 0);

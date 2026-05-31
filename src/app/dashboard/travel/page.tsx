@@ -1,5 +1,5 @@
 import { Plane } from "lucide-react";
-import { Card, RiskBadge, StatCard } from "@/components/ui";
+import { Card, PageHeader, RiskBadge, StatCard } from "@/components/ui";
 import { getModuleData } from "@/lib/data/modules";
 
 export default async function TravelPage() {
@@ -7,15 +7,11 @@ export default async function TravelPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Plane className="h-7 w-7 text-brand" />
-        <div>
-          <h1 className="text-2xl font-bold text-white">Travel Risk Alerts</h1>
-          <p className="mt-1 text-sm text-slate-400">
-            Pre-travel risk assessments correlating itinerary with active exposure and threat intelligence.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={Plane}
+        title="Travel Risk Alerts"
+        subtitle="Pre-travel risk assessments correlating itinerary with active exposure and threat intelligence."
+      />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="Upcoming trips" value={travelAlerts.length} />

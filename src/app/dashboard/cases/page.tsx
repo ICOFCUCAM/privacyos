@@ -4,6 +4,8 @@ import { getDataSource } from "@/lib/data";
 import { timeAgo, titleCase } from "@/lib/ui";
 import type { RiskLevel } from "@/lib/types";
 
+export const metadata = { title: "Active Cases" };
+
 export default async function CasesPage() {
   const { cases } = await (await getDataSource()).getDataset();
   const levels: RiskLevel[] = ["low", "medium", "high", "critical"];
