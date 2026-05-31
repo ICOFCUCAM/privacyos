@@ -260,13 +260,13 @@ export default async function OverviewPage() {
             title="Threat correlation"
             right={<span className="text-[10px] text-slate-500">{graphStats.sources} src · {graphStats.categories} cat · {graphStats.criticalLinks} high-risk</span>}
           />
-          <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center">
-            {/* graph takes the lion's share; scales up to fill the card */}
-            <div className="flex flex-1 items-center justify-center">
-              <CorrelationGraphView graph={graph} size={420} />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+            {/* graph occupies the left ~55%, aligned under the heading (left-anchored) */}
+            <div className="min-w-0 flex-1">
+              <CorrelationGraphView graph={graph} size={460} />
             </div>
-            {/* compact, fixed-width insight column — no trailing dead space */}
-            <div className="w-full shrink-0 space-y-2 sm:w-56">
+            {/* compact insight column — ~240px, ~30px gap from the graph */}
+            <div className="w-full shrink-0 space-y-2 sm:w-60">
               <CorrelationLegend />
               {graphStats.topSource && (
                 <div className="rounded-lg border border-border bg-bg-subtle/50 p-2.5">
