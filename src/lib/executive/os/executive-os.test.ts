@@ -1,6 +1,7 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { executiveRiskIndices, bandFor, type RiskInput } from "./risk-indices";
 import { residenceReport } from "./residence";
+import { mapPropertyResponse, resolveResidenceSource, PropertyApiSource, NoResidenceSource } from "./residence-connector";
 import { doxxingReport, takedownPlan, summarizeTakedowns } from "./doxxing";
 import { buildThreatActors, summarizeActors, actorCasesToOpen, openExecutiveCases } from "./threat-actors";
 import type { Case } from "@/lib/types";
@@ -77,6 +78,46 @@ describe("residence", () => {
     const r = residenceReport([exposure({ category: "email" })]);
     expect(r.findings.every((f) => f.status === "clear")).toBe(true);
     expect(r.protection).toBe(100);
+    expect(r.live).toBe(false);
+  });
+
+  it("uses live property signals authoritatively when provided", () => {
+    const r = residenceReport(
+      [exposure({ category: "address", riskLevel: "low" })], // would infer 'monitoring'
+      { propertyRecordFound: true, listingActive: true, satelliteVisible: true, sources: ["ATTOM"], parcelId: "123-45" },
+    );
+    expect(r.live).toBe(true);
+    const byCheck = Object.fromEntries(r.findings.map((f) => [f.check, f]));
+    expect(byCheck.property_records.status).toBe("exposed");
+    expect(byCheck.property_records.sources).toContain("ATTOM");
+    expect(byCheck.satellite_view.status).toBe("exposed");
+    expect(byCheck.home_listing.status).toBe("exposed");
+  });
+});
+
+describe("residence connector", () => {
+  it("maps an ATTOM property response into signals", () => {
+    const s = mapPropertyResponse({ property: [{ identifier: { apn: "A-1" }, location: { latitude: "40.7", longitude: "-74.0" }, owner: { owner1: { firstname: "Jane", lastname: "Doe" } }, status: "active" }] });
+    expect(s).toMatchObject({ propertyRecordFound: true, listingActive: true, satelliteVisible: true, parcelId: "A-1", ownerOnRecord: "Jane Doe" });
+  });
+
+  it("returns null for an empty property list", () => {
+    expect(mapPropertyResponse({ property: [] })).toBeNull();
+  });
+
+  it("resolves No/Property source by key and degrades gracefully on error", async () => {
+    expect(resolveResidenceSource({})).toBeInstanceOf(NoResidenceSource);
+    expect(resolveResidenceSource({ PROPERTY_DATA_API_KEY: "k" })).toBeInstanceOf(PropertyApiSource);
+
+    const ok = new PropertyApiSource("k", (async () => ({ ok: true, status: 200, json: async () => ({ property: [{ location: { latitude: 1, longitude: 2 } }] }) })) as unknown as typeof fetch);
+    expect((await ok.lookup("1 Main St")).live).toBe(true);
+
+    const bad = new PropertyApiSource("k", (async () => { throw new Error("net"); }) as unknown as typeof fetch);
+    expect((await bad.lookup("1 Main St")).live).toBe(false);
+
+    const noFetch = vi.fn();
+    expect((await new PropertyApiSource(undefined, noFetch as unknown as typeof fetch).lookup("1 Main St")).live).toBe(false);
+    expect(noFetch).not.toHaveBeenCalled();
   });
 });
 

@@ -8,6 +8,7 @@
  */
 
 import type { Exposure, RiskLevel } from "@/lib/types";
+import type { ResidenceSignals } from "./residence-connector";
 
 const RISK_RANK: Record<RiskLevel, number> = { low: 0, medium: 1, high: 2, critical: 3 };
 
@@ -29,6 +30,8 @@ export interface ResidenceReport {
   exposedCount: number;
   /** 0–100 residence protection (higher = better protected). */
   protection: number;
+  /** True when property/satellite/listing status came from live property data. */
+  live: boolean;
 }
 
 const REALTY = /zillow|realtor|redfin|trulia|homes\.com|property|realty/i;
@@ -37,28 +40,38 @@ function highest(exposures: Exposure[]): RiskLevel | null {
   return exposures.length === 0 ? null : exposures.reduce<RiskLevel>((a, e) => (RISK_RANK[e.riskLevel] > RISK_RANK[a] ? e.riskLevel : a), "low");
 }
 
-export function residenceReport(exposures: Exposure[]): ResidenceReport {
+export function residenceReport(exposures: Exposure[], signals?: ResidenceSignals | null): ResidenceReport {
   const address = exposures.filter((e) => e.category === "address");
   const publicRecords = exposures.filter((e) => e.source === "public_record");
   const listings = exposures.filter((e) => REALTY.test(e.sourceName) || REALTY.test(e.url ?? ""));
   const sourcesOf = (es: Exposure[]) => [...new Set(es.map((e) => e.sourceName))];
+  const live = !!signals;
 
   const addressStatus: ResidenceStatus = address.length === 0 ? "clear" : highest(address) === "low" ? "monitoring" : "exposed";
-  // If the home address is public, the satellite view and property records are at risk too.
-  const propertyStatus: ResidenceStatus = publicRecords.length > 0 ? "exposed" : address.length > 0 ? "monitoring" : "clear";
-  const satelliteStatus: ResidenceStatus = address.length > 0 ? (highest(address) === "critical" || highest(address) === "high" ? "exposed" : "monitoring") : "clear";
-  const listingStatus: ResidenceStatus = listings.length > 0 ? "exposed" : address.length > 0 ? "monitoring" : "clear";
+  // Live property data is authoritative when available; otherwise infer from the
+  // address footprint (if the home address is public, these are at risk too).
+  const propertyStatus: ResidenceStatus = signals
+    ? signals.propertyRecordFound ? "exposed" : address.length > 0 ? "monitoring" : "clear"
+    : publicRecords.length > 0 ? "exposed" : address.length > 0 ? "monitoring" : "clear";
+  const satelliteStatus: ResidenceStatus = signals
+    ? signals.satelliteVisible ? "exposed" : address.length > 0 ? "monitoring" : "clear"
+    : address.length > 0 ? (highest(address) === "critical" || highest(address) === "high" ? "exposed" : "monitoring") : "clear";
+  const listingStatus: ResidenceStatus = signals
+    ? signals.listingActive || listings.length > 0 ? "exposed" : address.length > 0 ? "monitoring" : "clear"
+    : listings.length > 0 ? "exposed" : address.length > 0 ? "monitoring" : "clear";
+
+  const liveSources = signals?.sources ?? [];
 
   const findings: ResidenceFinding[] = [
     { check: "address_exposure", label: "Address exposure", status: addressStatus, detail: address.length ? `Home address found in ${address.length} place(s).` : "No public address listings found.", sources: sourcesOf(address), action: "File opt-outs with the listing brokers." },
-    { check: "property_records", label: "Property records", status: propertyStatus, detail: publicRecords.length ? `${publicRecords.length} public-record exposure(s) tied to the residence.` : address.length ? "Address public — property records may be linkable." : "No property-record exposure detected.", sources: sourcesOf(publicRecords), action: "Request redaction / use an LLC or trust for the title." },
-    { check: "satellite_view", label: "Satellite / street view", status: satelliteStatus, detail: address.length ? "Residence likely visible on map/street-view services." : "Residence not linkable to a map view.", sources: [], action: "Submit blur requests to Google/Apple/Bing street view." },
-    { check: "home_listing", label: "Home listing", status: listingStatus, detail: listings.length ? `Residence appears on ${listings.length} real-estate site(s).` : address.length ? "No active listing, but address is public." : "No real-estate listings found.", sources: sourcesOf(listings), action: "Request de-listing of historical sale/rental records." },
+    { check: "property_records", label: "Property records", status: propertyStatus, detail: signals?.propertyRecordFound ? `Property record on file${signals.parcelId ? ` (parcel ${signals.parcelId})` : ""}${signals.ownerOnRecord ? ` — owner ${signals.ownerOnRecord}` : ""}.` : publicRecords.length ? `${publicRecords.length} public-record exposure(s) tied to the residence.` : address.length ? "Address public — property records may be linkable." : "No property-record exposure detected.", sources: signals ? liveSources : sourcesOf(publicRecords), action: "Request redaction / use an LLC or trust for the title." },
+    { check: "satellite_view", label: "Satellite / street view", status: satelliteStatus, detail: signals?.satelliteVisible ? "Residence geocoded — visible on map/street-view services." : address.length ? "Residence likely visible on map/street-view services." : "Residence not linkable to a map view.", sources: signals?.satelliteVisible ? liveSources : [], action: "Submit blur requests to Google/Apple/Bing street view." },
+    { check: "home_listing", label: "Home listing", status: listingStatus, detail: signals?.listingActive ? "Residence is actively listed for sale/rent." : listings.length ? `Residence appears on ${listings.length} real-estate site(s).` : address.length ? "No active listing, but address is public." : "No real-estate listings found.", sources: signals?.listingActive ? liveSources : sourcesOf(listings), action: "Request de-listing of historical sale/rental records." },
   ];
 
   const exposedCount = findings.filter((f) => f.status === "exposed").length;
   const load = findings.reduce((s, f) => s + (f.status === "exposed" ? 22 : f.status === "monitoring" ? 8 : 0), 0);
   const protection = Math.max(0, Math.min(100, 100 - load));
 
-  return { findings, addressExposures: address, exposedCount, protection };
+  return { findings, addressExposures: address, exposedCount, protection, live };
 }

@@ -3,6 +3,7 @@ import type { LucideIcon } from "lucide-react";
 import { Card, PageHeader, RiskBadge, SectionTitle } from "@/components/ui";
 import { getDataSource } from "@/lib/data";
 import { residenceReport, type ResidenceCheck, type ResidenceStatus } from "@/lib/executive/os/residence";
+import { getResidenceSignals } from "@/lib/executive/os/residence-cache";
 import { cn, timeAgo } from "@/lib/ui";
 import { ExecutiveTabs } from "../tabs";
 
@@ -20,7 +21,11 @@ const STATUS: Record<ResidenceStatus, { label: string; cls: string; ring: string
 
 export default async function ResidencePage() {
   const { exposures } = await (await getDataSource()).getDataset();
-  const r = residenceReport(exposures);
+  // Look up real property data for the most-significant exposed address; with no
+  // PROPERTY_DATA_API_KEY (or no session) this is a no-op and the report infers.
+  const topAddress = exposures.filter((e) => e.category === "address").sort((a, b) => b.riskScore - a.riskScore)[0];
+  const { signals } = await getResidenceSignals(topAddress?.snippet ?? "");
+  const r = residenceReport(exposures, signals);
 
   return (
     <div className="space-y-5">
@@ -29,9 +34,15 @@ export default async function ResidencePage() {
         title="Residence Protection"
         subtitle="Address exposure, property records, satellite/street-view visibility and real-estate listings for the principal's home."
         actions={
-          <span className={cn("inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold ring-1", r.protection >= 75 ? "bg-risk-low/10 text-risk-low ring-risk-low/30" : r.protection >= 45 ? "bg-risk-medium/10 text-risk-medium ring-risk-medium/30" : "bg-risk-high/10 text-risk-high ring-risk-high/30")}>
-            <ShieldCheck className="h-3.5 w-3.5" /> {r.protection}/100 protected
-          </span>
+          <div className="flex items-center gap-2">
+            <span className={cn("inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold ring-1", r.protection >= 75 ? "bg-risk-low/10 text-risk-low ring-risk-low/30" : r.protection >= 45 ? "bg-risk-medium/10 text-risk-medium ring-risk-medium/30" : "bg-risk-high/10 text-risk-high ring-risk-high/30")}>
+              <ShieldCheck className="h-3.5 w-3.5" /> {r.protection}/100 protected
+            </span>
+            <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1", r.live ? "bg-risk-low/10 text-risk-low ring-risk-low/30" : "bg-bg-elevated text-slate-400 ring-border")} title={r.live ? "Sourced from live property data" : "Inferred from address exposures — add PROPERTY_DATA_API_KEY for live records"}>
+              <span className={cn("h-1.5 w-1.5 rounded-full", r.live ? "bg-risk-low" : "bg-slate-500")} />
+              {r.live ? "Property data" : "Inferred"}
+            </span>
+          </div>
         }
       />
       <ExecutiveTabs />
