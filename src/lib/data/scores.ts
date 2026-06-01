@@ -10,6 +10,11 @@ import { demoRiskScore, demoSubject, demoExposures, demoThreats } from "./demo";
 import { mentions, incidents, credentialLeaks, domainRisks, employeeExposures, familyMembers, travelAlerts, thirdPartyRisks } from "./modules";
 import { computeScoreSet } from "@/lib/scoring/scores";
 import { reputationOverview } from "@/lib/reputation/os/analysis";
+import { familyOverview } from "@/lib/family/os/family-os";
+import { assessTrips } from "@/lib/intelligence/travel-risk";
+import { travelOverview } from "@/lib/travel/os/travel-os";
+
+const TRAVEL_POSTURE_SCORE = { low: 15, guarded: 40, elevated: 65, high: 85 } as const;
 
 const clampScore = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
 
@@ -39,12 +44,18 @@ export function demoScoreHistory(): ScoreSeries[] {
     points: trend.map((p) => ({ date: p.date, value: 100 - clampScore((100 - repHealth) * (p.overall / lastOverall)) })),
   };
 
+  const familyRisk = familyOverview(familyMembers, demoExposures).familyRisk;
+  const travelRisk = TRAVEL_POSTURE_SCORE[travelOverview(assessTrips(travelAlerts, demoExposures, demoThreats)).highestPosture];
+
   return [
     riskSeries("overall", current.overall),
     riskSeries("privacy", current.privacy),
     riskSeries("identity", current.identity),
     reputation,
     riskSeries("executive", current.executive),
+    riskSeries("business", current.business),
+    riskSeries("family", familyRisk),
+    riskSeries("travel", travelRisk),
   ];
 }
 

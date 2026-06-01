@@ -6,7 +6,7 @@
 import type { AgentKind, RiskLevel, ThreatKind } from "@/lib/types";
 
 /* ── Scoring ─────────────────────────────────────────────────────────────── */
-export type ScoreKind = "privacy" | "identity" | "reputation" | "executive" | "business" | "overall";
+export type ScoreKind = "privacy" | "identity" | "reputation" | "executive" | "business" | "family" | "travel" | "overall";
 
 export interface ScoreSet {
   privacy: number;
