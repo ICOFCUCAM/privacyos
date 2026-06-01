@@ -7,6 +7,7 @@
  */
 
 import type { Mention } from "@/lib/suite-types";
+import type { SerpResult } from "./serp-connector";
 
 export interface SuppressionTarget {
   title: string;
@@ -16,6 +17,8 @@ export interface SuppressionTarget {
   tactics: string[];
   /** Projected rank after suppression (higher number = pushed down). */
   projectedRank: number;
+  /** True when currentRank is a real live SERP position (not modeled). */
+  liveRank: boolean;
 }
 
 export interface WorkflowStep {
@@ -45,16 +48,34 @@ export function suppressionTactics(defamatory: boolean): string[] {
     : ["Publish higher-authority owned content", "Earn positive press to outrank", "Build backlinks to positive assets"];
 }
 
-export function suppressionPlan(mentions: Mention[]): SuppressionTarget[] {
+/** The real live SERP position of a mention, by URL domain — or null. */
+function liveRankFor(m: Mention, serpResults: SerpResult[]): number | null {
+  if (!m.url || serpResults.length === 0) return null;
+  try {
+    const domain = new URL(m.url).hostname.replace(/^www\./, "");
+    const hit = serpResults.find((r) => r.domain === domain);
+    return hit ? hit.position : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Build the suppression plan. When live SERP results are supplied, a negative
+ * asset's current rank is its real page-one position (and the projection is
+ * derived from it); otherwise it falls back to the mention's modeled rank.
+ */
+export function suppressionPlan(mentions: Mention[], serpResults: SerpResult[] = []): SuppressionTarget[] {
   return mentions
     .filter((m) => m.sentiment === "negative" || m.isDefamatory)
-    .sort((a, b) => (a.searchRank ?? 99) - (b.searchRank ?? 99))
     .map((m) => {
       const tactics = suppressionTactics(m.isDefamatory);
-      const current = m.searchRank ?? null;
+      const live = liveRankFor(m, serpResults);
+      const current = live ?? m.searchRank ?? null;
       const projectedRank = Math.min(20, (current ?? 10) + (m.isDefamatory ? 9 : 6));
-      return { title: m.title, source: m.sourceName, currentRank: current, defamatory: m.isDefamatory, tactics, projectedRank };
-    });
+      return { title: m.title, source: m.sourceName, currentRank: current, defamatory: m.isDefamatory, tactics, projectedRank, liveRank: live !== null };
+    })
+    .sort((a, b) => (a.currentRank ?? 99) - (b.currentRank ?? 99));
 }
 
 export function repairWorkflow(): WorkflowStep[] {
@@ -109,6 +130,6 @@ export function crisisPlan(mentions: Mention[]): CrisisPlan {
   return { tier, trigger, steps: steps[tier] };
 }
 
-export function recoveryProgram(mentions: Mention[]): RecoveryProgram {
-  return { suppression: suppressionPlan(mentions), repair: repairWorkflow(), crisis: crisisPlan(mentions) };
+export function recoveryProgram(mentions: Mention[], serpResults: SerpResult[] = []): RecoveryProgram {
+  return { suppression: suppressionPlan(mentions, serpResults), repair: repairWorkflow(), crisis: crisisPlan(mentions) };
 }

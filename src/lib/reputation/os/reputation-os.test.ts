@@ -107,6 +107,18 @@ describe("recovery", () => {
     expect(crisisPlan([defam]).tier).toBe("full_response");
     expect(crisisPlan([positive]).tier).toBe("monitor");
   });
+  it("uses a real live SERP position when one is available", () => {
+    const neg = mention({ sentiment: "negative", sentimentScore: -0.7, url: "https://bad.com/story", searchRank: 8 });
+    const serp = [{ position: 3, title: "x", url: "https://bad.com/story", domain: "bad.com" }];
+    const [t] = suppressionPlan([neg], serp);
+    expect(t.currentRank).toBe(3); // live position overrides modeled rank 8
+    expect(t.liveRank).toBe(true);
+    expect(t.projectedRank).toBe(9); // 3 + 6
+  });
+  it("falls back to the modeled rank without live SERP data", () => {
+    const [t] = suppressionPlan([negative]);
+    expect(t.liveRank).toBe(false);
+  });
   it("recoveryProgram bundles suppression + repair + crisis", () => {
     const r = recoveryProgram(profile);
     expect(r.suppression.length).toBeGreaterThan(0);

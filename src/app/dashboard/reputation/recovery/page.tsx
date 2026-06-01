@@ -3,6 +3,7 @@ import { Card, PageHeader, SectionTitle } from "@/components/ui";
 import { getDataSource } from "@/lib/data";
 import { getModuleData } from "@/lib/data/modules";
 import { recoveryProgram, type CrisisTier } from "@/lib/reputation/os/recovery";
+import { getRankings } from "@/lib/reputation/os/serp-cache";
 import { cn } from "@/lib/ui";
 import { ReputationTabs } from "../tabs";
 
@@ -16,8 +17,10 @@ const TIER: Record<CrisisTier, { label: string; cls: string; bg: string; ring: s
 
 export default async function RecoveryPage() {
   const { mentions } = await getModuleData();
-  await (await getDataSource()).getDataset(); // ensure live/demo resolution parity
-  const r = recoveryProgram(mentions);
+  const { subject } = await (await getDataSource()).getDataset();
+  // Reuse the same cached SERP row the SEO tab populates — no extra credit.
+  const { results } = await getRankings(subject.displayName, subject.id);
+  const r = recoveryProgram(mentions, results);
   const T = TIER[r.crisis.tier];
 
   return (
@@ -57,9 +60,10 @@ export default async function RecoveryPage() {
                 <div key={i} className="rounded-xl border border-border bg-bg-subtle/40 p-3">
                   <div className="flex items-center gap-2">
                     <p className="min-w-0 flex-1 truncate text-sm font-medium text-white">{t.title}</p>
+                    {t.liveRank && <span className="shrink-0 rounded bg-risk-low/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-risk-low ring-1 ring-risk-low/30">Live rank</span>}
                     {t.defamatory && <span className="shrink-0 rounded bg-risk-critical/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-risk-critical">Defamatory</span>}
                   </div>
-                  <p className="text-[11px] text-slate-500">{t.source} · rank {t.currentRank ? `#${t.currentRank}` : "—"} → projected #{t.projectedRank}</p>
+                  <p className="text-[11px] text-slate-500">{t.source} · {t.liveRank ? "live " : ""}rank {t.currentRank ? `#${t.currentRank}` : "—"} → projected #{t.projectedRank}</p>
                   <ul className="mt-1.5 space-y-0.5">
                     {t.tactics.map((tac, j) => (
                       <li key={j} className="text-[11px] text-slate-400">• {tac}</li>
