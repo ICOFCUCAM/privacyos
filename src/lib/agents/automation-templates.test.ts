@@ -19,7 +19,7 @@ describe("automation templates", () => {
   });
 
   it("templateAgents returns distinct agents in order", () => {
-    const t = AUTOMATION_TEMPLATES.find((x) => x.id === "critical-breach-response")!;
+    const t = AUTOMATION_TEMPLATES.find((x) => x.id === "breach-response")!;
     const agents = templateAgents(t);
     expect(new Set(agents).size).toBe(agents.length);
     expect(agents).toContain("security");
@@ -35,8 +35,20 @@ describe("automation templates", () => {
   });
 
   it("findTemplate resolves ids", () => {
-    expect(findTemplate("deepfake-takedown")?.category).toBe("Reputation & impersonation");
+    expect(findTemplate("reputation-recovery")?.category).toBe("Reputation");
     expect(findTemplate("nope")).toBeUndefined();
+  });
+
+  it("covers the Layer-2 library: 5 categories, 11 workflows", () => {
+    expect(new Set(AUTOMATION_TEMPLATES.map((t) => t.category))).toEqual(new Set(["Security", "Privacy", "Reputation", "Executive", "Business"]));
+    for (const id of [
+      "credential-leak-response", "breach-response", "dark-web-monitoring",
+      "broker-removal", "identity-protection", "reputation-recovery", "seo-recovery",
+      "executive-protection-sweep", "family-protection-sweep",
+      "vendor-risk-assessment", "employee-exposure-response",
+    ]) {
+      expect(findTemplate(id), id).toBeDefined();
+    }
   });
 
   it("stats summarize the catalog", () => {

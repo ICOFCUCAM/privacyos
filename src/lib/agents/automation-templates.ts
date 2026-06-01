@@ -14,12 +14,11 @@ import {
 } from "./workflow-builder";
 
 export type TemplateCategory =
-  | "Breach response"
-  | "Data privacy"
-  | "Reputation & impersonation"
-  | "Executive protection"
-  | "Compliance"
-  | "Continuous monitoring";
+  | "Security"
+  | "Privacy"
+  | "Reputation"
+  | "Executive"
+  | "Business";
 
 /** A template step is a builder step without an id — ids are minted on use. */
 export type TemplateStep = Omit<WorkflowStepDef, "id">;
@@ -41,117 +40,179 @@ const agent = (a: AgentKind, label: string): TemplateStep => ({ type: "agent", a
 const gate = (label: string, requiresApproval = true): TemplateStep => ({ type: "decision", label, requiresApproval });
 const notify = (label: string): TemplateStep => ({ type: "notify", label });
 const report = (label: string): TemplateStep => ({ type: "report", label });
+const openCase = (label: string): TemplateStep => ({ type: "case", label });
+const takedown = (label: string): TemplateStep => ({ type: "takedown", label });
+const onlyIf = (label: string, condition: NonNullable<WorkflowStepDef["condition"]>, onFalse: "stop" | "continue" = "stop"): TemplateStep =>
+  ({ type: "condition", label, condition, onFalse });
 
 export const AUTOMATION_TEMPLATES: WorkflowTemplate[] = [
+  /* ── Security ──────────────────────────────────────────────────────────── */
   {
-    id: "critical-breach-response",
-    name: "Critical breach response",
-    description: "When a critical threat lands, rotate exposed credentials, alert the user, weigh legal duties, and file an incident record — end to end.",
-    category: "Breach response",
+    id: "credential-leak-response",
+    name: "Credential Leak Response",
+    description: "A leaked credential triggers correlation, forced rotation + session revocation, a breach-response case and a user alert.",
+    category: "Security",
     recommended: true,
-    trigger: { kind: "threat_detected", minRisk: "critical" },
+    trigger: { kind: "threat_detected", minRisk: "high", threatKind: "credential_leak" },
+    impact: 28,
+    steps: [
+      agent("threat_intel", "Correlate the leaked credential set"),
+      onlyIf("Only if high+ severity", { field: "risk", op: "gte", value: "high" }),
+      agent("security", "Force-rotate credentials & revoke sessions"),
+      notify("Alert the user to the credential leak"),
+      openCase("Open a breach-response case"),
+    ],
+  },
+  {
+    id: "breach-response",
+    name: "Breach Response",
+    description: "When a critical breach lands, correlate sources, rotate credentials, weigh legal duties, open a case and file an incident record.",
+    category: "Security",
+    recommended: true,
+    trigger: { kind: "incident_raised", minRisk: "critical" },
     impact: 38,
     steps: [
       agent("threat_intel", "Correlate the breach against known leak sources"),
       agent("security", "Rotate exposed credentials & force re-auth"),
       notify("Alert the user with a breach summary"),
       agent("legal", "Assess statutory breach-notification duties"),
+      openCase("Open a breach-response case"),
       report("File an incident record"),
     ],
   },
   {
-    id: "dark-web-credential-watch",
-    name: "Dark-web credential watch",
-    description: "High-risk credential exposure detected on the dark web triggers automatic correlation, rotation and notification.",
-    category: "Breach response",
-    trigger: { kind: "threat_detected", minRisk: "high" },
-    impact: 26,
+    id: "dark-web-monitoring",
+    name: "Dark Web Monitoring",
+    description: "On a schedule, scan dark-web sources for the principal; on a match, alert and open a case to action the exposure.",
+    category: "Security",
+    trigger: { kind: "scheduled", cadence: "every 6h" },
+    impact: 20,
     steps: [
-      agent("threat_intel", "Correlate the leaked credential set"),
-      agent("security", "Rotate affected credentials"),
-      notify("Notify the user of the credential exposure"),
+      agent("threat_intel", "Scan dark-web sources for the principal"),
+      onlyIf("Only if a match is found", { field: "risk", op: "gte", value: "medium" }),
+      notify("Alert on the dark-web exposure"),
+      openCase("Open a case to action the exposure"),
     ],
   },
+
+  /* ── Privacy ───────────────────────────────────────────────────────────── */
   {
-    id: "data-broker-auto-removal",
-    name: "Data-broker auto-removal",
-    description: "Every medium-or-higher exposure found on a data broker is filed for removal, monitored for reappearance, and reported on.",
-    category: "Data privacy",
+    id: "broker-removal",
+    name: "Broker Removal",
+    description: "Every medium-or-higher broker exposure is filed for removal, monitored for reappearance, and logged for compliance.",
+    category: "Privacy",
     recommended: true,
     trigger: { kind: "exposure_found", minRisk: "medium" },
     impact: 22,
     steps: [
-      agent("privacy", "File an opt-out / removal request with the broker"),
+      takedown("File a broker opt-out / removal request"),
       agent("discovery", "Monitor for reappearance"),
       report("Log the removal in the compliance record"),
     ],
   },
   {
-    id: "deepfake-takedown",
-    name: "Deepfake takedown",
-    description: "Verifies a suspected synthetic-media threat, issues a takedown notice after human sign-off, then monitors reputation impact.",
-    category: "Reputation & impersonation",
+    id: "identity-protection",
+    name: "Identity Protection",
+    description: "Hardens the principal's identity: enforce 2FA/passkeys, rotate credentials, strip identity records from people-search, and record it.",
+    category: "Privacy",
     trigger: { kind: "threat_detected", minRisk: "high" },
-    impact: 30,
+    impact: 24,
     steps: [
-      agent("deepfake", "Verify the media is synthetic"),
-      gate("Approve takedown notice"),
-      agent("legal", "Issue the takedown / DMCA notice"),
-      agent("reputation", "Monitor downstream reputation impact"),
+      agent("security", "Enforce 2FA / passkeys & rotate credentials"),
+      takedown("Remove identity records from people-search"),
+      notify("Notify the user of identity hardening"),
+      report("Record the identity-protection actions"),
     ],
   },
+
+  /* ── Reputation ────────────────────────────────────────────────────────── */
   {
-    id: "executive-impersonation-defense",
-    name: "Executive impersonation defense",
-    description: "Scans for impersonation of a protected executive, verifies it, escalates a takedown for approval, and notifies the principal.",
-    category: "Executive protection",
+    id: "reputation-recovery",
+    name: "Reputation Recovery",
+    description: "Negative coverage triggers sentiment analysis, a recovery case, a suppression / positive-content plan, and rank+sentiment tracking.",
+    category: "Reputation",
     recommended: true,
-    trigger: { kind: "threat_detected", minRisk: "high" },
-    impact: 34,
+    trigger: { kind: "threat_detected", minRisk: "medium", threatKind: "negative_press" },
+    impact: 26,
     steps: [
-      agent("discovery", "Sweep for impersonating accounts & profiles"),
-      agent("deepfake", "Verify impersonation vs. legitimate presence"),
-      gate("Approve takedown action"),
-      agent("legal", "File the impersonation takedown"),
-      notify("Brief the executive protection lead"),
+      agent("reputation", "Analyze the negative coverage & sentiment"),
+      openCase("Open a reputation-recovery case"),
+      agent("reputation", "Run the suppression & positive-content plan"),
+      report("Report rank & sentiment recovery"),
     ],
   },
   {
-    id: "score-guardrail",
-    name: "Risk-score guardrail",
-    description: "Whenever overall risk crosses a threshold, the orchestrator triages the top exposures, remediates what it can, and reports the delta.",
-    category: "Continuous monitoring",
-    trigger: { kind: "score_above", threshold: 70 },
+    id: "seo-recovery",
+    name: "SEO Recovery",
+    description: "Audits page-one search results, promotes owned content to suppress negatives, and tracks keyword & rank recovery.",
+    category: "Reputation",
+    trigger: { kind: "manual" },
     impact: 18,
     steps: [
-      agent("orchestrator", "Triage the highest-risk findings"),
-      agent("privacy", "Remediate auto-fixable exposures"),
-      report("Report the score change & residual risk"),
+      agent("reputation", "Audit page-one search results"),
+      agent("reputation", "Publish & promote owned content to suppress negatives"),
+      report("Track keyword & rank recovery"),
+    ],
+  },
+
+  /* ── Executive ─────────────────────────────────────────────────────────── */
+  {
+    id: "executive-protection-sweep",
+    name: "Executive Protection Sweep",
+    description: "Daily: sweep all layers, recompute the Executive Risk Score, brief the protection lead, and open a case if risk is critical.",
+    category: "Executive",
+    recommended: true,
+    trigger: { kind: "scheduled", cadence: "daily" },
+    impact: 30,
+    steps: [
+      agent("discovery", "Sweep all layers for the principal"),
+      agent("executive", "Recompute the Executive Risk Score & indices"),
+      notify("Brief the protection lead on the sweep"),
+      onlyIf("Only if risk is critical", { field: "risk", op: "gte", value: "critical" }),
+      openCase("Open an executive-protection case"),
     ],
   },
   {
-    id: "vendor-risk-escalation",
-    name: "Third-party risk escalation",
-    description: "A high-risk vendor finding is assessed, held at a decision gate, and escalated to incident response when warranted.",
-    category: "Continuous monitoring",
-    trigger: { kind: "exposure_found", minRisk: "high" },
+    id: "family-protection-sweep",
+    name: "Family Protection Sweep",
+    description: "Weekly: sweep the family roster's footprint, opt at-risk relatives out of people-search, and brief on family exposure & child safety.",
+    category: "Executive",
+    trigger: { kind: "scheduled", cadence: "weekly" },
+    impact: 22,
+    steps: [
+      agent("discovery", "Sweep the family roster's footprint"),
+      takedown("Opt at-risk relatives out of people-search"),
+      notify("Brief on family exposure & child safety"),
+    ],
+  },
+
+  /* ── Business ──────────────────────────────────────────────────────────── */
+  {
+    id: "vendor-risk-assessment",
+    name: "Vendor Risk Assessment",
+    description: "Assesses the third-party portfolio; for a high-risk vendor, holds a decision gate and escalates to incident response.",
+    category: "Business",
+    trigger: { kind: "scheduled", cadence: "weekly" },
     impact: 16,
     steps: [
-      agent("vendor", "Assess the third-party exposure"),
+      agent("vendor", "Assess the third-party / vendor portfolio"),
+      onlyIf("Only if a vendor is high-risk", { field: "risk", op: "gte", value: "high" }),
       gate("Escalate to incident response?"),
       agent("incident", "Open and drive an escalation"),
     ],
   },
   {
-    id: "compliance-evidence-pack",
-    name: "Compliance evidence pack",
-    description: "On demand, gather the evidence and generate the GDPR/CCPA/SOC 2/ISO 27001 record set for an audit or regulator request.",
-    category: "Compliance",
-    trigger: { kind: "manual" },
-    impact: 0,
+    id: "employee-exposure-response",
+    name: "Employee Exposure Response",
+    description: "A workforce exposure triggers a credential check, broker removal of employee data, a security-lead alert and a logged response.",
+    category: "Business",
+    trigger: { kind: "exposure_found", minRisk: "high" },
+    impact: 18,
     steps: [
-      agent("compliance", "Gather GDPR / CCPA / SOC 2 / ISO 27001 evidence"),
-      report("Generate the audit-ready compliance pack"),
+      agent("security", "Check exposed employee credentials"),
+      takedown("Remove employee data from brokers"),
+      notify("Notify the security lead of workforce exposure"),
+      report("Log the workforce-exposure response"),
     ],
   },
 ];
@@ -181,8 +242,7 @@ export function templateAgents(t: WorkflowTemplate): AgentKind[] {
 }
 
 export const TEMPLATE_CATEGORIES: TemplateCategory[] = [
-  "Breach response", "Data privacy", "Reputation & impersonation",
-  "Executive protection", "Compliance", "Continuous monitoring",
+  "Security", "Privacy", "Reputation", "Executive", "Business",
 ];
 
 /** Group templates by category, recommended first within each group. */
