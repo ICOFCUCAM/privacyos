@@ -55,8 +55,12 @@ export function buildAccounts(input: IdentityInput): IdentityAccount[] {
     const passwordExposed = leaks.some((l) => l.dataClasses.some((c) => PASSWORD_RE.test(c)));
     const dataClasses = [...new Set(leaks.flatMap((l) => l.dataClasses))];
     const worst = leaks.reduce<RiskLevel>((a, l) => (RISK_RANK[l.riskLevel] > RISK_RANK[a] ? l.riskLevel : a), "low");
-    const atoRisk = clamp(leaks.length * 16 + (passwordExposed ? 34 : 0) + RISK_WEIGHT[worst] * 0.6 + (darkWebPresence ? 12 : 0));
-    return { account, breaches: leaks.length, passwordExposed, dataClasses, darkWeb: darkWebPresence, atoRisk, band: riskBand(atoRisk) };
+    // "On the dark web" means this account's *credentials* are plausibly traded:
+    // a dark-web presence in the footprint AND an exposed password (not just an
+    // email in a breach). Avoids flagging every breached account.
+    const onDarkWeb = darkWebPresence && passwordExposed;
+    const atoRisk = clamp(leaks.length * 16 + (passwordExposed ? 34 : 0) + RISK_WEIGHT[worst] * 0.6 + (onDarkWeb ? 12 : 0));
+    return { account, breaches: leaks.length, passwordExposed, dataClasses, darkWeb: onDarkWeb, atoRisk, band: riskBand(atoRisk) };
   });
 
   // Known accounts with no breach on record — monitored, clean.

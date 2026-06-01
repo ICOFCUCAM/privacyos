@@ -28,7 +28,9 @@ describe("account inventory", () => {
     const ceo = accts.find((a) => a.account === "ceo@corp.com")!;
     expect(ceo.breaches).toBe(2);
     expect(ceo.passwordExposed).toBe(true);
-    expect(ceo.darkWeb).toBe(true);                 // dark-web exposure present
+    expect(ceo.darkWeb).toBe(true);                 // dark-web presence + password exposed
+    // an account breached but with no password exposed is NOT flagged dark-web
+    expect(accts.find((a) => a.account === "assist@corp.com")!.darkWeb).toBe(false);
     expect(accts[0].account).toBe("ceo@corp.com");  // highest ATO first
     // the clean known account is present with zero risk
     expect(accts.find((a) => a.account === "clean@corp.com")!.atoRisk).toBe(0);
