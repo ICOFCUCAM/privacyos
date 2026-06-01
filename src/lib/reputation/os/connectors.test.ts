@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
-import { mapSerperOrganic, mapBingWebPages, mapOlostepOrganic, parseOlostepOrganic, resolveSerpSource, SerperSource, BingSerpSource, OlostepSerpSource, NoSerpSource } from "./serp-connector";
+import { mapSerperOrganic, mapOlostepOrganic, parseOlostepOrganic, resolveSerpSource, SerperSource, OlostepSerpSource, NoSerpSource } from "./serp-connector";
+import { isFresh, SERP_TTL_MS } from "./serp-cache";
 import { mapItunesPodcasts, ItunesPodcastSource } from "./podcast-connector";
 import { classifyPageOne } from "./seo";
 import { podcastOpportunities, discoverOpportunities } from "./intelligence";
@@ -27,14 +28,19 @@ describe("SERP connector", () => {
     expect(r[1].position).toBe(2); // index fallback
   });
 
-  it("resolves the right source by env, preferring Olostep then Bing", () => {
+  it("resolves the right source by env, preferring Olostep then Serper", () => {
     expect(resolveSerpSource({})).toBeInstanceOf(NoSerpSource);
     expect(resolveSerpSource({ SERPER_API_KEY: "k" })).toBeInstanceOf(SerperSource);
-    expect(resolveSerpSource({ BING_SEARCH_API_KEY: "b" })).toBeInstanceOf(BingSerpSource);
     expect(resolveSerpSource({ OLOSTEP_API_KEY: "o" })).toBeInstanceOf(OlostepSerpSource);
-    // Olostep wins over everything; Bing over Serper
-    expect(resolveSerpSource({ OLOSTEP_API_KEY: "o", BING_SEARCH_API_KEY: "b", SERPER_API_KEY: "k" })).toBeInstanceOf(OlostepSerpSource);
-    expect(resolveSerpSource({ BING_SEARCH_API_KEY: "b", SERPER_API_KEY: "k" })).toBeInstanceOf(BingSerpSource);
+    // Olostep wins when both are set
+    expect(resolveSerpSource({ OLOSTEP_API_KEY: "o", SERPER_API_KEY: "k" })).toBeInstanceOf(OlostepSerpSource);
+  });
+
+  it("isFresh respects the cache TTL", () => {
+    const now = Date.now();
+    expect(isFresh(new Date(now - 1000).toISOString(), now)).toBe(true);
+    expect(isFresh(new Date(now - SERP_TTL_MS - 1000).toISOString(), now)).toBe(false);
+    expect(isFresh("not-a-date", now)).toBe(false);
   });
 
   it("parses Olostep stringified json_content and maps organic results", () => {
@@ -58,27 +64,6 @@ describe("SERP connector", () => {
     expect((await bad.search("q")).live).toBe(false);
   });
 
-  it("maps Bing webPages to ranked positions", () => {
-    const r = mapBingWebPages([
-      { name: "A", url: "https://www.linkedin.com/in/jv" },
-      { name: "B", url: "https://news.com/x" },
-      { name: "no url" },
-    ]);
-    expect(r).toHaveLength(2);
-    expect(r[0]).toMatchObject({ position: 1, domain: "linkedin.com" });
-    expect(r[1].position).toBe(2);
-  });
-
-  it("Bing source goes live on response, reports provider, falls back on error", async () => {
-    const ok = new BingSerpSource("key", vi.fn(async () => jsonResponse({ webPages: { value: [{ name: "T", url: "https://x.com/a" }] } })) as unknown as typeof fetch);
-    const a = await ok.search("q");
-    expect(a.live).toBe(true);
-    expect(a.provider).toBe("bing");
-    expect(a.results[0].domain).toBe("x.com");
-
-    const bad = new BingSerpSource("key", vi.fn(async () => { throw new Error("net"); }) as unknown as typeof fetch);
-    expect((await bad.search("q")).live).toBe(false);
-  });
 
   it("returns live results when the API responds, falls back on error", async () => {
     const ok = new SerperSource("k", vi.fn(async () => jsonResponse({ organic: [{ title: "T", link: "https://x.com/a", position: 1 }] })) as unknown as typeof fetch);

@@ -15,7 +15,7 @@ export interface SerpResult {
   domain: string;
 }
 
-export type SerpProvider = "olostep" | "bing" | "serper" | "none";
+export type SerpProvider = "olostep" | "serper" | "none";
 
 export interface SerpResponse {
   results: SerpResult[];
@@ -76,58 +76,6 @@ export class SerperSource implements SerpSource {
       return { results: mapSerperOrganic(data.organic ?? [], limit), live: true, provider: "serper" };
     } catch {
       return { results: [], live: false, provider: "serper" };
-    } finally {
-      clearTimeout(timer);
-    }
-  }
-}
-
-interface BingWebPage {
-  name?: string;
-  url?: string;
-}
-
-/** Map Bing Web Search `webPages.value` into ranked SerpResults (positions 1..N). */
-export function mapBingWebPages(value: BingWebPage[], limit = 10): SerpResult[] {
-  return value
-    .filter((p) => p.name && p.url)
-    .slice(0, limit)
-    .map((p, i) => ({
-      position: i + 1,
-      title: p.name!.trim(),
-      url: p.url!,
-      domain: domainOf(p.url!),
-    }));
-}
-
-/**
- * Bing Web Search (Azure Cognitive Services). Auth via the
- * `Ocp-Apim-Subscription-Key` header; endpoint overridable for custom Azure
- * resources via BING_SEARCH_ENDPOINT.
- */
-export class BingSerpSource implements SerpSource {
-  constructor(
-    private apiKey: string | undefined,
-    private fetchImpl: typeof fetch = fetch,
-    private endpoint = "https://api.bing.microsoft.com",
-  ) {}
-
-  async search(query: string, limit = 10): Promise<SerpResponse> {
-    if (!this.apiKey) return { results: [], live: false, provider: "bing" };
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 5000);
-    try {
-      const base = this.endpoint.replace(/\/$/, "");
-      const url = `${base}/v7.0/search?responseFilter=Webpages&count=${limit}&q=${encodeURIComponent(query)}`;
-      const res = await this.fetchImpl(url, {
-        signal: controller.signal,
-        headers: { "Ocp-Apim-Subscription-Key": this.apiKey },
-      });
-      if (!res.ok) throw new Error(`Bing ${res.status}`);
-      const data = (await res.json()) as { webPages?: { value?: BingWebPage[] } };
-      return { results: mapBingWebPages(data.webPages?.value ?? [], limit), live: true, provider: "bing" };
-    } catch {
-      return { results: [], live: false, provider: "bing" };
     } finally {
       clearTimeout(timer);
     }
@@ -210,16 +158,15 @@ export class NoSerpSource implements SerpSource {
 }
 
 /**
- * Resolve the SERP source from the environment. Precedence: Olostep → Bing
- * (Azure) → Serper.dev → the deterministic model.
+ * Resolve the SERP source from the environment. Precedence: Olostep (real
+ * Google SERP) → Serper.dev → the deterministic model. (Azure Bing Search was
+ * retired by Microsoft on 2025-08-11 and is intentionally not supported.)
  */
 export function resolveSerpSource(
   env: Record<string, string | undefined> = process.env,
   fetchImpl: typeof fetch = fetch,
 ): SerpSource {
   if (env.OLOSTEP_API_KEY) return new OlostepSerpSource(env.OLOSTEP_API_KEY, fetchImpl);
-  const bingKey = env.BING_SEARCH_API_KEY ?? env.BING_SEARCH_V7_SUBSCRIPTION_KEY;
-  if (bingKey) return new BingSerpSource(bingKey, fetchImpl, env.BING_SEARCH_ENDPOINT ?? "https://api.bing.microsoft.com");
   if (env.SERPER_API_KEY) return new SerperSource(env.SERPER_API_KEY, fetchImpl);
   return new NoSerpSource();
 }

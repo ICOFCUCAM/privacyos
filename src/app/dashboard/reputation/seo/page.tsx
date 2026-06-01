@@ -4,7 +4,7 @@ import { Card, PageHeader, SectionTitle } from "@/components/ui";
 import { getDataSource } from "@/lib/data";
 import { getModuleData } from "@/lib/data/modules";
 import { seoProfile, classifyPageOne, type RankTrend, type ResultSentiment } from "@/lib/reputation/os/seo";
-import { resolveSerpSource } from "@/lib/reputation/os/serp-connector";
+import { getRankings } from "@/lib/reputation/os/serp-cache";
 import { cn } from "@/lib/ui";
 import { ReputationTabs } from "../tabs";
 
@@ -25,10 +25,11 @@ export default async function SeoPage() {
   const { mentions } = await getModuleData();
   const seo = seoProfile(subject, mentions);
 
-  // Live rankings via Bing/Serper when keyed; else the deterministic model.
-  const { results, live, provider } = await resolveSerpSource().search(subject.displayName, 10);
+  // Live Google rankings via Olostep/Serper (cached per subject for 12h to save
+  // credits); else the deterministic model.
+  const { results, live, cachedAt } = await getRankings(subject.displayName, subject.id);
   const pageOne = live && results.length ? classifyPageOne(subject, mentions, results) : seo.pageOne;
-  const liveLabel = provider === "bing" ? "Live · Bing" : "Live · Google";
+  const liveLabel = cachedAt ? "Live · Google (cached)" : "Live · Google";
   const onTarget = seo.keywords.filter((k) => k.rank <= k.target).length;
   const health = Math.max(0, Math.min(100, Math.round(pageOne.dominance * 0.6 + (onTarget / seo.keywords.length) * 40)));
 
