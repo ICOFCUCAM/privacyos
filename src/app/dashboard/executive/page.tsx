@@ -9,6 +9,7 @@ import { Card, LineChart, PageHeader, RiskBadge, SectionTitle } from "@/componen
 import { getDataSource } from "@/lib/data";
 import { getModuleData } from "@/lib/data/modules";
 import { getScoreHistory } from "@/lib/data/scores";
+import { analyzeAttackSurface } from "@/lib/executive/os/attack-paths";
 import {
   assessExecutive,
   type DomainStatus, type PostureStatus, type ProtectionDomain, type ProtectiveAction,
@@ -71,6 +72,7 @@ export default async function ExecutivePage() {
   const B = BAND[indices.band];
   const trend = ((await getScoreHistory()).find((h) => h.kind === "executive")?.points ?? []).map((p) => p.value);
   const recommendations = riskRecommendations({ exposures, threats, family: familyMembers, travel: travelAlerts, credentialLeaks }, indices);
+  const surface = analyzeAttackSurface({ exposures, threats, credentialLeaks });
   const physicalThreats = threats.filter((t) => !t.acknowledged && ["doxxing", "location_exposure"].includes(t.kind));
 
   return (
@@ -119,6 +121,25 @@ export default async function ExecutivePage() {
           </div>
         </div>
       </Card>
+
+      {/* Attack-path chokepoint — the single highest-leverage fix */}
+      {surface.chokepoint && surface.chokepoint.breaks >= 2 && (
+        <Link href="/dashboard/executive/attack-paths">
+          <Card className="border-brand/40 bg-gradient-to-br from-brand/10 to-transparent p-4 transition hover:border-brand/60">
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand/20 text-brand-fg ring-1 ring-brand/40">
+                <Crosshair className="h-5 w-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-fg">One shot · biggest risk reduction</p>
+                <p className="truncate text-sm font-semibold text-white">{surface.chokepoint.action}</p>
+                <p className="text-[11px] text-slate-400">Collapses {surface.chokepoint.breaks} of {surface.enabledPaths} live attack paths</p>
+              </div>
+              <ArrowRight className="h-4 w-4 shrink-0 text-slate-500" />
+            </div>
+          </Card>
+        </Link>
+      )}
 
       {/* Reduce executive risk — top action per elevated index */}
       {recommendations.length > 0 && (
