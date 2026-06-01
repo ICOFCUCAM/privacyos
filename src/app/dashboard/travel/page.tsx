@@ -4,13 +4,16 @@ import {
   ArrowRight, Route,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { Card, PageHeader, RiskBadge } from "@/components/ui";
+import { Card, PageHeader, RiskBadge, SectionTitle } from "@/components/ui";
 import { getModuleData } from "@/lib/data/modules";
 import { getDataSource } from "@/lib/data";
 import {
   assessTrips, summarizeTravel,
   type TravelAssessment, type TravelMeasure, type TravelPosture,
 } from "@/lib/intelligence/travel-risk";
+import {
+  tripRegistry, destinationIntel, travelReadiness, type DestinationIntel,
+} from "@/lib/travel/os/travel-os";
 import { executiveRiskIndices } from "@/lib/executive/os/risk-indices";
 import { ExecutiveTabs } from "../executive/tabs";
 import { cn } from "@/lib/ui";
@@ -37,6 +40,9 @@ export default async function TravelPage() {
   ]);
   const trips = assessTrips(travelAlerts, data.exposures, data.threats);
   const summary = summarizeTravel(trips);
+  const registry = tripRegistry(trips);
+  const destinations = destinationIntel(trips);
+  const readiness = travelReadiness(trips);
   const SP = POSTURE[summary.highestPosture];
   const travelIndex = executiveRiskIndices({ exposures: [], threats: [], family: [], travel: travelAlerts }).travel;
 
@@ -79,11 +85,63 @@ export default async function TravelPage() {
           <p className="text-sm text-slate-500">No trips on the itinerary. Add travel to receive pre-travel risk assessments.</p>
         </Card>
       ) : (
-        <div className="space-y-3">
-          {trips.map((t) => <TripCard key={t.alert.id} t={t} />)}
-        </div>
+        <>
+          <div className="grid gap-5 lg:grid-cols-[1fr_1.3fr]">
+            {/* Pre-travel readiness */}
+            <Card className="p-4">
+              <SectionTitle title="Pre-travel readiness" subtitle="Protective measures outstanding on upcoming travel" />
+              <div className="flex items-center gap-4">
+                <div className={cn("flex h-20 w-20 shrink-0 flex-col items-center justify-center rounded-full ring-4", readiness.readiness >= 75 ? "ring-risk-low/30" : readiness.readiness >= 45 ? "ring-risk-medium/30" : "ring-risk-high/30")}>
+                  <span className={cn("text-2xl font-bold", readiness.readiness >= 75 ? "text-risk-low" : readiness.readiness >= 45 ? "text-risk-medium" : "text-risk-high")}>{readiness.readiness}</span>
+                  <span className="text-[9px] uppercase text-slate-500">ready</span>
+                </div>
+                <div className="min-w-0 flex-1 space-y-1 text-xs text-slate-400">
+                  <p>{readiness.upcomingTrips} upcoming/active trip(s)</p>
+                  <p>{readiness.measures} protective measure(s) — <span className="text-risk-high">{readiness.criticalMeasures} critical</span>, <span className="text-risk-medium">{readiness.highMeasures} high</span></p>
+                  {readiness.readiness < 100 && <p className="text-slate-500">Clear critical/high measures before departure to raise readiness.</p>}
+                </div>
+              </div>
+            </Card>
+
+            {/* Destination intelligence */}
+            <Card className="p-4">
+              <SectionTitle title="Destination intelligence" subtitle="Per-destination risk, worst first" action={<MapPin className="h-4 w-4 text-slate-500" />} />
+              <ul className="space-y-2">
+                {destinations.map((d) => <DestinationRow key={d.destination} d={d} />)}
+              </ul>
+            </Card>
+          </div>
+
+          {/* Trip registry (phased) */}
+          {registry.map((g) => (
+            <div key={g.phase} className="space-y-3">
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-semibold text-white">{g.label}</h2>
+                <span className="text-xs text-slate-500">{g.trips.length}</span>
+              </div>
+              {g.trips.map((t) => <TripCard key={t.alert.id} t={t} />)}
+            </div>
+          ))}
+        </>
       )}
     </div>
+  );
+}
+
+function DestinationRow({ d }: { d: DestinationIntel }) {
+  const P = POSTURE[d.posture];
+  return (
+    <li className="flex items-center gap-3 rounded-lg border border-border bg-bg-subtle/40 px-3 py-2">
+      <MapPin className="h-4 w-4 shrink-0 text-brand-fg" />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-white">{d.destination}</p>
+        <p className="truncate text-[11px] text-slate-500">{d.advisory}</p>
+      </div>
+      <div className="shrink-0 text-right">
+        <span className={cn("rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1", P.bg, P.cls, P.ring)}>{P.label}</span>
+        <p className="mt-0.5 text-[10px] text-slate-500">{d.trips} trip(s){d.nextDays != null && ` · in ${d.nextDays}d`}</p>
+      </div>
+    </li>
   );
 }
 
