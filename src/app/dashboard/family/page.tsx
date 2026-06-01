@@ -1,5 +1,6 @@
 import {
   Users, ShieldCheck, Baby, AlertTriangle, GraduationCap, HeartHandshake, User,
+  Heart, Camera, MapPin, Share2, Network, ShieldAlert,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Card, DataBadge, PageHeader, RiskBadge, SectionTitle } from "@/components/ui";
@@ -9,8 +10,13 @@ import {
   type FamilyPosture, type MemberAssessment, type MemberCategory, type MemberStatus, type Safeguard,
 } from "@/lib/intelligence/family-protection";
 import { executiveRiskIndices } from "@/lib/executive/os/risk-indices";
+import { getDataSource } from "@/lib/data";
+import {
+  buildRegistry, buildFamilyGraph, memberRisks, childSafety, exposureTracking, sharedExposures,
+  REGISTRY_LABEL, type RelationCategory, type ExposureVector, type VectorStatus,
+} from "@/lib/family/os/family-os";
 import { ExecutiveTabs } from "../executive/tabs";
-import { cn } from "@/lib/ui";
+import { cn, titleCase } from "@/lib/ui";
 
 export const metadata = { title: "Family Protection" };
 
@@ -37,13 +43,41 @@ const PRIORITY: Record<Safeguard["priority"], string> = {
   standard: "text-slate-400 bg-bg-elevated ring-border",
 };
 
+const REGISTRY_ICON: Record<RelationCategory, LucideIcon> = {
+  spouse: Heart, child: GraduationCap, parent: HeartHandshake, relative: Users,
+};
+
+const VECTOR_ICON: Record<ExposureVector, LucideIcon> = {
+  photos: Camera, school: GraduationCap, social: Share2, location: MapPin,
+};
+
+const VECTOR_STATUS: Record<VectorStatus, { label: string; cls: string; ring: string }> = {
+  clear: { label: "Clear", cls: "text-risk-low", ring: "ring-risk-low/20" },
+  monitoring: { label: "Monitoring", cls: "text-risk-medium", ring: "ring-risk-medium/20" },
+  exposed: { label: "Exposed", cls: "text-risk-high", ring: "ring-risk-high/30" },
+};
+
+function riskTone(score: number): string {
+  return score >= 75 ? "text-risk-critical" : score >= 50 ? "text-risk-high" : score >= 25 ? "text-risk-medium" : "text-risk-low";
+}
+
 export default async function FamilyPage() {
   const moduleData = await getModuleData();
   const { familyMembers } = moduleData;
+  const { subject, exposures } = await (await getDataSource()).getDataset();
   const roster = assessFamily(familyMembers);
   const summary = summarizeFamily(familyMembers);
   const SP = POSTURE[summary.posture];
   const familyIndex = executiveRiskIndices({ exposures: [], threats: [], family: familyMembers, travel: [] }).family;
+
+  // Family Protection OS — registry, exposure vectors, child safety, graph.
+  const registry = buildRegistry(familyMembers);
+  const shared = sharedExposures(exposures);
+  const risks = memberRisks(familyMembers, shared);
+  const safety = childSafety(risks);
+  const vectors = exposureTracking(familyMembers, exposures);
+  const graph = buildFamilyGraph(subject.displayName, familyMembers, exposures);
+  const riskById = new Map(risks.map((r) => [r.member.id, r]));
 
   return (
     <div className="space-y-5">
@@ -82,6 +116,131 @@ export default async function FamilyPage() {
               <Mini label="At elevated risk" value={summary.atRisk} icon={AlertTriangle} tone={summary.atRisk > 0 ? "text-risk-high" : "text-risk-low"} />
               <Mini label="Total exposures" value={summary.totalExposures} icon={Users} tone="text-white" />
             </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Family registry */}
+      <Card className="p-4">
+        <SectionTitle title="Family registry" subtitle="Spouse, children, parents and relatives under protection" />
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {registry.map((g) => {
+            const GIcon = REGISTRY_ICON[g.category];
+            return (
+              <div key={g.category} className="rounded-xl border border-border bg-bg-subtle/40 p-3">
+                <div className="flex items-center gap-2">
+                  <GIcon className="h-4 w-4 text-brand-fg" />
+                  <span className="text-sm font-semibold text-white">{g.label}</span>
+                  <span className="ml-auto text-xs text-slate-500">{g.members.length}</span>
+                </div>
+                <ul className="mt-2 space-y-1">
+                  {g.members.map((m) => {
+                    const r = riskById.get(m.id);
+                    return (
+                      <li key={m.id} className="flex items-center justify-between gap-2 text-xs">
+                        <span className="min-w-0 truncate text-slate-300">{m.displayName}{m.isMinor && <span className="text-slate-500"> · minor</span>}</span>
+                        {r && <span className={cn("shrink-0 font-semibold", riskTone(r.total))}>{r.total}</span>}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
+      {/* Exposure tracking */}
+      <Card className="p-4">
+        <SectionTitle title="Exposure tracking" subtitle="Photos, school records, social profiles and shared location" />
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {vectors.map((v) => {
+            const VIcon = VECTOR_ICON[v.vector];
+            const VS = VECTOR_STATUS[v.status];
+            return (
+              <div key={v.vector} className={cn("rounded-xl border bg-bg-subtle/40 p-3 ring-1", VS.ring)}>
+                <div className="flex items-center justify-between">
+                  <VIcon className="h-4 w-4 text-brand-fg" />
+                  <span className={cn("text-[10px] font-semibold uppercase", VS.cls)}>{VS.label}</span>
+                </div>
+                <p className="mt-1.5 text-sm font-medium text-white">{v.label}</p>
+                <p className="mt-0.5 text-[11px] text-slate-500">{v.detail}</p>
+                {v.affected > 0 && <p className="mt-1 text-[10px] text-slate-500">{v.affected} affected</p>}
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
+      {/* Child safety */}
+      {safety.minors > 0 && (
+        <Card className="p-4">
+          <SectionTitle
+            title="Child safety"
+            subtitle="Minor monitoring, exposure alerts and per-child risk scoring"
+            action={<span className={cn("rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase ring-1", safety.alerts.length > 0 ? "bg-risk-high/10 text-risk-high ring-risk-high/30" : "bg-risk-low/10 text-risk-low ring-risk-low/30")}>{safety.alerts.length} alert{safety.alerts.length === 1 ? "" : "s"}</span>}
+          />
+          <ul className="space-y-2">
+            {safety.monitored.map((r) => (
+              <li key={r.member.id} className="flex items-center gap-3 rounded-xl border border-border bg-bg-subtle/40 p-3">
+                <Baby className="h-4 w-4 shrink-0 text-risk-high" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-white">{r.member.displayName} <span className="text-[11px] text-slate-500">· {r.member.relation}</span></p>
+                  <p className="text-[11px] text-slate-500">own {r.own} · inherited {r.propagated} · {r.member.exposuresCount} exposure(s)</p>
+                </div>
+                {r.total >= 50 && <ShieldAlert className="h-4 w-4 shrink-0 text-risk-high" />}
+                <span className={cn("shrink-0 text-lg font-bold", riskTone(r.total))}>{r.total}</span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      {/* Family graph — relationship mapping + risk propagation */}
+      <Card className="p-4">
+        <SectionTitle
+          title="Family graph"
+          subtitle="Relationship mapping, shared exposures and risk propagation"
+          action={<Network className="h-4 w-4 text-slate-500" />}
+        />
+        <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr]">
+          {/* Shared exposures that propagate */}
+          <div className="rounded-xl border border-border bg-bg-subtle/40 p-3">
+            <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400"><Share2 className="h-3.5 w-3.5" /> Shared exposures</p>
+            {graph.shared.length === 0 ? (
+              <p className="mt-2 text-xs text-slate-500">No household-shared exposures propagating to relatives.</p>
+            ) : (
+              <>
+                <ul className="mt-2 space-y-1">
+                  {graph.shared.slice(0, 5).map((e) => (
+                    <li key={e.id} className="flex items-center justify-between gap-2 text-xs">
+                      <span className="min-w-0 truncate text-slate-300">{titleCase(e.category)} · {e.sourceName}</span>
+                      <span className={cn("shrink-0 font-semibold", riskTone(e.riskLevel === "critical" ? 80 : e.riskLevel === "high" ? 60 : 30))}>{titleCase(e.riskLevel)}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-2 border-t border-border pt-2 text-[11px] text-slate-500">Propagates to all {graph.propagationReach} household member(s).</p>
+              </>
+            )}
+          </div>
+          {/* Relationship map: principal → members */}
+          <div className="rounded-xl border border-border bg-bg-subtle/40 p-3">
+            <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400"><Network className="h-3.5 w-3.5" /> Relationship map</p>
+            <div className="mb-2 flex items-center gap-2">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand/20 text-brand-fg ring-1 ring-brand/40"><User className="h-3.5 w-3.5" /></span>
+              <span className="text-sm font-semibold text-white">{graph.principal}</span>
+              <span className="text-[10px] text-slate-500">principal</span>
+            </div>
+            <ul className="space-y-1.5 border-l border-border pl-3">
+              {graph.edges.map((e) => (
+                <li key={e.member.id} className="flex items-center gap-2 text-xs">
+                  <span className="text-slate-500">{REGISTRY_LABEL[e.category]}</span>
+                  <span className="min-w-0 flex-1 truncate text-slate-300">{e.member.displayName}</span>
+                  {e.inherited > 0 && <span className="shrink-0 text-[10px] text-risk-medium" title="inherited household risk">+{e.inherited}</span>}
+                  <span className={cn("shrink-0 font-semibold", riskTone(e.risk))}>{e.risk}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </Card>
