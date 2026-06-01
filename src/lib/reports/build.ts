@@ -8,6 +8,7 @@ import { getModuleData } from "@/lib/data/modules";
 import { computeScoreSet } from "@/lib/scoring/scores";
 import { executiveRiskIndices, RISK_INDEX_META } from "@/lib/executive/os/risk-indices";
 import { residenceReport } from "@/lib/executive/os/residence";
+import { getResidenceSignals } from "@/lib/executive/os/residence-cache";
 import { doxxingReport, LEAK_LABEL, type LeakKind } from "@/lib/executive/os/doxxing";
 import { buildThreatActors } from "@/lib/executive/os/threat-actors";
 import { titleCase } from "@/lib/ui";
@@ -72,7 +73,11 @@ export async function buildReportContext(type: ReportType): Promise<ReportContex
       };
     case "executive": {
       const indices = executiveRiskIndices({ exposures: data.exposures, threats: data.threats, family: mod.familyMembers, travel: mod.travelAlerts });
-      const residence = residenceReport(data.exposures);
+      // Use live property data for the residence section when available (keyed
+      // + authenticated); otherwise residenceReport infers from address exposures.
+      const topAddress = data.exposures.filter((e) => e.category === "address").sort((a, b) => b.riskScore - a.riskScore)[0];
+      const { signals } = await getResidenceSignals(topAddress?.snippet ?? "");
+      const residence = residenceReport(data.exposures, signals);
       const doxxing = doxxingReport({ exposures: data.exposures, threats: data.threats, family: mod.familyMembers, employees: mod.employeeExposures });
       const actors = buildThreatActors(data.threats);
       return {
