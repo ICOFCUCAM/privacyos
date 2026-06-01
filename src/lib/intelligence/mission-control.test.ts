@@ -24,6 +24,7 @@ const base: MissionInput = {
   executiveRisk: 0,
   attackPaths: 0,
   topAttackScore: 0,
+  childSafetyAlerts: 0,
 };
 
 describe("computePosture", () => {
@@ -65,6 +66,12 @@ describe("computePosture", () => {
     const elev = computePosture({ ...base, attackPaths: 1, topAttackScore: 55 });
     expect(elev.level).toBe("elevated");
     expect(elev.drivers.join(" ")).toMatch(/1 live attack path/);
+  });
+
+  it("raises a child-safety alert into the posture drivers", () => {
+    const p = computePosture({ ...base, childSafetyAlerts: 2 });
+    expect(p.level).toBe("elevated");
+    expect(p.drivers.join(" ")).toMatch(/2 child-safety alerts/);
   });
 });
 

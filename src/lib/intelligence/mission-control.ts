@@ -31,6 +31,8 @@ export interface MissionInput {
   attackPaths: number;
   /** Score of the most-feasible attack path, 0–100. */
   topAttackScore: number;
+  /** Minors whose combined family risk has crossed the alert threshold. */
+  childSafetyAlerts: number;
 }
 
 export interface OperationalPosture {
@@ -49,7 +51,7 @@ export interface OperationalPosture {
 const ACTIVE_AGENT_STATUSES = new Set(["running", "blocked"]);
 
 export function computePosture(input: MissionInput): OperationalPosture {
-  const { cases, threats, workflows, riskScore, executiveRisk, attackPaths, topAttackScore } = input;
+  const { cases, threats, workflows, riskScore, executiveRisk, attackPaths, topAttackScore, childSafetyAlerts } = input;
   const agentsActive = input.agents.filter((a) => ACTIVE_AGENT_STATUSES.has(a.status)).length;
   const itemsHandled = input.agents.reduce((s, a) => s + a.itemsHandled, 0);
 
@@ -68,6 +70,7 @@ export function computePosture(input: MissionInput): OperationalPosture {
   if (cases.open > 0) elevatedDrivers.push(`${cases.open} open case${cases.open === 1 ? "" : "s"}`);
   if (executiveRisk >= 50 && executiveRisk < 75) elevatedDrivers.push(`Executive risk elevated (${executiveRisk})`);
   if (attackPaths > 0 && topAttackScore >= 45 && topAttackScore < 70) elevatedDrivers.push(`${attackPaths} live attack path${attackPaths === 1 ? "" : "s"}`);
+  if (childSafetyAlerts > 0) elevatedDrivers.push(`${childSafetyAlerts} child-safety alert${childSafetyAlerts === 1 ? "" : "s"}`);
 
   let level: PostureLevel;
   let drivers: string[];

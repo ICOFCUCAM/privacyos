@@ -14,6 +14,7 @@ import { listWorkflowDefinitions } from "@/lib/agents/workflow-store";
 import { getModuleData } from "@/lib/data/modules";
 import { executiveRiskIndices } from "@/lib/executive/os/risk-indices";
 import { analyzeAttackSurface } from "@/lib/executive/os/attack-paths";
+import { sharedExposures, memberRisks } from "@/lib/family/os/family-os";
 import {
   buildPriorityQueue, computePosture, countUnresolvedExposures,
   type ActionKind, type ActionUrgency, type PostureLevel,
@@ -58,6 +59,8 @@ export default async function MissionControlPage() {
   const { familyMembers, travelAlerts, credentialLeaks } = await getModuleData();
   const execRisk = executiveRiskIndices({ exposures: data.exposures, threats: data.threats, family: familyMembers, travel: travelAlerts, credentialLeaks });
   const surface = analyzeAttackSurface({ exposures: data.exposures, threats: data.threats, credentialLeaks });
+  const childSafetyAlerts = memberRisks(familyMembers, sharedExposures(data.exposures))
+    .filter((r) => r.member.isMinor && r.total >= 50).length;
 
   const posture = computePosture({
     riskScore: data.riskScore.overall,
@@ -70,6 +73,7 @@ export default async function MissionControlPage() {
     executiveRisk: execRisk.overall,
     attackPaths: surface.enabledPaths,
     topAttackScore: surface.topScore,
+    childSafetyAlerts,
   });
   const queue = buildPriorityQueue(cases, workflows, data.threats);
 
