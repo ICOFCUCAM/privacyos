@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { executiveRiskIndices, bandFor, type RiskInput } from "./risk-indices";
+import { executiveRiskIndices, riskRecommendations, bandFor, type RiskInput } from "./risk-indices";
 import { residenceReport } from "./residence";
 import { mapPropertyResponse, resolveResidenceSource, PropertyApiSource, NoResidenceSource } from "./residence-connector";
 import { doxxingReport, takedownPlan, summarizeTakedowns } from "./doxxing";
@@ -57,6 +57,26 @@ describe("risk indices", () => {
   it("ignores acknowledged threats", () => {
     const withAck = executiveRiskIndices({ exposures: [], threats: [threat({ acknowledged: true, riskLevel: "critical" })], family: [], travel: [] });
     expect(withAck.physical).toBe(0);
+  });
+
+  it("recommends a top action per elevated index, worst-first, none when low", () => {
+    const input: RiskInput = {
+      exposures: [exposure({ category: "address", riskLevel: "critical" }), exposure({ category: "address", riskLevel: "critical" })],
+      threats: [threat({ kind: "doxxing", riskLevel: "critical" })],
+      family: [], travel: [],
+    };
+    const indices = executiveRiskIndices(input);
+    const recs = riskRecommendations(input, indices);
+    expect(recs.length).toBeGreaterThan(0);
+    // physical is the dominant driver here → ranked first
+    expect(recs[0].index).toBe("physical");
+    expect(recs[0].action).toMatch(/address\/location exposure/);
+    // every surfaced rec targets a non-low index, sorted descending
+    expect(recs.every((r) => r.value >= 25)).toBe(true);
+    expect([...recs].sort((a, b) => b.value - a.value)).toEqual(recs);
+    // a clean principal gets no recommendations
+    const clean = { exposures: [], threats: [], family: [], travel: [] };
+    expect(riskRecommendations(clean, executiveRiskIndices(clean))).toHaveLength(0);
   });
 });
 

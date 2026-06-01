@@ -94,4 +94,47 @@ export const RISK_INDEX_META: RiskIndexMeta[] = [
   { key: "travel", label: "Travel security" },
 ];
 
+export type RecPriority = "critical" | "high" | "standard";
+
+export interface RiskRecommendation {
+  index: RiskIndexMeta["key"];
+  label: string;
+  action: string;
+  priority: RecPriority;
+  /** The index value this recommendation targets, for ranking. */
+  value: number;
+}
+
+function recPriority(value: number): RecPriority {
+  return value >= 75 ? "critical" : value >= 50 ? "high" : "standard";
+}
+
+/**
+ * The top protective action to reduce each non-low index, ranked by index
+ * value (worst first). Turns the Executive Risk Score into a to-do list.
+ */
+export function riskRecommendations(input: RiskInput, indices: ExecutiveRiskIndices): RiskRecommendation[] {
+  const at = activeThreats(input.threats);
+  const count = (fn: (e: Exposure) => boolean) => input.exposures.filter(fn).length;
+
+  const physicalItems = count((e) => PHYSICAL_CATEGORIES.has(e.category)) + at.filter((t) => PHYSICAL_THREATS.has(t.kind)).length;
+  const digitalItems = count((e) => DIGITAL_CATEGORIES.has(e.category)) + at.filter((t) => DIGITAL_THREATS.has(t.kind)).length;
+  const familyAtRisk = input.family.filter((m) => m.riskLevel !== "low").length;
+  const travelTrips = input.travel.filter((t) => t.riskLevel !== "low").length;
+  const personalPending = input.exposures.filter((e) => e.status !== "removed").length;
+
+  const recs: RiskRecommendation[] = [
+    { key: "physical", action: `Suppress ${physicalItems} address/location exposure(s) and file street-view blur requests.` },
+    { key: "digital", action: `Rotate credentials in ${digitalItems} breach/dark-web exposure(s) and enforce 2FA + passkeys.` },
+    { key: "family", action: `Opt ${familyAtRisk} at-risk relative(s) out of people-search sites and lock down their socials.` },
+    { key: "travel", action: `Brief close protection and pre-clear ${travelTrips} elevated-risk trip(s).` },
+    { key: "personal", action: `Drive ${personalPending} pending exposure(s) through removal to shrink the footprint.` },
+  ].map(({ key, action }) => {
+    const value = indices[key as keyof ExecutiveRiskIndices] as number;
+    return { index: key as RiskIndexMeta["key"], label: RISK_INDEX_META.find((m) => m.key === key)!.label, action, priority: recPriority(value), value };
+  });
+
+  return recs.filter((r) => r.value >= 25).sort((a, b) => b.value - a.value);
+}
+
 export { RISK_RANK };

@@ -13,7 +13,8 @@ import {
   type DomainStatus, type PostureStatus, type ProtectionDomain, type ProtectiveAction,
 } from "@/lib/intelligence/executive-protection";
 import {
-  executiveRiskIndices, RISK_INDEX_META, type RiskBand, type ExecutiveRiskIndices,
+  executiveRiskIndices, riskRecommendations, RISK_INDEX_META,
+  type RiskBand, type ExecutiveRiskIndices, type RecPriority,
 } from "@/lib/executive/os/risk-indices";
 import { cn, titleCase } from "@/lib/ui";
 import { ExecutiveTabs } from "./tabs";
@@ -50,6 +51,12 @@ const URGENCY: Record<ProtectiveAction["urgency"], string> = {
   medium: "text-risk-medium bg-risk-medium/10 ring-risk-medium/30",
 };
 
+const REC_PRIORITY: Record<RecPriority, string> = {
+  critical: "text-risk-critical bg-risk-critical/10 ring-risk-critical/30",
+  high: "text-risk-high bg-risk-high/10 ring-risk-high/30",
+  standard: "text-slate-400 bg-bg-elevated ring-border",
+};
+
 function indexTone(v: number): string {
   return v >= 75 ? "text-risk-critical" : v >= 50 ? "text-risk-high" : v >= 25 ? "text-risk-medium" : "text-risk-low";
 }
@@ -62,6 +69,7 @@ export default async function ExecutivePage() {
   const P = POSTURE[posture.status];
   const B = BAND[indices.band];
   const trend = ((await getScoreHistory()).find((h) => h.kind === "executive")?.points ?? []).map((p) => p.value);
+  const recommendations = riskRecommendations({ exposures, threats, family: familyMembers, travel: travelAlerts }, indices);
   const physicalThreats = threats.filter((t) => !t.acknowledged && ["doxxing", "location_exposure"].includes(t.kind));
 
   return (
@@ -110,6 +118,25 @@ export default async function ExecutivePage() {
           </div>
         </div>
       </Card>
+
+      {/* Reduce executive risk — top action per elevated index */}
+      {recommendations.length > 0 && (
+        <Card className="p-4">
+          <SectionTitle title="Reduce executive risk" subtitle="The highest-impact protective action per elevated index" />
+          <ul className="space-y-2">
+            {recommendations.map((rec) => (
+              <li key={rec.index} className="flex items-center gap-3 rounded-xl border border-border bg-bg-subtle/40 p-3">
+                <span className={cn("flex h-9 w-9 shrink-0 flex-col items-center justify-center rounded-lg text-xs font-bold ring-1", indexTone(rec.value), "bg-bg-elevated ring-border")}>{rec.value}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm text-slate-200">{rec.action}</p>
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">{rec.label} index</p>
+                </div>
+                <span className={cn("shrink-0 rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1", REC_PRIORITY[rec.priority])}>{rec.priority}</span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
 
       {/* Pillar quick-links */}
       <div className="grid gap-3 sm:grid-cols-3">
