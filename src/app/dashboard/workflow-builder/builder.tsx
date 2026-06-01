@@ -19,6 +19,7 @@ import {
   type StepType, type TriggerKind, type WorkflowDefinition, type WorkflowStepDef,
   type ConditionField, type ConditionOp, type SampleEvent, type StepOutcome,
 } from "@/lib/agents/workflow-builder";
+import { AGENT_LABEL } from "@/lib/billing/entitlements";
 import { deleteWorkflowAction, saveWorkflowAction, toggleWorkflowAction } from "./actions";
 
 const STEP_META: Record<StepType, { label: string; icon: LucideIcon; hint: string }> = {
@@ -66,13 +67,20 @@ export function WorkflowBuilder({
   const [stepDelay, setStepDelay] = useState(24);
   const [stepUrl, setStepUrl] = useState("");
 
-  // Drag-and-drop reordering
+  // Drag-and-drop: reorder existing blocks, or drag an agent block in to add it.
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
+  const [dragAgent, setDragAgent] = useState<AgentKind | null>(null);
+
+  function addAgent(kind: AgentKind) {
+    setDraft((d) => addStep(d, { id: newStepId(), type: "agent", agent: kind, label: AGENT_LABEL[kind] }));
+  }
 
   function onDrop(to: number) {
-    if (dragIndex !== null && dragIndex !== to) setDraft((d) => reorderStep(d, dragIndex, to));
+    if (dragAgent) addAgent(dragAgent);
+    else if (dragIndex !== null && dragIndex !== to) setDraft((d) => reorderStep(d, dragIndex, to));
     setDragIndex(null);
+    setDragAgent(null);
     setOverIndex(null);
   }
 
@@ -315,10 +323,38 @@ export function WorkflowBuilder({
           </div>
         </div>
 
-        {/* Steps list — drag to reorder */}
+        {/* Available Agents — the fleet's 13 agent blocks */}
         <div className="mt-4">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-            Blocks · {draft.steps.length} <span className="font-normal text-slate-500">· drag to reorder</span>
+            Available Agents · {agents.length} <span className="font-normal text-slate-500">· click or drag into the workflow</span>
+          </p>
+          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-4">
+            {agents.map((a) => (
+              <button
+                key={a}
+                type="button"
+                draggable
+                onDragStart={() => { setDragAgent(a); setDragIndex(null); }}
+                onDragEnd={() => setDragAgent(null)}
+                onClick={() => addAgent(a)}
+                className="flex cursor-grab items-center gap-2 rounded-lg border border-border bg-bg-elevated/60 px-2.5 py-2 text-left text-xs text-slate-300 transition hover:border-brand/40 hover:text-white active:cursor-grabbing"
+                title="Click or drag into the workflow"
+              >
+                <Bot className="h-3.5 w-3.5 shrink-0 text-brand-fg" />
+                <span className="min-w-0 truncate font-medium">{AGENT_LABEL[a]}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Steps list — drag to reorder, or drop an agent to add */}
+        <div
+          className="mt-4"
+          onDragOver={(e) => { if (dragAgent) e.preventDefault(); }}
+          onDrop={() => { if (dragAgent) { addAgent(dragAgent); setDragAgent(null); } }}
+        >
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Blocks · {draft.steps.length} <span className="font-normal text-slate-500">· drag to reorder · drop an agent to add</span>
           </p>
           {draft.steps.length === 0 ? (
             <p className="rounded-lg border border-dashed border-border bg-bg-subtle/30 px-3 py-4 text-center text-xs text-slate-500">

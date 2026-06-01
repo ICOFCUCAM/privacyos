@@ -156,6 +156,23 @@ export const ALL_AGENT_KINDS: AgentKind[] = [
   "orchestrator", "incident", "compliance", "threat_intel", "vendor",
 ];
 
+/** Display name for each agent (the fleet's 13 agent blocks). */
+export const AGENT_LABEL: Record<AgentKind, string> = {
+  discovery: "Discovery Agent",
+  privacy: "Privacy Agent",
+  legal: "Legal Agent",
+  reputation: "Reputation Agent",
+  security: "Security Agent",
+  deepfake: "Deepfake Agent",
+  executive: "Executive Protection Agent",
+  business: "Business Intelligence Agent",
+  orchestrator: "Orchestrator Agent",
+  incident: "Incident Response Agent",
+  compliance: "Compliance Agent",
+  threat_intel: "Threat Intelligence Agent",
+  vendor: "Vendor Risk Agent",
+};
+
 /**
  * The agents always included with any active plan. Beyond core protection
  * (Discovery, Privacy, Security), the coordination roles — Orchestrator,
