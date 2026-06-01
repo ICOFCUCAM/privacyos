@@ -1,7 +1,7 @@
 import Link from "next/link";
 import {
   Sparkles, TrendingDown, TrendingUp,
-  Radar, Trash2, Layers,
+  Radar, Trash2, Layers, Crosshair, ArrowRight,
 } from "lucide-react";
 import {
   Card,
@@ -29,6 +29,7 @@ import {
   onlineAgentCount, remediationProgress, threatTimeline, topExposureSources,
 } from "@/lib/intelligence/command-center";
 import { buildCorrelationGraph, correlationStats } from "@/lib/intelligence/correlation";
+import { analyzeAttackSurface } from "@/lib/executive/os/attack-paths";
 import { exposureToFinding, runPlaybooks, summarizeRuns, threatToFinding } from "@/lib/agents/playbooks";
 import { synthesizeRecommendations } from "@/lib/agents/synthesis";
 import { cn, timeAgo, titleCase } from "@/lib/ui";
@@ -68,6 +69,7 @@ export default async function OverviewPage() {
     { label: "Overall", value: scores.overall },
   ];
   const activeThreats = data.threats.filter((t) => !t.acknowledged);
+  const killChain = analyzeAttackSurface({ exposures: data.exposures, threats: data.threats, credentialLeaks: mod.credentialLeaks });
 
   // Operational intelligence (pure, derived from the real dataset).
   const roster = agentRoster(data.agents, mod.agentActions, available);
@@ -138,6 +140,20 @@ export default async function OverviewPage() {
           <LiveRefresh intervalMs={30_000} />
         </div>
       </div>
+
+      {/* ── Attack-path chokepoint — the single highest-leverage fix ──────── */}
+      {killChain.chokepoint && killChain.chokepoint.breaks >= 2 && (
+        <Link href="/dashboard/executive/attack-paths" className="block">
+          <div className="flex items-center gap-3 rounded-lg border border-brand/40 bg-gradient-to-r from-brand/10 to-transparent px-3 py-2 transition hover:border-brand/60">
+            <Crosshair className="h-4 w-4 shrink-0 text-brand-fg" />
+            <p className="min-w-0 flex-1 truncate text-xs text-slate-200">
+              <span className="font-semibold text-brand-fg">One shot:</span> {killChain.chokepoint.action} —{" "}
+              <span className="text-slate-400">collapses {killChain.chokepoint.breaks} of {killChain.enabledPaths} live attack paths</span>
+            </p>
+            <ArrowRight className="h-3.5 w-3.5 shrink-0 text-slate-500" />
+          </div>
+        </Link>
+      )}
 
       {/* ── KPI strip — compact, horizontal ───────────────────────────────── */}
       <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
