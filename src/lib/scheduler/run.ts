@@ -20,6 +20,7 @@ import { planAutoFilings } from "@/lib/brokers/auto-file";
 import { casesForNewThreats } from "@/lib/agents/threat-cases";
 import { reputationCasesFromMentions } from "@/lib/reputation/os/reputation-cases";
 import { reputationOverview } from "@/lib/reputation/os/analysis";
+import { executiveRiskIndices } from "@/lib/executive/os/risk-indices";
 import { investigationTimeline } from "@/lib/intelligence/threat-intel";
 import { collectReputation, type MentionSource } from "@/lib/reputation/collect";
 import { scanDomain } from "@/lib/domains/scan";
@@ -54,6 +55,7 @@ export async function runScheduledCycle(
   let removalsFiled = 0;
   let casesOpened = 0;
   let reputationCasesOpened = 0;
+  let executiveEscalations = 0;
   let mentionsCollected = 0;
   let domainRisksFound = 0;
 
@@ -151,6 +153,36 @@ export async function runScheduledCycle(
         riskLevel: "critical",
       }));
       await store.addNotifications(fp.userId, notifs);
+    }
+
+    // 6a. Executive-risk escalation. Recompute the Executive Risk Score over the
+    // refreshed footprint; if it's critical AND new critical findings landed this
+    // cycle, the Executive Agent escalates (record + alert). Gating to new
+    // criticals keeps it from re-firing every cron tick.
+    const execRisk = executiveRiskIndices({ exposures, threats, family: [], travel: [] });
+    await store.recordActions(fp.userId, fp.subject.id, [
+      {
+        agent: "executive",
+        kind: "monitor",
+        summary: `Executive Risk Score: ${execRisk.overall}/100 (${execRisk.band}).`,
+        status: "completed",
+      },
+    ]);
+    // Physical-security critical is the true close-protection emergency (the
+    // scheduler footprint has no family/travel, so the composite under-reads).
+    if ((execRisk.band === "critical" || execRisk.physical >= 70) && critical.length > 0) {
+      await store.addNotifications(fp.userId, [
+        {
+          kind: "incident",
+          title: `Executive risk CRITICAL (${execRisk.overall}/100)`,
+          body: `New critical exposure pushed the principal's physical-security index to ${execRisk.physical}/100 (overall ${execRisk.overall}). Review Executive Protection now.`,
+          riskLevel: "critical",
+        },
+      ]);
+      await store.recordActions(fp.userId, fp.subject.id, [
+        { agent: "executive", kind: "escalate", summary: "Escalated principal to CRITICAL executive risk.", status: "completed" },
+      ]);
+      executiveEscalations += 1;
     }
 
     // 6b. Auto-file broker opt-outs for newly-discovered broker/public-record
@@ -276,6 +308,7 @@ export async function runScheduledCycle(
     removalsFiled,
     casesOpened,
     reputationCasesOpened,
+    executiveEscalations,
     mentionsCollected,
     domainRisksFound,
     ranAt: new Date().toISOString(),

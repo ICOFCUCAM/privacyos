@@ -64,6 +64,8 @@ export interface ScheduledRunSummary {
   casesOpened: number;
   /** Reputation-recovery cases auto-opened from negative/defamatory coverage. */
   reputationCasesOpened: number;
+  /** Times the principal was escalated to critical executive risk this cycle. */
+  executiveEscalations: number;
   mentionsCollected: number;
   domainRisksFound: number;
   ranAt: string;

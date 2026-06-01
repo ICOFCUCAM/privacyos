@@ -240,6 +240,32 @@ describe("runScheduledCycle", () => {
     expect(notif!.riskLevel).toBe("high");
   });
 
+  it("escalates the principal to critical executive risk on critical physical threats", async () => {
+    const physicalSource: DiscoverySource = {
+      id: "phys", name: "Physical",
+      async scan({ subject }) {
+        const base = { subjectId: subject.id, source: "social_media" as const, detectedAt: new Date().toISOString(), acknowledged: false, riskLevel: "critical" as const };
+        return {
+          exposures: [],
+          threats: [
+            { id: `d-${subject.id}`, kind: "doxxing", title: "Home address doxxed", detail: "address posted", ...base },
+            { id: `l-${subject.id}`, kind: "location_exposure", title: "Live location leaked", detail: "geotag", ...base },
+          ],
+          log: ["physical threats"],
+        };
+      },
+    };
+    const store = new MemoryStore([{ userId: "u1", subject: subject("a", "u1"), exposures: [], threats: [] }]);
+    const summary = await runScheduledCycle(store, { sources: [physicalSource], provider: new MockProvider(), reputationSource: cleanRepSource, domainClient: domClient });
+
+    expect(summary.executiveEscalations).toBe(1);
+    const escalation = store.notifications.flat().find((n) => /Executive risk CRITICAL/.test(n.title));
+    expect(escalation).toBeTruthy();
+    expect(escalation!.riskLevel).toBe("critical");
+    // the Executive Agent recorded the escalation
+    expect(store.actions.flat().some((a) => a.agent === "executive" && a.kind === "escalate")).toBe(true);
+  });
+
   it("auto-files broker opt-outs for discovered broker exposures", async () => {
     const brokerSource: DiscoverySource = {
       id: "broker-test",

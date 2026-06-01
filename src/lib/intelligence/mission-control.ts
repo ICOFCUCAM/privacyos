@@ -25,6 +25,8 @@ export interface MissionInput {
   unresolvedExposures: number;
   /** Saved automations currently enabled. */
   enabledAutomations: number;
+  /** Executive Risk Score, 0–100 (higher = more at risk). */
+  executiveRisk: number;
 }
 
 export interface OperationalPosture {
@@ -36,12 +38,13 @@ export interface OperationalPosture {
   agentsActive: number;
   agentsTotal: number;
   itemsHandled: number;
+  executiveRisk: number;
 }
 
 const ACTIVE_AGENT_STATUSES = new Set(["running", "blocked"]);
 
 export function computePosture(input: MissionInput): OperationalPosture {
-  const { cases, threats, workflows, riskScore } = input;
+  const { cases, threats, workflows, riskScore, executiveRisk } = input;
   const agentsActive = input.agents.filter((a) => ACTIVE_AGENT_STATUSES.has(a.status)).length;
   const itemsHandled = input.agents.reduce((s, a) => s + a.itemsHandled, 0);
 
@@ -50,12 +53,14 @@ export function computePosture(input: MissionInput): OperationalPosture {
   if (cases.slaBreached > 0) criticalDrivers.push(`${cases.slaBreached} SLA breach${cases.slaBreached === 1 ? "" : "es"}`);
   if (threats.bySeverity.critical > 0) criticalDrivers.push(`${threats.bySeverity.critical} critical threat${threats.bySeverity.critical === 1 ? "" : "s"}`);
   if (workflows.escalated > 0) criticalDrivers.push(`${workflows.escalated} escalated workflow${workflows.escalated === 1 ? "" : "s"}`);
+  if (executiveRisk >= 75) criticalDrivers.push(`Executive risk critical (${executiveRisk})`);
 
   const elevatedDrivers: string[] = [];
   if (workflows.awaitingApproval > 0) elevatedDrivers.push(`${workflows.awaitingApproval} awaiting approval`);
   if (cases.slaAtRisk > 0) elevatedDrivers.push(`${cases.slaAtRisk} case${cases.slaAtRisk === 1 ? "" : "s"} near SLA`);
   if (threats.active > 0) elevatedDrivers.push(`${threats.active} active threat${threats.active === 1 ? "" : "s"}`);
   if (cases.open > 0) elevatedDrivers.push(`${cases.open} open case${cases.open === 1 ? "" : "s"}`);
+  if (executiveRisk >= 50 && executiveRisk < 75) elevatedDrivers.push(`Executive risk elevated (${executiveRisk})`);
 
   let level: PostureLevel;
   let drivers: string[];
@@ -76,7 +81,7 @@ export function computePosture(input: MissionInput): OperationalPosture {
     operational: "All systems operational — fleet on autopilot",
   }[level];
 
-  return { level, headline, drivers, riskScore, agentsActive, agentsTotal: input.agents.length, itemsHandled };
+  return { level, headline, drivers, riskScore, agentsActive, agentsTotal: input.agents.length, itemsHandled, executiveRisk };
 }
 
 /* ── Unified priority queue ──────────────────────────────────────────────── */

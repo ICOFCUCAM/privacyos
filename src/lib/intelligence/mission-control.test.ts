@@ -21,6 +21,7 @@ const base: MissionInput = {
   threats: { active: 0, total: 2, bySeverity: { low: 0, medium: 0, high: 0, critical: 0 }, agentsWorking: 0 },
   unresolvedExposures: 0,
   enabledAutomations: 3,
+  executiveRisk: 0,
 };
 
 describe("computePosture", () => {
@@ -42,6 +43,16 @@ describe("computePosture", () => {
     expect(computePosture({ ...base, cases: { ...base.cases, slaBreached: 1 } }).level).toBe("critical");
     expect(computePosture({ ...base, threats: { ...base.threats, bySeverity: { low: 0, medium: 0, high: 0, critical: 1 } } }).level).toBe("critical");
     expect(computePosture({ ...base, riskScore: 85 }).level).toBe("critical");
+  });
+
+  it("factors the Executive Risk Score into posture + drivers", () => {
+    const crit = computePosture({ ...base, executiveRisk: 82 });
+    expect(crit.level).toBe("critical");
+    expect(crit.drivers.join(" ")).toMatch(/Executive risk critical/);
+    expect(crit.executiveRisk).toBe(82);
+    const elev = computePosture({ ...base, executiveRisk: 60 });
+    expect(elev.level).toBe("elevated");
+    expect(elev.drivers.join(" ")).toMatch(/Executive risk elevated/);
   });
 });
 

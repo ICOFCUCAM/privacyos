@@ -11,11 +11,14 @@ import { buildWorkflows, workflowMetrics } from "@/lib/agents/workflows";
 import { caseQueue, summarizeCases } from "@/lib/intelligence/case-intel";
 import { summarizeThreats } from "@/lib/intelligence/threat-intel";
 import { listWorkflowDefinitions } from "@/lib/agents/workflow-store";
+import { getModuleData } from "@/lib/data/modules";
+import { executiveRiskIndices } from "@/lib/executive/os/risk-indices";
 import {
   buildPriorityQueue, computePosture, countUnresolvedExposures,
   type ActionKind, type ActionUrgency, type PostureLevel,
 } from "@/lib/intelligence/mission-control";
 import { cn, titleCase } from "@/lib/ui";
+import { Crown } from "lucide-react";
 
 export const metadata = { title: "Mission Control" };
 
@@ -51,6 +54,8 @@ export default async function MissionControlPage() {
   const definitions = await listWorkflowDefinitions();
   const enabledAutomations = definitions.filter((d) => d.enabled).length;
   const unresolvedExposures = countUnresolvedExposures(data.exposures.map((e) => e.status));
+  const { familyMembers, travelAlerts } = await getModuleData();
+  const execRisk = executiveRiskIndices({ exposures: data.exposures, threats: data.threats, family: familyMembers, travel: travelAlerts });
 
   const posture = computePosture({
     riskScore: data.riskScore.overall,
@@ -60,6 +65,7 @@ export default async function MissionControlPage() {
     threats: threatSummary,
     unresolvedExposures,
     enabledAutomations,
+    executiveRisk: execRisk.overall,
   });
   const queue = buildPriorityQueue(cases, workflows, data.threats);
 
@@ -94,8 +100,9 @@ export default async function MissionControlPage() {
       </div>
 
       {/* Top metrics */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Metric label="Risk score" value={String(posture.riskScore)} tone={posture.riskScore >= 80 ? "text-risk-high" : posture.riskScore >= 55 ? "text-risk-medium" : "text-risk-low"} icon={Gauge} href="/dashboard" />
+        <Metric label="Executive risk" value={String(execRisk.overall)} sub={`${titleCase(execRisk.band)} · ${posture.executiveRisk >= 75 ? "action now" : "principal"}`} tone={execRisk.overall >= 75 ? "text-risk-critical" : execRisk.overall >= 50 ? "text-risk-high" : execRisk.overall >= 25 ? "text-risk-medium" : "text-risk-low"} icon={Crown} href="/dashboard/executive" />
         <Metric label="Open cases" value={String(caseSummary.open)} sub={caseSummary.slaBreached > 0 ? `${caseSummary.slaBreached} SLA breached` : `${caseSummary.critical} critical`} tone="text-white" icon={FolderKanban} href="/dashboard/cases" />
         <Metric label="Active workflows" value={String(wfMetrics.active)} sub={wfMetrics.awaitingApproval > 0 ? `${wfMetrics.awaitingApproval} awaiting approval` : "fully autonomous"} tone="text-white" icon={GitBranch} href="/dashboard/workflows" />
         <Metric label="Active threats" value={String(threatSummary.active)} sub={`${threatSummary.bySeverity.critical} critical · ${threatSummary.bySeverity.high} high`} tone="text-white" icon={ShieldAlert} href="/dashboard/threats" />
