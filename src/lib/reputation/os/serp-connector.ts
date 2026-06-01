@@ -15,7 +15,7 @@ export interface SerpResult {
   domain: string;
 }
 
-export type SerpProvider = "bing" | "serper" | "none";
+export type SerpProvider = "olostep" | "bing" | "serper" | "none";
 
 export interface SerpResponse {
   results: SerpResult[];
@@ -134,6 +134,74 @@ export class BingSerpSource implements SerpSource {
   }
 }
 
+interface OlostepOrganic {
+  title?: string;
+  link?: string;
+  position?: number;
+}
+
+/** Parse Olostep's `json_content` (a stringified JSON) into its organic array. */
+export function parseOlostepOrganic(jsonContent: unknown): OlostepOrganic[] {
+  let obj: unknown = jsonContent;
+  if (typeof jsonContent === "string") {
+    try { obj = JSON.parse(jsonContent); } catch { return []; }
+  }
+  const organic = (obj as { organic?: unknown })?.organic;
+  return Array.isArray(organic) ? (organic as OlostepOrganic[]) : [];
+}
+
+/** Map Olostep google-search organic results into ranked SerpResults. */
+export function mapOlostepOrganic(organic: OlostepOrganic[], limit = 10): SerpResult[] {
+  return organic
+    .filter((o) => o.title && o.link)
+    .slice(0, limit)
+    .map((o, i) => ({
+      position: o.position ?? i + 1,
+      title: o.title!.trim(),
+      url: o.link!,
+      domain: domainOf(o.link!),
+    }));
+}
+
+/**
+ * Olostep web-data API — real Google SERP via the `@olostep/google-search`
+ * parser on the /v1/scrapes endpoint. Scraping a live page can take several
+ * seconds, so the timeout is longer than the other providers'.
+ */
+export class OlostepSerpSource implements SerpSource {
+  constructor(
+    private apiKey: string | undefined,
+    private fetchImpl: typeof fetch = fetch,
+  ) {}
+
+  async search(query: string, limit = 10): Promise<SerpResponse> {
+    if (!this.apiKey) return { results: [], live: false, provider: "olostep" };
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+    try {
+      const res = await this.fetchImpl("https://api.olostep.com/v1/scrapes", {
+        method: "POST",
+        signal: controller.signal,
+        headers: { Authorization: `Bearer ${this.apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url_to_scrape: `https://www.google.com/search?q=${encodeURIComponent(query)}&gl=us&hl=en`,
+          formats: ["json"],
+          parser: { id: "@olostep/google-search" },
+        }),
+      });
+      if (!res.ok) throw new Error(`Olostep ${res.status}`);
+      const data = (await res.json()) as { result?: { json_content?: unknown }; json_content?: unknown };
+      const content = data.result?.json_content ?? data.json_content;
+      const results = mapOlostepOrganic(parseOlostepOrganic(content), limit);
+      return { results, live: results.length > 0, provider: "olostep" };
+    } catch {
+      return { results: [], live: false, provider: "olostep" };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+}
+
 /** A no-op source used when no SERP provider is configured. */
 export class NoSerpSource implements SerpSource {
   async search(): Promise<SerpResponse> {
@@ -142,13 +210,14 @@ export class NoSerpSource implements SerpSource {
 }
 
 /**
- * Resolve the SERP source from the environment. Bing (Azure) is preferred when
- * configured, then Serper.dev; otherwise the deterministic model is used.
+ * Resolve the SERP source from the environment. Precedence: Olostep → Bing
+ * (Azure) → Serper.dev → the deterministic model.
  */
 export function resolveSerpSource(
   env: Record<string, string | undefined> = process.env,
   fetchImpl: typeof fetch = fetch,
 ): SerpSource {
+  if (env.OLOSTEP_API_KEY) return new OlostepSerpSource(env.OLOSTEP_API_KEY, fetchImpl);
   const bingKey = env.BING_SEARCH_API_KEY ?? env.BING_SEARCH_V7_SUBSCRIPTION_KEY;
   if (bingKey) return new BingSerpSource(bingKey, fetchImpl, env.BING_SEARCH_ENDPOINT ?? "https://api.bing.microsoft.com");
   if (env.SERPER_API_KEY) return new SerperSource(env.SERPER_API_KEY, fetchImpl);
