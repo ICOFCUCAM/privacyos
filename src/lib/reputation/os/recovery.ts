@@ -38,14 +38,19 @@ export interface RecoveryProgram {
   crisis: CrisisPlan;
 }
 
+/** The suppression tactics applied to a negative vs. defamatory asset. */
+export function suppressionTactics(defamatory: boolean): string[] {
+  return defamatory
+    ? ["Legal takedown / right-to-be-forgotten", "Counter-publish authoritative owned content", "Request de-indexing"]
+    : ["Publish higher-authority owned content", "Earn positive press to outrank", "Build backlinks to positive assets"];
+}
+
 export function suppressionPlan(mentions: Mention[]): SuppressionTarget[] {
   return mentions
     .filter((m) => m.sentiment === "negative" || m.isDefamatory)
     .sort((a, b) => (a.searchRank ?? 99) - (b.searchRank ?? 99))
     .map((m) => {
-      const tactics = m.isDefamatory
-        ? ["Legal takedown / right-to-be-forgotten", "Counter-publish authoritative owned content", "Request de-indexing"]
-        : ["Publish higher-authority owned content", "Earn positive press to outrank", "Build backlinks to positive assets"];
+      const tactics = suppressionTactics(m.isDefamatory);
       const current = m.searchRank ?? null;
       const projectedRank = Math.min(20, (current ?? 10) + (m.isDefamatory ? 9 : 6));
       return { title: m.title, source: m.sourceName, currentRank: current, defamatory: m.isDefamatory, tactics, projectedRank };

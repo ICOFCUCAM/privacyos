@@ -15,12 +15,14 @@ describe("shouldOpenReputationCase", () => {
 });
 
 describe("caseFromMention", () => {
-  it("routes to a reputation-recovery case for the Reputation Agent", () => {
+  it("routes to a reputation-recovery case for the Reputation Agent with an attached plan", () => {
     const c = caseFromMention(m({ isDefamatory: true }));
     expect(c.type).toBe("reputation_recovery");
     expect(c.assignedAgent).toBe("reputation");
     expect(c.title).toMatch(/Defamatory content/);
     expect(c.summary).toMatch(/takedown/i);
+    expect(c.summary).toMatch(/Recovery plan/); // generated plan attached
+    expect(c.summary).toMatch(/1\./); // numbered steps
   });
   it("escalates defamatory page-one results to critical", () => {
     expect(caseFromMention(m({ isDefamatory: true, searchRank: 2 })).riskLevel).toBe("critical");

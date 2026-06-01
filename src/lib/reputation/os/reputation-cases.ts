@@ -10,6 +10,7 @@
 import type { RiskLevel } from "@/lib/types";
 import type { SentimentLabel } from "@/lib/suite-types";
 import type { NewCaseFields } from "@/lib/agents/recommendation-routing";
+import { suppressionTactics } from "./recovery";
 
 export interface ReputationMentionLike {
   title: string;
@@ -32,10 +33,14 @@ function severityFor(m: ReputationMentionLike): RiskLevel {
 
 export function caseFromMention(m: ReputationMentionLike): NewCaseFields {
   const defamatory = m.isDefamatory;
+  // Attach the generated recovery plan so the case opens to ready-to-run steps.
+  const plan = suppressionTactics(defamatory)
+    .map((t, i) => `${i + 1}. ${t}`)
+    .join(" ");
   return {
     type: "reputation_recovery",
     title: `${defamatory ? "Defamatory content" : "Negative coverage"}: ${m.title}`,
-    summary: `${defamatory ? "Defamatory" : "Negative"} mention on ${m.sourceName}. Launch suppression${defamatory ? " and legal takedown" : ""} and reputation-repair workflow.`,
+    summary: `${defamatory ? "Defamatory" : "Negative"} mention on ${m.sourceName}. Recovery plan — ${plan} Then monitor rank recovery.`,
     riskLevel: severityFor(m),
     assignedAgent: "reputation",
   };

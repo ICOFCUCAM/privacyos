@@ -208,6 +208,20 @@ export async function runScheduledCycle(
           },
         ]);
         reputationCasesOpened += repCases.length;
+
+        // Notify on defamatory coverage, mirroring the critical-threat alert.
+        const defamatory = rep.mentions.filter((m) => m.isDefamatory);
+        if (defamatory.length > 0) {
+          await store.addNotifications(
+            fp.userId,
+            defamatory.map((m) => ({
+              kind: "incident" as const,
+              title: `Defamatory content detected: ${m.title}`,
+              body: `${m.sourceName} — a reputation-recovery case is open with a suppression & takedown plan.`,
+              riskLevel: "high" as const,
+            })),
+          );
+        }
       }
     } catch (err) {
       // Reputation collection is best-effort; never fail the whole cycle.

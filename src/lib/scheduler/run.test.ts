@@ -232,6 +232,11 @@ describe("runScheduledCycle", () => {
     const repCase = store.createdCases.find((c) => c.type === "reputation_recovery");
     expect(repCase).toBeTruthy();
     expect(repCase!.assignedAgent).toBe("reputation");
+    expect(repCase!.summary).toMatch(/Recovery plan/); // generated plan attached
+    // defamatory coverage raised an incident notification
+    const notif = store.notifications.flat().find((n) => /Defamatory content detected/.test(n.title));
+    expect(notif).toBeTruthy();
+    expect(notif!.riskLevel).toBe("high");
   });
 
   it("auto-files broker opt-outs for discovered broker exposures", async () => {
