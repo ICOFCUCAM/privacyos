@@ -1,8 +1,10 @@
-import { Newspaper, Users, FileText, Send } from "lucide-react";
+import { Newspaper, Users, FileText, Send, ExternalLink } from "lucide-react";
 import { Card, PageHeader, SectionTitle } from "@/components/ui";
 import { getDataSource } from "@/lib/data";
 import { getModuleData } from "@/lib/data/modules";
 import { mediaProgram } from "@/lib/reputation/os/media";
+import { resolveJournalists } from "@/lib/reputation/os/journalist-connector";
+import { cn, timeAgo } from "@/lib/ui";
 import { ReputationTabs } from "../tabs";
 
 export const metadata = { title: "Reputation — Media" };
@@ -11,6 +13,8 @@ export default async function MediaPage() {
   const { subject } = await (await getDataSource()).getDataset();
   const { mentions } = await getModuleData();
   const m = mediaProgram(subject, mentions);
+  // Phase 1: real outlets from coverage (GDELT) when available; else curated.
+  const { journalists, live: journalistsLive } = resolveJournalists(mentions, m.journalists);
 
   return (
     <div className="space-y-5">
@@ -39,15 +43,33 @@ export default async function MediaPage() {
 
         {/* Journalists */}
         <Card className="p-4">
-          <SectionTitle title="Journalist database" subtitle="Ranked by relevance to the beat" action={<Users className="h-4 w-4 text-slate-500" />} />
+          <SectionTitle
+            title="Journalist database"
+            subtitle="Ranked by relevance to the beat"
+            action={
+              <span className={cn("rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1", journalistsLive ? "bg-risk-low/10 text-risk-low ring-risk-low/30" : "bg-bg-elevated text-slate-400 ring-border")}>
+                {journalistsLive ? "From coverage" : "Curated"}
+              </span>
+            }
+          />
           <ul className="space-y-1.5">
-            {m.journalists.map((j, i) => (
-              <li key={i} className="flex items-center justify-between rounded-lg border border-border bg-bg-subtle/40 px-3 py-2">
-                <div>
-                  <p className="text-xs font-medium text-white">{j.name} · {j.outlet}</p>
-                  <p className="text-[10px] text-slate-500">{j.beat}</p>
+            {journalists.map((j, i) => (
+              <li key={i} className="flex items-center justify-between gap-2 rounded-lg border border-border bg-bg-subtle/40 px-3 py-2">
+                <div className="min-w-0">
+                  <p className="truncate text-xs font-medium text-white">{j.name} · {j.outlet}</p>
+                  <p className="text-[10px] text-slate-500">
+                    {j.beat}
+                    {j.recentAt && <> · covered {timeAgo(j.recentAt)}</>}
+                  </p>
                 </div>
-                <span className="text-xs font-semibold text-brand-fg">{j.relevance}</span>
+                <div className="flex shrink-0 items-center gap-2">
+                  {j.recentArticleUrl && (
+                    <a href={j.recentArticleUrl} target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-brand-fg" title="Recent article">
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  )}
+                  <span className="text-xs font-semibold text-brand-fg">{j.relevance}</span>
+                </div>
               </li>
             ))}
           </ul>
