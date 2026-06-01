@@ -8,6 +8,8 @@
  * (the report falls back to the inferred model). Fetch is injectable for tests.
  */
 
+import { fetchJsonWithTimeout } from "@/lib/net/keyed-fetch";
+
 export interface ResidenceSignals {
   /** A public property record exists for the address. */
   propertyRecordFound: boolean;
@@ -59,18 +61,16 @@ export class PropertyApiSource implements ResidenceSource {
 
   async lookup(address: string): Promise<{ signals: ResidenceSignals | null; live: boolean }> {
     if (!this.apiKey || !address) return { signals: null, live: false };
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 6000);
     try {
       const url = `${this.baseUrl}?address=${encodeURIComponent(address)}`;
-      const res = await this.fetchImpl(url, { headers: { apikey: this.apiKey, Accept: "application/json" }, signal: controller.signal });
-      if (!res.ok) throw new Error(`Property API ${res.status}`);
-      const data = (await res.json()) as { property?: AttomProperty[] };
+      const data = await fetchJsonWithTimeout<{ property?: AttomProperty[] }>(url, {
+        init: { headers: { apikey: this.apiKey, Accept: "application/json" } },
+        fetchImpl: this.fetchImpl,
+        label: "Property API",
+      });
       return { signals: mapPropertyResponse(data), live: true };
     } catch {
       return { signals: null, live: false };
-    } finally {
-      clearTimeout(timer);
     }
   }
 }

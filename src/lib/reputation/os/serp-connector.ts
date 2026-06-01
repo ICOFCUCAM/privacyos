@@ -8,6 +8,8 @@
  * for tests. Mirrors the news-connector / LLM-provider seams.
  */
 
+import { fetchJsonWithTimeout } from "@/lib/net/keyed-fetch";
+
 export interface SerpResult {
   position: number;
   title: string;
@@ -62,22 +64,20 @@ export class SerperSource implements SerpSource {
 
   async search(query: string, limit = 10): Promise<SerpResponse> {
     if (!this.apiKey) return { results: [], live: false, provider: "serper" };
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 5000);
     try {
-      const res = await this.fetchImpl("https://google.serper.dev/search", {
-        method: "POST",
-        signal: controller.signal,
-        headers: { "X-API-KEY": this.apiKey, "Content-Type": "application/json" },
-        body: JSON.stringify({ q: query, num: limit }),
+      const data = await fetchJsonWithTimeout<{ organic?: SerperOrganic[] }>("https://google.serper.dev/search", {
+        timeoutMs: 5000,
+        fetchImpl: this.fetchImpl,
+        label: "Serper",
+        init: {
+          method: "POST",
+          headers: { "X-API-KEY": this.apiKey, "Content-Type": "application/json" },
+          body: JSON.stringify({ q: query, num: limit }),
+        },
       });
-      if (!res.ok) throw new Error(`Serper ${res.status}`);
-      const data = (await res.json()) as { organic?: SerperOrganic[] };
       return { results: mapSerperOrganic(data.organic ?? [], limit), live: true, provider: "serper" };
     } catch {
       return { results: [], live: false, provider: "serper" };
-    } finally {
-      clearTimeout(timer);
     }
   }
 }
@@ -124,28 +124,26 @@ export class OlostepSerpSource implements SerpSource {
 
   async search(query: string, limit = 10): Promise<SerpResponse> {
     if (!this.apiKey) return { results: [], live: false, provider: "olostep" };
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 15000);
     try {
-      const res = await this.fetchImpl("https://api.olostep.com/v1/scrapes", {
-        method: "POST",
-        signal: controller.signal,
-        headers: { Authorization: `Bearer ${this.apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          url_to_scrape: `https://www.google.com/search?q=${encodeURIComponent(query)}&gl=us&hl=en`,
-          formats: ["json"],
-          parser: { id: "@olostep/google-search" },
-        }),
+      const data = await fetchJsonWithTimeout<{ result?: { json_content?: unknown }; json_content?: unknown }>("https://api.olostep.com/v1/scrapes", {
+        timeoutMs: 15000,
+        fetchImpl: this.fetchImpl,
+        label: "Olostep",
+        init: {
+          method: "POST",
+          headers: { Authorization: `Bearer ${this.apiKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            url_to_scrape: `https://www.google.com/search?q=${encodeURIComponent(query)}&gl=us&hl=en`,
+            formats: ["json"],
+            parser: { id: "@olostep/google-search" },
+          }),
+        },
       });
-      if (!res.ok) throw new Error(`Olostep ${res.status}`);
-      const data = (await res.json()) as { result?: { json_content?: unknown }; json_content?: unknown };
       const content = data.result?.json_content ?? data.json_content;
       const results = mapOlostepOrganic(parseOlostepOrganic(content), limit);
       return { results, live: results.length > 0, provider: "olostep" };
     } catch {
       return { results: [], live: false, provider: "olostep" };
-    } finally {
-      clearTimeout(timer);
     }
   }
 }

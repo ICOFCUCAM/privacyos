@@ -7,6 +7,8 @@
  * falls back to its deterministic list. Fetch is injectable for tests.
  */
 
+import { fetchJsonWithTimeout } from "@/lib/net/keyed-fetch";
+
 export interface PodcastResult {
   name: string;
   publisher: string;
@@ -45,18 +47,12 @@ export class ItunesPodcastSource implements PodcastSource {
     const url =
       `https://itunes.apple.com/search?media=podcast&limit=${limit}` +
       `&term=${encodeURIComponent(term)}`;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 5000);
     try {
-      const res = await this.fetchImpl(url, { signal: controller.signal });
-      if (!res.ok) throw new Error(`iTunes ${res.status}`);
-      const data = (await res.json()) as { results?: ItunesPodcast[] };
+      const data = await fetchJsonWithTimeout<{ results?: ItunesPodcast[] }>(url, { timeoutMs: 5000, fetchImpl: this.fetchImpl, label: "iTunes" });
       const podcasts = mapItunesPodcasts(data.results ?? [], limit);
       return { podcasts, live: podcasts.length > 0 };
     } catch {
       return { podcasts: [], live: false };
-    } finally {
-      clearTimeout(timer);
     }
   }
 }

@@ -8,6 +8,8 @@
  * docs/reputation-journalist-integration.md.
  */
 
+import { fetchJsonWithTimeout } from "@/lib/net/keyed-fetch";
+
 export interface HunterContact {
   email: string;
   firstName?: string;
@@ -51,18 +53,12 @@ export class HunterApiSource implements HunterSource {
 
   async findContacts(domain: string, limit = 5): Promise<{ contacts: HunterContact[]; live: boolean }> {
     if (!this.apiKey || !domain) return { contacts: [], live: false };
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 6000);
     try {
       const url = `https://api.hunter.io/v2/domain-search?domain=${encodeURIComponent(domain)}&limit=${limit}&api_key=${encodeURIComponent(this.apiKey)}`;
-      const res = await this.fetchImpl(url, { signal: controller.signal });
-      if (!res.ok) throw new Error(`Hunter ${res.status}`);
-      const data = (await res.json()) as { data?: { emails?: HunterEmail[] } };
+      const data = await fetchJsonWithTimeout<{ data?: { emails?: HunterEmail[] } }>(url, { fetchImpl: this.fetchImpl, label: "Hunter" });
       return { contacts: mapHunterDomainSearch(data, limit), live: true };
     } catch {
       return { contacts: [], live: false };
-    } finally {
-      clearTimeout(timer);
     }
   }
 }
