@@ -11,6 +11,7 @@
 
 import type { Mention } from "@/lib/suite-types";
 import type { Journalist } from "./media";
+import { bestContact, type HunterContact } from "./hunter-connector";
 
 const DAY = 86_400_000;
 
@@ -21,6 +22,10 @@ export interface JournalistRecord extends Journalist {
   recentArticleTitle?: string;
   recentArticleUrl?: string;
   recentAt?: string;
+  /** Phase 2 — real contact from Hunter.io. */
+  email?: string;
+  contactName?: string;
+  contactConfidence?: number;
 }
 
 interface OutletGroup {
@@ -69,6 +74,21 @@ export function journalistsFromCoverage(mentions: Mention[], limit = 8, now = Da
     })
     .sort((a, b) => b.relevance - a.relevance)
     .slice(0, limit);
+}
+
+/** Attach the best real contact (from Hunter) to a journalist record. */
+export function attachContact(j: JournalistRecord, contacts: HunterContact[]): JournalistRecord {
+  const c = bestContact(contacts);
+  if (!c) return j;
+  const name = [c.firstName, c.lastName].filter(Boolean).join(" ") || undefined;
+  return {
+    ...j,
+    email: c.email,
+    contactName: name,
+    contactConfidence: c.confidence,
+    // Promote the desk record to the named person when Hunter has one.
+    name: name ? `${name}${c.position ? ` · ${c.position}` : ""}` : j.name,
+  };
 }
 
 /**

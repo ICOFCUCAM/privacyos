@@ -3,7 +3,8 @@ import { Card, PageHeader, SectionTitle } from "@/components/ui";
 import { getDataSource } from "@/lib/data";
 import { getModuleData } from "@/lib/data/modules";
 import { mediaProgram } from "@/lib/reputation/os/media";
-import { resolveJournalists } from "@/lib/reputation/os/journalist-connector";
+import { resolveJournalists, attachContact } from "@/lib/reputation/os/journalist-connector";
+import { getContacts } from "@/lib/reputation/os/contact-cache";
 import { cn, timeAgo } from "@/lib/ui";
 import { ReputationTabs } from "../tabs";
 
@@ -14,7 +15,14 @@ export default async function MediaPage() {
   const { mentions } = await getModuleData();
   const m = mediaProgram(subject, mentions);
   // Phase 1: real outlets from coverage (GDELT) when available; else curated.
-  const { journalists, live: journalistsLive } = resolveJournalists(mentions, m.journalists);
+  const { journalists: discovered, live: journalistsLive } = resolveJournalists(mentions, m.journalists);
+  // Phase 2: enrich the top coverage outlets with real contacts (Hunter, cached).
+  // No-op (zero cost) until HUNTER_API_KEY is set.
+  const journalists = await Promise.all(
+    discovered.map(async (j, i) =>
+      i < 3 && j.provider === "coverage" ? attachContact(j, (await getContacts(j.outlet)).contacts) : j,
+    ),
+  );
 
   return (
     <div className="space-y-5">
@@ -61,6 +69,11 @@ export default async function MediaPage() {
                     {j.beat}
                     {j.recentAt && <> · covered {timeAgo(j.recentAt)}</>}
                   </p>
+                  {j.email && (
+                    <a href={`mailto:${j.email}`} className="truncate text-[10px] font-medium text-brand-fg hover:underline">
+                      {j.email}{typeof j.contactConfidence === "number" && <span className="text-slate-500"> · {j.contactConfidence}% verified</span>}
+                    </a>
+                  )}
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   {j.recentArticleUrl && (
