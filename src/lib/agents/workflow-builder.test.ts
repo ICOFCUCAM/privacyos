@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
-  addStep, describeTrigger, emptyWorkflow, flowPreview, moveStep, removeStep,
-  validateWorkflow, type WorkflowDefinition, type WorkflowStepDef,
+  addStep, describeTrigger, describeStep, emptyWorkflow, flowPreview, moveStep, removeStep,
+  validateWorkflow, simulateRun, STEP_CATALOG, type WorkflowDefinition, type WorkflowStepDef,
 } from "./workflow-builder";
 
 const step = (over: Partial<WorkflowStepDef>): WorkflowStepDef => ({
@@ -60,6 +60,71 @@ describe("validateWorkflow", () => {
   it("requires a positive threshold for score triggers", () => {
     const r = validateWorkflow(wf({ trigger: { kind: "score_above", threshold: 0 }, steps: [step({})] }));
     expect(r.valid).toBe(false);
+  });
+});
+
+describe("expanded blocks", () => {
+  it("describes the new triggers", () => {
+    expect(describeTrigger({ kind: "scheduled", cadence: "every 6h" })).toMatch(/schedule.*every 6h/);
+    expect(describeTrigger({ kind: "case_opened" })).toBe("Case opened");
+    expect(describeTrigger({ kind: "incident_raised", minRisk: "critical" })).toMatch(/Incident raised.*Critical/);
+  });
+
+  it("validates condition / webhook / wait blocks", () => {
+    expect(validateWorkflow(wf({ steps: [step({ type: "condition", condition: undefined })] })).valid).toBe(false);
+    expect(validateWorkflow(wf({ steps: [step({ type: "webhook", url: "" })] })).valid).toBe(false);
+    expect(validateWorkflow(wf({ steps: [step({ type: "wait", delayHours: 0 })] })).valid).toBe(false);
+    expect(validateWorkflow(wf({ steps: [step({ type: "wait", delayHours: 24 })] })).valid).toBe(true);
+  });
+
+  it("describeStep falls back to a generated label per type", () => {
+    expect(describeStep(step({ type: "condition", label: "", condition: { field: "risk", op: "gte", value: "critical" } }))).toMatch(/If risk ≥ critical/);
+    expect(describeStep(step({ type: "wait", label: "", delayHours: 48 }))).toMatch(/Wait 48h/);
+  });
+
+  it("STEP_CATALOG covers every step type with a category", () => {
+    for (const meta of Object.values(STEP_CATALOG)) {
+      expect(["action", "logic", "human", "integration"]).toContain(meta.category);
+    }
+  });
+});
+
+describe("simulateRun (dry-run)", () => {
+  it("stops at a failed condition, skips the rest", () => {
+    const def = wf({ steps: [
+      step({ id: "c", type: "condition", label: "If critical", condition: { field: "risk", op: "gte", value: "critical" }, onFalse: "stop" }),
+      step({ id: "a", type: "agent", agent: "security", label: "Rotate" }),
+    ] });
+    const low = simulateRun(def, { risk: "medium" });
+    expect(low.steps[0].outcome).toBe("stopped");
+    expect(low.steps[1].outcome).toBe("skipped");
+    expect(low.stoppedAt).toBe(0);
+
+    const crit = simulateRun(def, { risk: "critical" });
+    expect(crit.steps[0].outcome).toBe("run");
+    expect(crit.steps[1].outcome).toBe("run");
+    expect(crit.stoppedAt).toBeNull();
+  });
+
+  it("marks approval as paused and wait as waited", () => {
+    const def = wf({ steps: [
+      step({ id: "d", type: "decision", agent: undefined, label: "Approve" }),
+      step({ id: "w", type: "wait", agent: undefined, label: "Cooldown", delayHours: 12 }),
+    ] });
+    const r = simulateRun(def, { risk: "high" });
+    expect(r.steps[0].outcome).toBe("paused");
+    expect(r.steps[1].outcome).toBe("waited");
+    expect(r.reached).toBe(2);
+  });
+
+  it("continue-on-false keeps running", () => {
+    const def = wf({ steps: [
+      step({ id: "c", type: "condition", label: "maybe", condition: { field: "source", op: "contains", value: "dark" }, onFalse: "continue" }),
+      step({ id: "a", type: "agent", agent: "security", label: "Act" }),
+    ] });
+    const r = simulateRun(def, { source: "social_media" });
+    expect(r.steps[0].outcome).toBe("run");
+    expect(r.steps[1].outcome).toBe("run");
   });
 });
 

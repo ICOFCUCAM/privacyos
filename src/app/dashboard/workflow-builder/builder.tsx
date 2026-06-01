@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   Plus, Trash2, ArrowUp, ArrowDown, Bot, GitFork, Bell, FileText,
   Save, Power, PowerOff, Pencil, AlertTriangle, ArrowRight, Zap,
+  Filter, FolderKanban, Webhook, Clock,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Card, SectionTitle } from "@/components/ui";
@@ -19,9 +20,14 @@ import { deleteWorkflowAction, saveWorkflowAction, toggleWorkflowAction } from "
 
 const STEP_META: Record<StepType, { label: string; icon: LucideIcon; hint: string }> = {
   agent: { label: "Agent action", icon: Bot, hint: "An agent executes a task" },
-  decision: { label: "Decision gate", icon: GitFork, hint: "Branch / hold for approval" },
+  condition: { label: "Condition", icon: Filter, hint: "Continue only if a predicate holds" },
+  decision: { label: "Human approval", icon: GitFork, hint: "Hold for human approval" },
   notify: { label: "Notify", icon: Bell, hint: "Alert the user or team" },
+  case: { label: "Open case", icon: FolderKanban, hint: "Open a tracked case" },
+  takedown: { label: "File takedown", icon: Trash2, hint: "Route a takedown / opt-out" },
   report: { label: "Report", icon: FileText, hint: "Generate a record" },
+  webhook: { label: "Webhook", icon: Webhook, hint: "Call an external system" },
+  wait: { label: "Wait", icon: Clock, hint: "Pause for a delay" },
 };
 
 const TRIGGERS: { kind: TriggerKind; label: string }[] = [

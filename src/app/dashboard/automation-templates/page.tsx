@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   LayoutTemplate, Sparkles, ArrowRight, ArrowDownRight, Plus, Bot, GitFork, Bell, FileText,
+  Filter, FolderKanban, Trash2, Webhook, Clock,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Card, PageHeader, SectionTitle } from "@/components/ui";
@@ -16,6 +17,7 @@ export const metadata = { title: "Automation Templates" };
 
 const STEP_ICON: Record<StepType, LucideIcon> = {
   agent: Bot, decision: GitFork, notify: Bell, report: FileText,
+  condition: Filter, case: FolderKanban, takedown: Trash2, webhook: Webhook, wait: Clock,
 };
 
 export default function AutomationTemplatesPage() {
