@@ -3,7 +3,8 @@ import type { LucideIcon } from "lucide-react";
 import { Card, PageHeader, SectionTitle } from "@/components/ui";
 import { getDataSource } from "@/lib/data";
 import { getModuleData } from "@/lib/data/modules";
-import { seoProfile, type RankTrend, type ResultSentiment } from "@/lib/reputation/os/seo";
+import { seoProfile, classifyPageOne, type RankTrend, type ResultSentiment } from "@/lib/reputation/os/seo";
+import { resolveSerpSource } from "@/lib/reputation/os/serp-connector";
 import { cn } from "@/lib/ui";
 import { ReputationTabs } from "../tabs";
 
@@ -24,23 +25,37 @@ export default async function SeoPage() {
   const { mentions } = await getModuleData();
   const seo = seoProfile(subject, mentions);
 
+  // Live Google rankings via Serper when SERPER_API_KEY is set; else the model.
+  const { results, live } = await resolveSerpSource().search(subject.displayName, 10);
+  const pageOne = live && results.length ? classifyPageOne(subject, mentions, results) : seo.pageOne;
+  const onTarget = seo.keywords.filter((k) => k.rank <= k.target).length;
+  const health = Math.max(0, Math.min(100, Math.round(pageOne.dominance * 0.6 + (onTarget / seo.keywords.length) * 40)));
+
   return (
     <div className="space-y-5">
       <PageHeader icon={Search} title="Search & SEO" subtitle="Keyword ranking, page-one dominance and competitive visibility for the principal's name." />
       <ReputationTabs />
 
       <div className="grid grid-cols-3 gap-3">
-        <Stat label="SEO health" value={`${seo.health}`} tone={seo.health >= 70 ? "text-risk-low" : seo.health >= 45 ? "text-risk-medium" : "text-risk-high"} />
-        <Stat label="Page-one dominance" value={`${seo.pageOne.dominance}%`} tone="text-white" />
-        <Stat label="Negative results" value={`${seo.pageOne.negative}`} tone={seo.pageOne.negative > 0 ? "text-risk-high" : "text-risk-low"} />
+        <Stat label="SEO health" value={`${health}`} tone={health >= 70 ? "text-risk-low" : health >= 45 ? "text-risk-medium" : "text-risk-high"} />
+        <Stat label="Page-one dominance" value={`${pageOne.dominance}%`} tone="text-white" />
+        <Stat label="Negative results" value={`${pageOne.negative}`} tone={pageOne.negative > 0 ? "text-risk-high" : "text-risk-low"} />
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">
         {/* Page one */}
         <Card className="p-4">
-          <SectionTitle title="Page-one dominance" subtitle="Top 10 search results for the principal's name" />
+          <SectionTitle
+            title="Page-one dominance"
+            subtitle="Top 10 search results for the principal's name"
+            action={
+              <span className={cn("rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1", live ? "bg-risk-low/10 text-risk-low ring-risk-low/30" : "bg-bg-elevated text-slate-400 ring-border")}>
+                {live ? "Live · Google" : "Modeled"}
+              </span>
+            }
+          />
           <ol className="space-y-1.5">
-            {seo.pageOne.slots.map((slot) => (
+            {pageOne.slots.map((slot) => (
               <li key={slot.position} className="flex items-center gap-2.5">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-bg-elevated text-[11px] font-bold text-slate-400">{slot.position}</span>
                 <span className="min-w-0 flex-1 truncate text-xs text-slate-300">{slot.title}</span>

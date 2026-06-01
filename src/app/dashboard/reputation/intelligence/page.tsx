@@ -2,7 +2,8 @@ import { Sparkles, Users, Handshake, Mic, Headphones } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Card, PageHeader, SectionTitle } from "@/components/ui";
 import { getDataSource } from "@/lib/data";
-import { discoverOpportunities, summarizeOpportunities, opportunityLabel, type OpportunityType } from "@/lib/reputation/os/intelligence";
+import { discoverOpportunities, podcastOpportunities, summarizeOpportunities, opportunityLabel, type OpportunityType } from "@/lib/reputation/os/intelligence";
+import { resolvePodcastSource } from "@/lib/reputation/os/podcast-connector";
 import { cn } from "@/lib/ui";
 import { ReputationTabs } from "../tabs";
 
@@ -14,7 +15,9 @@ const TYPE_ICON: Record<OpportunityType, LucideIcon> = {
 
 export default async function IntelligencePage() {
   const { subject } = await (await getDataSource()).getDataset();
-  const opportunities = discoverOpportunities(subject);
+  // Live podcasts via the keyless iTunes Search API; deterministic fallback.
+  const { podcasts, live } = await resolvePodcastSource().search(subject.organization ?? "leadership", 6);
+  const opportunities = discoverOpportunities(subject, podcastOpportunities(podcasts));
   const summary = summarizeOpportunities(opportunities);
 
   return (
@@ -38,7 +41,15 @@ export default async function IntelligencePage() {
       </div>
 
       <Card className="p-4">
-        <SectionTitle title="Discovered opportunities" subtitle={`${summary.total} opportunities · top fit ${summary.topFit}%`} />
+        <SectionTitle
+          title="Discovered opportunities"
+          subtitle={`${summary.total} opportunities · top fit ${summary.topFit}%`}
+          action={
+            <span className={cn("rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1", live ? "bg-risk-low/10 text-risk-low ring-risk-low/30" : "bg-bg-elevated text-slate-400 ring-border")}>
+              {live ? "Podcasts · Live" : "Modeled"}
+            </span>
+          }
+        />
         <div className="space-y-2">
           {opportunities.map((o, i) => {
             const Icon = TYPE_ICON[o.type];

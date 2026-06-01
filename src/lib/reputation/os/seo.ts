@@ -8,6 +8,7 @@
 
 import type { Subject } from "@/lib/types";
 import type { Mention } from "@/lib/suite-types";
+import type { SerpResult } from "./serp-connector";
 
 export type RankTrend = "up" | "down" | "flat";
 
@@ -86,6 +87,47 @@ export function pageOneDominance(subject: Subject, mentions: Mention[]): PageOne
   const positive = slots.filter((s) => s.sentiment === "positive").length;
   const negative = slots.filter((s) => s.sentiment === "negative").length;
   const dominance = Math.round(((owned + positive) / 10) * 100);
+  return { slots, owned, positive, negative, dominance };
+}
+
+function orgSlug(subject: Subject): string {
+  return (subject.organization ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+const OWNED_HOSTS = ["linkedin.com", "twitter.com", "x.com", "crunchbase.com"];
+
+/**
+ * Build page-one dominance from real SERP results, classifying each position by
+ * cross-referencing the subject's known mentions (a result matching a negative
+ * mention is negative; a positive mention positive) and owned profiles. This is
+ * live search data enriched with the platform's own reputation signal.
+ */
+export function classifyPageOne(subject: Subject, mentions: Mention[], results: SerpResult[]): PageOneDominance {
+  const slug = orgSlug(subject);
+  const byDomain = new Map<string, Mention>();
+  for (const m of mentions) {
+    if (m.url) {
+      try { byDomain.set(new URL(m.url).hostname.replace(/^www\./, ""), m); } catch { /* ignore */ }
+    }
+  }
+
+  const slots: PageOneSlot[] = results.slice(0, 10).map((r) => {
+    const m = byDomain.get(r.domain);
+    let sentiment: ResultSentiment;
+    if (m) {
+      sentiment = m.sentiment === "negative" ? "negative" : m.sentiment === "positive" ? "positive" : "neutral";
+    } else if ((slug && r.domain.includes(slug)) || OWNED_HOSTS.some((h) => r.domain.endsWith(h))) {
+      sentiment = "owned";
+    } else {
+      sentiment = "neutral";
+    }
+    return { position: r.position, title: `${r.domain}: ${r.title}`, sentiment };
+  });
+
+  const owned = slots.filter((s) => s.sentiment === "owned").length;
+  const positive = slots.filter((s) => s.sentiment === "positive").length;
+  const negative = slots.filter((s) => s.sentiment === "negative").length;
+  const dominance = slots.length === 0 ? 0 : Math.round(((owned + positive) / slots.length) * 100);
   return { slots, owned, positive, negative, dominance };
 }
 
