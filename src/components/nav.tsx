@@ -9,7 +9,7 @@ import {
   Trash2, ScrollText, Settings, Lock, Users2, TrendingUp, Workflow, BadgeCheck, GitBranch, Blocks,
   LayoutTemplate, Gauge, FileLock2,
   Search, Newspaper, LifeBuoy, Share2, Rocket,
-  Home, UserX, Crosshair, LayoutGrid, VenetianMask, EyeOff, Target,
+  Home, UserX, Crosshair, LayoutGrid, VenetianMask, EyeOff, Target, Fingerprint,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/ui";
@@ -31,6 +31,7 @@ export const navGroups: NavGroup[] = [
     items: [
       { href: "/dashboard/assistant", label: "AI Assistant", icon: MessageSquareHeart },
       { href: "/dashboard/exposures", label: "Exposure Inventory", icon: Radar },
+      { href: "/dashboard/identity", label: "Digital Identity", icon: Fingerprint },
       { href: "/dashboard/removals", label: "Broker Removals", icon: Trash2 },
       { href: "/dashboard/threats", label: "Threat Feed", icon: ShieldAlert },
       { href: "/dashboard/cases", label: "Active Cases", icon: FolderKanban },
