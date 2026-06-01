@@ -62,6 +62,8 @@ export interface ScheduledRunSummary {
   removalsFiled: number;
   /** Cases auto-opened from new high/critical threats this cycle. */
   casesOpened: number;
+  /** Reputation-recovery cases auto-opened from negative/defamatory coverage. */
+  reputationCasesOpened: number;
   mentionsCollected: number;
   domainRisksFound: number;
   ranAt: string;

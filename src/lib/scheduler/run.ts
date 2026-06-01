@@ -18,6 +18,7 @@ import { computeRiskScore } from "@/lib/scoring/risk-score";
 import { advanceRemoval, shouldReappear } from "@/lib/brokers/removal";
 import { planAutoFilings } from "@/lib/brokers/auto-file";
 import { casesForNewThreats } from "@/lib/agents/threat-cases";
+import { reputationCasesFromMentions } from "@/lib/reputation/os/reputation-cases";
 import { investigationTimeline } from "@/lib/intelligence/threat-intel";
 import { collectReputation, type MentionSource } from "@/lib/reputation/collect";
 import { scanDomain } from "@/lib/domains/scan";
@@ -51,6 +52,7 @@ export async function runScheduledCycle(
   let recommendations = 0;
   let removalsFiled = 0;
   let casesOpened = 0;
+  let reputationCasesOpened = 0;
   let mentionsCollected = 0;
   let domainRisksFound = 0;
 
@@ -190,6 +192,23 @@ export async function runScheduledCycle(
         },
       ]);
       mentionsCollected += rep.mentions.length;
+
+      // Auto-open a reputation-recovery case for defamatory / strongly-negative
+      // coverage, so suppression & repair fire autonomously (deduped by title).
+      const repOpenTitles = await store.listOpenCaseTitlesForSubject(fp.subject.id);
+      const repCases = reputationCasesFromMentions(rep.mentions, repOpenTitles);
+      if (repCases.length > 0) {
+        await store.createCases(fp.userId, fp.subject.id, repCases);
+        await store.recordActions(fp.userId, fp.subject.id, [
+          {
+            agent: "reputation",
+            kind: "escalate",
+            summary: `Opened ${repCases.length} reputation-recovery case(s) from negative/defamatory coverage.`,
+            status: "completed",
+          },
+        ]);
+        reputationCasesOpened += repCases.length;
+      }
     } catch (err) {
       // Reputation collection is best-effort; never fail the whole cycle.
       console.error("[privacyos] reputation collection failed:", err);
@@ -236,6 +255,7 @@ export async function runScheduledCycle(
     removalsAdvanced,
     removalsFiled,
     casesOpened,
+    reputationCasesOpened,
     mentionsCollected,
     domainRisksFound,
     ranAt: new Date().toISOString(),

@@ -117,6 +117,30 @@ const repSource: MentionSource = {
   },
 };
 
+// Positive-only reputation source — never opens a reputation case.
+const cleanRepSource: MentionSource = {
+  async fetch() {
+    return {
+      live: false,
+      mentions: [
+        { channel: "news", sourceName: "x.com", url: "c1", title: "Acme wins award", excerpt: "Acme wins a great award", detectedAt: "2026-01-02T00:00:00Z" },
+      ],
+    };
+  },
+};
+
+// Defamatory reputation source — should auto-open a reputation-recovery case.
+const defamatoryRepSource: MentionSource = {
+  async fetch() {
+    return {
+      live: false,
+      mentions: [
+        { channel: "news", sourceName: "bad.com", url: "d1", title: "Acme accused of fraud", excerpt: "Report alleges fraud and scam at Acme", detectedAt: "2026-01-02T00:00:00Z" },
+      ],
+    };
+  },
+};
+
 // A deterministic source that always yields one fresh critical threat.
 const critSource: DiscoverySource = {
   id: "test",
@@ -156,7 +180,7 @@ describe("runScheduledCycle", () => {
     const summary = await runScheduledCycle(store, {
       sources: [critSource],
       provider: new MockProvider(),
-      reputationSource: repSource,
+      reputationSource: cleanRepSource,
       domainClient: domClient,
     });
 
@@ -187,11 +211,27 @@ describe("runScheduledCycle", () => {
     const summary = await runScheduledCycle(store, {
       sources: [critSource],
       provider: new MockProvider(),
-      reputationSource: repSource,
+      reputationSource: cleanRepSource,
       domainClient: domClient,
     });
     expect(summary.casesOpened).toBe(0);
     expect(store.createdCases).toHaveLength(0);
+  });
+
+  it("auto-opens a reputation-recovery case from defamatory coverage", async () => {
+    const store = new MemoryStore([
+      { userId: "u1", subject: subject("a", "u1"), exposures: [], threats: [] },
+    ]);
+    const summary = await runScheduledCycle(store, {
+      sources: [],
+      provider: new MockProvider(),
+      reputationSource: defamatoryRepSource,
+      domainClient: domClient,
+    });
+    expect(summary.reputationCasesOpened).toBe(1);
+    const repCase = store.createdCases.find((c) => c.type === "reputation_recovery");
+    expect(repCase).toBeTruthy();
+    expect(repCase!.assignedAgent).toBe("reputation");
   });
 
   it("auto-files broker opt-outs for discovered broker exposures", async () => {
