@@ -19,6 +19,7 @@ import {
 } from "@/lib/family/os/family-os";
 import { assessTrips } from "@/lib/intelligence/travel-risk";
 import { tripPhase, destinationIntel, travelReadiness, travelOverview } from "@/lib/travel/os/travel-os";
+import { brandRiskIndices, brandImpersonation, BRAND_INDEX_META } from "@/lib/business/os/brand-os";
 import { titleCase } from "@/lib/ui";
 import type { ReportContext } from "./engine";
 import type { ReportType } from "@/lib/suite-types";
@@ -169,20 +170,26 @@ export async function buildReportContext(type: ReportType): Promise<ReportContex
         ],
       };
     }
-    case "business":
+    case "business": {
+      const brandInput = { domainRisks: mod.domainRisks, employeeExposures: mod.employeeExposures, thirdPartyRisks: mod.thirdPartyRisks, credentialLeaks: mod.credentialLeaks };
+      const brand = brandRiskIndices(brandInput);
+      const impersonation = brandImpersonation(mod.domainRisks).filter((d) => !d.resolved);
       return {
         ...base,
         stats: [
+          { label: "Brand Risk Score", value: `${brand.overall}/100` },
           { label: "Credential leaks", value: mod.credentialLeaks.length },
-          { label: "Employee exposures", value: mod.employeeExposures.length },
           { label: "Domain risks", value: mod.domainRisks.filter((d) => !d.resolved).length },
-          { label: "3rd-party risks", value: mod.thirdPartyRisks.length },
+          { label: "Impersonation domains", value: impersonation.length },
         ],
         sections: [
+          { heading: "Brand risk indices", rows: BRAND_INDEX_META.map((m) => ({ label: m.label, value: `${brand[m.key]}/100` })) },
+          { heading: "Brand impersonation", rows: impersonation.length ? impersonation.map((d) => ({ label: d.domain, value: `${titleCase(d.kind)} · ${titleCase(d.riskLevel)}` })) : [{ label: "None active", value: "No lookalike/phishing domains" }] },
           { heading: "Credential leaks", rows: mod.credentialLeaks.map((l) => ({ label: l.account, value: `${l.breachName} · ${titleCase(l.riskLevel)}` })) },
           { heading: "Domain risks", rows: mod.domainRisks.map((d) => ({ label: d.domain, value: `${titleCase(d.kind)} · ${titleCase(d.riskLevel)}` })) },
         ],
       };
+    }
     case "threat":
       return {
         ...base,

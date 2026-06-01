@@ -25,6 +25,16 @@ describe("buildReportContext — executive", () => {
   });
 });
 
+describe("buildReportContext — business", () => {
+  it("leads with the Brand Risk Score and brand impersonation", async () => {
+    const ctx = await buildReportContext("business");
+    expect(ctx.stats[0].label).toBe("Brand Risk Score");
+    const headings = ctx.sections.map((s) => s.heading);
+    expect(headings).toContain("Brand risk indices");
+    expect(headings).toContain("Brand impersonation");
+  });
+});
+
 describe("buildReportContext — travel", () => {
   it("renders destination intelligence, readiness and itinerary", async () => {
     const ctx = await buildReportContext("travel");
