@@ -141,6 +141,34 @@ describe("simulateRun (dry-run)", () => {
     expect(r.reached).toBe(2);
   });
 
+  it("evaluates the Layer-5 operators (>, =, exists)", () => {
+    // IF Risk(score) > 80 THEN escalate
+    const gt = wf({ steps: [
+      step({ id: "c", type: "condition", label: "score>80", condition: { field: "score", op: "gt", value: "80" }, onFalse: "stop" }),
+      step({ id: "e", type: "agent", agent: "incident", label: "Escalate" }),
+    ] });
+    expect(simulateRun(gt, { score: 85 }).steps[1].outcome).toBe("run");
+    expect(simulateRun(gt, { score: 80 }).steps[1].outcome).toBe("skipped"); // strict >
+    expect(simulateRun(gt, { score: 70 }).steps[0].outcome).toBe("stopped");
+
+    // IF Severity = Critical THEN open case
+    const eq = wf({ steps: [
+      step({ id: "c", type: "condition", label: "sev=crit", condition: { field: "risk", op: "eq", value: "critical" }, onFalse: "stop" }),
+      step({ id: "k", type: "case", agent: undefined, label: "Open case" }),
+    ] });
+    expect(simulateRun(eq, { risk: "critical" }).steps[1].outcome).toBe("run");
+    expect(simulateRun(eq, { risk: "high" }).steps[1].outcome).toBe("skipped");
+
+    // IF Domain Risk Exists THEN scan  (exists needs no value)
+    const ex = wf({ steps: [
+      step({ id: "c", type: "condition", label: "domain exists", condition: { field: "source", op: "exists", value: "" }, onFalse: "stop" }),
+      step({ id: "s", type: "agent", agent: "discovery", label: "Launch domain scan" }),
+    ] });
+    expect(validateWorkflow(ex).valid).toBe(true); // exists doesn't require a value
+    expect(simulateRun(ex, { source: "domain-broker" }).steps[1].outcome).toBe("run");
+    expect(simulateRun(ex, {}).steps[1].outcome).toBe("skipped");
+  });
+
   it("continue-on-false keeps running", () => {
     const def = wf({ steps: [
       step({ id: "c", type: "condition", label: "maybe", condition: { field: "source", op: "contains", value: "dark" }, onFalse: "continue" }),

@@ -41,7 +41,7 @@ export interface WorkflowTrigger {
 }
 
 export type ConditionField = "risk" | "kind" | "score" | "source";
-export type ConditionOp = "eq" | "gte" | "contains";
+export type ConditionOp = "eq" | "gt" | "gte" | "lt" | "lte" | "contains" | "exists";
 
 export interface StepCondition {
   field: ConditionField;
@@ -161,14 +161,14 @@ export function describeTrigger(t: WorkflowTrigger): string {
   }
 }
 
-const OP_LABEL: Record<ConditionOp, string> = { eq: "is", gte: "≥", contains: "contains" };
+const OP_LABEL: Record<ConditionOp, string> = { eq: "is", gt: ">", gte: "≥", lt: "<", lte: "≤", contains: "contains", exists: "exists" };
 
 /** One-line description of a step, for previews and the graph. */
 export function describeStep(s: WorkflowStepDef): string {
   if (s.label?.trim()) return s.label.trim();
   switch (s.type) {
     case "agent": return `${s.agent ?? "agent"} action`;
-    case "condition": return s.condition ? `If ${s.condition.field} ${OP_LABEL[s.condition.op]} ${s.condition.value}` : "Condition";
+    case "condition": return s.condition ? `If ${s.condition.field} ${OP_LABEL[s.condition.op]}${s.condition.op === "exists" ? "" : ` ${s.condition.value}`}` : "Condition";
     case "wait": return `Wait ${s.delayHours ?? 0}h`;
     case "webhook": return `Webhook → ${s.url || "endpoint"}`;
     default: return STEP_CATALOG[s.type].label;
@@ -228,7 +228,7 @@ export function validateWorkflow(def: WorkflowDefinition): ValidationResult {
   for (const s of def.steps) {
     const name = s.label || STEP_CATALOG[s.type].label;
     if (s.type === "agent" && !s.agent) errors.push(`Block "${name}" needs an agent.`);
-    if (s.type === "condition" && (!s.condition || !s.condition.value.trim())) errors.push(`Block "${name}" needs a condition.`);
+    if (s.type === "condition" && (!s.condition || (s.condition.op !== "exists" && !s.condition.value.trim()))) errors.push(`Block "${name}" needs a condition.`);
     if (s.type === "webhook" && !s.url?.trim()) errors.push(`Block "${name}" needs a webhook URL.`);
     if (s.type === "wait" && (s.delayHours ?? 0) <= 0) errors.push(`Block "${name}" needs a delay above 0.`);
   }
@@ -263,18 +263,30 @@ export interface SimulationResult {
   stoppedAt: number | null;
 }
 
+function numCompare(have: number, want: number, op: ConditionOp): boolean {
+  switch (op) {
+    case "gt": return have > want;
+    case "gte": return have >= want;
+    case "lt": return have < want;
+    case "lte": return have <= want;
+    default: return have === want; // eq
+  }
+}
+
 function evalCondition(c: StepCondition, ev: SampleEvent): boolean {
+  const raw = c.field === "risk" ? ev.risk : c.field === "score" ? ev.score : c.field === "kind" ? ev.kind : ev.source;
+  // "exists" is a presence check on the field, regardless of type.
+  if (c.op === "exists") return raw !== undefined && raw !== null && String(raw) !== "";
+
   if (c.field === "risk") {
-    const want = ["low", "medium", "high", "critical"].includes(c.value) ? (c.value as RiskLevel) : "low";
-    const have = ev.risk ?? "low";
-    return c.op === "gte" ? RISK_RANK[have] >= RISK_RANK[want] : have === c.value;
+    const want = (["low", "medium", "high", "critical"] as RiskLevel[]).includes(c.value as RiskLevel) ? (c.value as RiskLevel) : "low";
+    return numCompare(RISK_RANK[ev.risk ?? "low"], RISK_RANK[want], c.op);
   }
   if (c.field === "score") {
-    const n = Number(c.value) || 0;
-    const have = ev.score ?? 0;
-    return c.op === "gte" ? have >= n : have === n;
+    return numCompare(ev.score ?? 0, Number(c.value) || 0, c.op);
   }
-  const have = String((c.field === "kind" ? ev.kind : ev.source) ?? "").toLowerCase();
+  // string fields (kind, source): eq / contains
+  const have = String(raw ?? "").toLowerCase();
   const want = c.value.toLowerCase();
   return c.op === "contains" ? have.includes(want) : have === want;
 }

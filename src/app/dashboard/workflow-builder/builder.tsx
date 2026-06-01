@@ -259,9 +259,13 @@ export function WorkflowBuilder({
                     {(["risk", "score", "kind", "source"] as ConditionField[]).map((f) => <option key={f} value={f}>{f}</option>)}
                   </select>
                   <select value={condOp} onChange={(e) => setCondOp(e.target.value as ConditionOp)} className={inputCls} aria-label="Operator">
-                    {(["gte", "eq", "contains"] as ConditionOp[]).map((o) => <option key={o} value={o}>{o === "gte" ? "≥" : o}</option>)}
+                    {(["gt", "gte", "lt", "lte", "eq", "contains", "exists"] as ConditionOp[]).map((o) => (
+                      <option key={o} value={o}>{({ gt: ">", gte: "≥", lt: "<", lte: "≤", eq: "=", contains: "contains", exists: "exists" } as Record<ConditionOp, string>)[o]}</option>
+                    ))}
                   </select>
-                  <input value={condValue} onChange={(e) => setCondValue(e.target.value)} className={inputCls} placeholder="value" aria-label="Value" />
+                  {condOp !== "exists"
+                    ? <input value={condValue} onChange={(e) => setCondValue(e.target.value)} className={inputCls} placeholder="value" aria-label="Value" />
+                    : <span className="flex items-center px-2 text-[11px] text-slate-500">has a value</span>}
                 </div>
                 <label className="flex items-center gap-2 text-xs text-slate-400">
                   If not met:
