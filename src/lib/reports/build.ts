@@ -14,6 +14,9 @@ import { buildThreatActors } from "@/lib/executive/os/threat-actors";
 import { impersonationReport, IMPERSONATION_LABEL, type ImpersonationCategory } from "@/lib/executive/os/impersonation";
 import { darkWebReport, DARKWEB_LABEL, type DarkWebCategory } from "@/lib/executive/os/darkweb";
 import { analyzeAttackSurface } from "@/lib/executive/os/attack-paths";
+import {
+  buildRegistry, sharedExposures, memberRisks, childSafety, exposureTracking, familyOverview,
+} from "@/lib/family/os/family-os";
 import { titleCase } from "@/lib/ui";
 import type { ReportContext } from "./engine";
 import type { ReportType } from "@/lib/suite-types";
@@ -110,6 +113,34 @@ export async function buildReportContext(type: ReportType): Promise<ReportContex
           ] },
           { heading: "Threat actors", rows: actors.length ? actors.map((a) => ({ label: a.label, value: `${titleCase(a.escalation)} · ${a.threatCount} threat(s) · ${titleCase(a.highestRisk)}${a.harassment ? " · harassment" : ""}` })) : [{ label: "None tracked", value: "No active threat actors" }] },
           { heading: "Family exposure", rows: mod.familyMembers.map((f) => ({ label: `${f.displayName} (${f.relation})`, value: `${f.exposuresCount} exposures · ${titleCase(f.riskLevel)}` })) },
+        ],
+      };
+    }
+    case "family": {
+      const fmembers = mod.familyMembers;
+      const reg = buildRegistry(fmembers);
+      const fshared = sharedExposures(data.exposures);
+      const frisks = memberRisks(fmembers, fshared);
+      const fsafety = childSafety(frisks);
+      const fvectors = exposureTracking(fmembers, data.exposures);
+      const fo = familyOverview(fmembers, data.exposures);
+      return {
+        ...base,
+        stats: [
+          { label: "Family members", value: fo.members },
+          { label: "Minors", value: fo.minors },
+          { label: "Family risk", value: `${fo.familyRisk}/100` },
+          { label: "Child-safety alerts", value: fo.alerts },
+        ],
+        sections: [
+          { heading: "Family registry", rows: reg.map((g) => ({ label: g.label, value: `${g.members.length} member(s)` })) },
+          { heading: "Child safety", rows: fsafety.alerts.length ? fsafety.alerts.map((r) => ({ label: `${r.member.displayName} (${r.member.relation})`, value: `${r.total}/100 · own ${r.own} · inherited ${r.propagated}` })) : [{ label: "No alerts", value: "All monitored children within safe thresholds" }] },
+          { heading: "Exposure tracking", rows: fvectors.map((v) => ({ label: v.label, value: `${titleCase(v.status)}${v.affected ? ` · ${v.affected} affected` : ""}` })) },
+          { heading: "Risk propagation", rows: [
+            { label: "Shared household exposures", value: `${fshared.length}` },
+            { label: "Members reached", value: `${fo.propagationReach}` },
+          ] },
+          { heading: "Family members", rows: frisks.map((r) => ({ label: `${r.member.displayName} (${r.member.relation})`, value: `${r.total}/100${r.member.isMinor ? " · minor" : ""}` })) },
         ],
       };
     }

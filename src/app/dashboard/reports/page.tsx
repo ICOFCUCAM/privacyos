@@ -6,6 +6,7 @@ import type { ReportType } from "@/lib/suite-types";
 const meta: Record<ReportType, { cadence: string; desc: string }> = {
   privacy: { cadence: "Monthly", desc: "Exposure inventory, removals and active threats." },
   executive: { cadence: "Weekly", desc: "VIP incidents, family exposure and physical-security posture." },
+  family: { cadence: "Monthly", desc: "Family registry, child safety, exposure vectors and risk propagation." },
   business: { cadence: "Monthly", desc: "Credential leaks, domain risks and employee exposure." },
   threat: { cadence: "On alert", desc: "Active threats and open incidents with severity." },
   compliance: { cadence: "Monthly", desc: "Legal/privacy request status and audit trail." },

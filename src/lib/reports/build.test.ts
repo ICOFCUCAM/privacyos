@@ -24,3 +24,15 @@ describe("buildReportContext — executive", () => {
     expect(String(ctx.stats[0].value)).toMatch(/\/100$/);
   });
 });
+
+describe("buildReportContext — family", () => {
+  it("renders registry, child safety, exposure tracking and risk propagation", async () => {
+    const ctx = await buildReportContext("family");
+    const headings = ctx.sections.map((s) => s.heading);
+    expect(headings).toContain("Family registry");
+    expect(headings).toContain("Child safety");
+    expect(headings).toContain("Exposure tracking");
+    expect(headings).toContain("Risk propagation");
+    expect(ctx.stats.map((s) => s.label)).toContain("Child-safety alerts");
+  });
+});
