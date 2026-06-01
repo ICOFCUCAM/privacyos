@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   Crown, ShieldCheck, MapPin, UserX, KeyRound, Megaphone, Home, ShieldAlert,
   ArrowRight, Siren, FileLock2, CheckCircle2, AlertTriangle, Crosshair, LayoutGrid,
+  VenetianMask, EyeOff,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Card, LineChart, PageHeader, RiskBadge, SectionTitle } from "@/components/ui";
@@ -139,10 +140,13 @@ export default async function ExecutivePage() {
       )}
 
       {/* Pillar quick-links */}
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <PillarLink href="/dashboard/executive/residence" icon={Home} title="Residence Protection" detail="Address, property records, satellite & listings" />
         <PillarLink href="/dashboard/executive/doxxing" icon={UserX} title="Doxxing Protection" detail="Address, phone, family & employer leaks" />
+        <PillarLink href="/dashboard/executive/impersonation" icon={VenetianMask} title="Impersonation & Deepfake" detail="Fake profiles, deepfakes & lookalike domains" />
+        <PillarLink href="/dashboard/executive/dark-web" icon={EyeOff} title="Dark-Web Exposure" detail="Leaked credentials, mentions & breach records" />
         <PillarLink href="/dashboard/executive/threat-actors" icon={Crosshair} title="Threat Actor Tracking" detail="Profiles, escalation & harassment" />
+        <PillarLink href="/dashboard/executive/command" icon={LayoutGrid} title="Executive Command" detail="Heat maps, timelines & exposure graphs" />
       </div>
 
       {/* Protection domains */}

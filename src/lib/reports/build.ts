@@ -11,6 +11,8 @@ import { residenceReport } from "@/lib/executive/os/residence";
 import { getResidenceSignals } from "@/lib/executive/os/residence-cache";
 import { doxxingReport, LEAK_LABEL, type LeakKind } from "@/lib/executive/os/doxxing";
 import { buildThreatActors } from "@/lib/executive/os/threat-actors";
+import { impersonationReport, IMPERSONATION_LABEL, type ImpersonationCategory } from "@/lib/executive/os/impersonation";
+import { darkWebReport, DARKWEB_LABEL, type DarkWebCategory } from "@/lib/executive/os/darkweb";
 import { titleCase } from "@/lib/ui";
 import type { ReportContext } from "./engine";
 import type { ReportType } from "@/lib/suite-types";
@@ -80,6 +82,8 @@ export async function buildReportContext(type: ReportType): Promise<ReportContex
       const residence = residenceReport(data.exposures, signals);
       const doxxing = doxxingReport({ exposures: data.exposures, threats: data.threats, family: mod.familyMembers, employees: mod.employeeExposures });
       const actors = buildThreatActors(data.threats);
+      const impersonation = impersonationReport({ threats: data.threats, incidents: mod.incidents, domainRisks: mod.domainRisks, exposures: data.exposures });
+      const darkweb = darkWebReport({ credentialLeaks: mod.credentialLeaks, threats: data.threats, exposures: data.exposures });
       return {
         ...base,
         stats: [
@@ -92,6 +96,11 @@ export async function buildReportContext(type: ReportType): Promise<ReportContex
           { heading: "Executive risk indices", rows: RISK_INDEX_META.map((m) => ({ label: m.label, value: `${indices[m.key]}/100` })) },
           { heading: "Residence protection", rows: residence.findings.map((f) => ({ label: f.label, value: `${titleCase(f.status)}${f.sources.length ? ` · ${f.sources.join(", ")}` : ""}` })) },
           { heading: "Doxxing exposure", rows: (Object.keys(doxxing.byKind) as LeakKind[]).map((k) => ({ label: LEAK_LABEL[k], value: `${doxxing.byKind[k]} leak(s)` })) },
+          { heading: "Impersonation & deepfake", rows: (Object.keys(impersonation.byCategory) as ImpersonationCategory[]).map((c) => ({ label: IMPERSONATION_LABEL[c], value: `${impersonation.byCategory[c]} signal(s)` })) },
+          { heading: "Dark-web exposure", rows: [
+            ...(Object.keys(darkweb.byCategory) as DarkWebCategory[]).map((c) => ({ label: DARKWEB_LABEL[c], value: `${darkweb.byCategory[c]} signal(s)` })),
+            { label: "Records exposed", value: darkweb.recordsExposed.toLocaleString() },
+          ] },
           { heading: "Threat actors", rows: actors.length ? actors.map((a) => ({ label: a.label, value: `${titleCase(a.escalation)} · ${a.threatCount} threat(s) · ${titleCase(a.highestRisk)}${a.harassment ? " · harassment" : ""}` })) : [{ label: "None tracked", value: "No active threat actors" }] },
           { heading: "Family exposure", rows: mod.familyMembers.map((f) => ({ label: `${f.displayName} (${f.relation})`, value: `${f.exposuresCount} exposures · ${titleCase(f.riskLevel)}` })) },
         ],

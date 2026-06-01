@@ -9,6 +9,8 @@ describe("buildReportContext — executive", () => {
     expect(headings).toContain("Residence protection");
     expect(headings).toContain("Doxxing exposure");
     expect(headings).toContain("Threat actors");
+    expect(headings).toContain("Impersonation & deepfake");
+    expect(headings).toContain("Dark-web exposure");
 
     // five named indices + four residence checks
     expect(ctx.sections.find((s) => s.heading === "Executive risk indices")!.rows).toHaveLength(5);
