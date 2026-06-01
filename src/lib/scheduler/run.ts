@@ -19,6 +19,7 @@ import { advanceRemoval, shouldReappear } from "@/lib/brokers/removal";
 import { planAutoFilings } from "@/lib/brokers/auto-file";
 import { casesForNewThreats } from "@/lib/agents/threat-cases";
 import { reputationCasesFromMentions } from "@/lib/reputation/os/reputation-cases";
+import { reputationOverview } from "@/lib/reputation/os/analysis";
 import { investigationTimeline } from "@/lib/intelligence/threat-intel";
 import { collectReputation, type MentionSource } from "@/lib/reputation/collect";
 import { scanDomain } from "@/lib/domains/scan";
@@ -192,6 +193,11 @@ export async function runScheduledCycle(
         },
       ]);
       mentionsCollected += rep.mentions.length;
+
+      // Reputation-health snapshot for the trend chart (computed from the same
+      // mentions; rep.mentions omits id/subjectId but carries every scored field).
+      const repHealth = reputationOverview(rep.mentions as unknown as Parameters<typeof reputationOverview>[0]).health;
+      await store.recordScores(fp.userId, fp.subject.id, [{ kind: "reputation", value: repHealth }]);
 
       // Auto-open a reputation-recovery case for defamatory / strongly-negative
       // coverage, so suppression & repair fire autonomously (deduped by title).

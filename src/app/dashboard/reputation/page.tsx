@@ -1,7 +1,8 @@
-import { Card, DataBadge, PageHeader, Pill, SectionTitle, SentimentBars } from "@/components/ui";
+import { Card, DataBadge, PageHeader, Pill, SectionTitle, SentimentBars, LineChart } from "@/components/ui";
 import { ReputationScanButton } from "@/components/reputation-scan-button";
 import { getDataSource } from "@/lib/data";
 import { getModuleData } from "@/lib/data/modules";
+import { getScoreHistory } from "@/lib/data/scores";
 import { reputationOverview, monitoringCoverage } from "@/lib/reputation/os/analysis";
 import { cn, timeAgo, titleCase } from "@/lib/ui";
 import type { SentimentLabel } from "@/lib/suite-types";
@@ -25,6 +26,8 @@ export default async function ReputationPage() {
   const overview = reputationOverview(mentions);
   const coverage = monitoringCoverage(mentions);
   const s = overview.scores;
+  const repHistory = (await getScoreHistory()).find((h) => h.kind === "reputation");
+  const trend = repHistory?.points.map((p) => p.value) ?? [];
 
   const scoreCards = [
     { label: "Sentiment", value: s.sentiment },
@@ -61,6 +64,12 @@ export default async function ReputationPage() {
               <p className="text-sm font-semibold text-white">Reputation health</p>
               <p className="text-xs text-slate-500">{overview.negatives} negative · {overview.defamation} defamation flag(s)</p>
               <p className="mt-1 text-xs text-slate-500">{overview.channelsMonitored} channels monitored 24/7</p>
+              {trend.length >= 2 && (
+                <div className="mt-2 w-40">
+                  <LineChart values={trend} height={32} color="#22c55e" />
+                  <p className="text-[10px] text-slate-500">Health trend</p>
+                </div>
+              )}
             </div>
           </div>
           <div className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-5">

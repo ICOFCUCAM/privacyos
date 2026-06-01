@@ -19,10 +19,13 @@ export function demoScoreHistory(): ScoreSeries[] {
   // Identity tracks overall, scaled by the current identity:overall ratio.
   const ratio = demoRiskScore.overall ? demoRiskScore.identity / demoRiskScore.overall : 1;
   const identity = overall.map((p) => ({ date: p.date, value: Math.round(p.value * ratio) }));
+  // Reputation health (higher = better) trends opposite to exposure risk.
+  const reputation = overall.map((p) => ({ date: p.date, value: Math.max(0, Math.min(100, Math.round(100 - p.value * 0.7))) }));
   return [
     { kind: "overall", points: overall },
     { kind: "privacy", points: overall }, // privacy === exposure overall in the model
     { kind: "identity", points: identity },
+    { kind: "reputation", points: reputation },
   ];
 }
 
