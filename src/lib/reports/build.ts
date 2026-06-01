@@ -6,6 +6,10 @@
 import { getDataSource } from "@/lib/data";
 import { getModuleData } from "@/lib/data/modules";
 import { computeScoreSet } from "@/lib/scoring/scores";
+import { executiveRiskIndices, RISK_INDEX_META } from "@/lib/executive/os/risk-indices";
+import { residenceReport } from "@/lib/executive/os/residence";
+import { doxxingReport, LEAK_LABEL, type LeakKind } from "@/lib/executive/os/doxxing";
+import { buildThreatActors } from "@/lib/executive/os/threat-actors";
 import { titleCase } from "@/lib/ui";
 import type { ReportContext } from "./engine";
 import type { ReportType } from "@/lib/suite-types";
@@ -66,17 +70,28 @@ export async function buildReportContext(type: ReportType): Promise<ReportContex
         ],
         sections: [topExposures, threatRows],
       };
-    case "executive":
+    case "executive": {
+      const indices = executiveRiskIndices({ exposures: data.exposures, threats: data.threats, family: mod.familyMembers, travel: mod.travelAlerts });
+      const residence = residenceReport(data.exposures);
+      const doxxing = doxxingReport({ exposures: data.exposures, threats: data.threats, family: mod.familyMembers, employees: mod.employeeExposures });
+      const actors = buildThreatActors(data.threats);
       return {
         ...base,
         stats: [
-          { label: "Open incidents", value: openIncidents.length },
-          { label: "Deepfake", value: mod.incidents.filter((i) => i.kind === "deepfake").length },
-          { label: "Doxxing", value: mod.incidents.filter((i) => i.kind === "doxxing").length },
-          { label: "Family at risk", value: mod.familyMembers.filter((f) => f.riskLevel !== "low").length },
+          { label: "Executive Risk Score", value: `${indices.overall}/100` },
+          { label: "Physical security", value: `${indices.physical}/100` },
+          { label: "Doxxing leaks", value: doxxing.total },
+          { label: "Threat actors", value: actors.length },
         ],
-        sections: [incidentRows, { heading: "Family exposure", rows: mod.familyMembers.map((f) => ({ label: `${f.displayName} (${f.relation})`, value: `${f.exposuresCount} exposures · ${titleCase(f.riskLevel)}` })) }],
+        sections: [
+          { heading: "Executive risk indices", rows: RISK_INDEX_META.map((m) => ({ label: m.label, value: `${indices[m.key]}/100` })) },
+          { heading: "Residence protection", rows: residence.findings.map((f) => ({ label: f.label, value: `${titleCase(f.status)}${f.sources.length ? ` · ${f.sources.join(", ")}` : ""}` })) },
+          { heading: "Doxxing exposure", rows: (Object.keys(doxxing.byKind) as LeakKind[]).map((k) => ({ label: LEAK_LABEL[k], value: `${doxxing.byKind[k]} leak(s)` })) },
+          { heading: "Threat actors", rows: actors.length ? actors.map((a) => ({ label: a.label, value: `${titleCase(a.escalation)} · ${a.threatCount} threat(s) · ${titleCase(a.highestRisk)}${a.harassment ? " · harassment" : ""}` })) : [{ label: "None tracked", value: "No active threat actors" }] },
+          { heading: "Family exposure", rows: mod.familyMembers.map((f) => ({ label: `${f.displayName} (${f.relation})`, value: `${f.exposuresCount} exposures · ${titleCase(f.riskLevel)}` })) },
+        ],
       };
+    }
     case "business":
       return {
         ...base,
