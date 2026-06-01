@@ -15,6 +15,7 @@ import type { AgentKind, RiskLevel } from "@/lib/types";
 import {
   addStep, describeTrigger, emptyWorkflow, moveStep, reorderStep, newStepId,
   removeStep, validateWorkflow, simulateRun, describeStep,
+  TRIGGER_CATALOG, TRIGGER_CATEGORIES, RISK_QUALIFIED_TRIGGERS,
   type StepType, type TriggerKind, type WorkflowDefinition, type WorkflowStepDef,
   type ConditionField, type ConditionOp, type SampleEvent, type StepOutcome,
 } from "@/lib/agents/workflow-builder";
@@ -31,16 +32,6 @@ const STEP_META: Record<StepType, { label: string; icon: LucideIcon; hint: strin
   webhook: { label: "Webhook", icon: Webhook, hint: "Call an external system" },
   wait: { label: "Wait", icon: Clock, hint: "Pause for a delay" },
 };
-
-const TRIGGERS: { kind: TriggerKind; label: string }[] = [
-  { kind: "threat_detected", label: "Threat detected" },
-  { kind: "exposure_found", label: "Exposure found" },
-  { kind: "score_above", label: "Risk score above…" },
-  { kind: "case_opened", label: "Case opened" },
-  { kind: "incident_raised", label: "Incident raised" },
-  { kind: "scheduled", label: "On a schedule" },
-  { kind: "manual", label: "Manual / on-demand" },
-];
 
 const OUTCOME_CLS: Record<StepOutcome, string> = {
   run: "text-risk-low ring-risk-low/30",
@@ -186,13 +177,17 @@ export function WorkflowBuilder({
                 onChange={(e) => patchTrigger({ kind: e.target.value as TriggerKind })}
                 className={inputCls}
               >
-                {TRIGGERS.map((t) => (
-                  <option key={t.kind} value={t.kind}>{t.label}</option>
+                {TRIGGER_CATEGORIES.map((g) => (
+                  <optgroup key={g.category} label={g.label}>
+                    {(Object.keys(TRIGGER_CATALOG) as TriggerKind[])
+                      .filter((k) => TRIGGER_CATALOG[k].category === g.category)
+                      .map((k) => <option key={k} value={k}>{TRIGGER_CATALOG[k].label}</option>)}
+                  </optgroup>
                 ))}
               </select>
             </Field>
 
-            {(draft.trigger.kind === "threat_detected" || draft.trigger.kind === "exposure_found" || draft.trigger.kind === "incident_raised") && (
+            {RISK_QUALIFIED_TRIGGERS.includes(draft.trigger.kind) && (
               <Field label="Minimum risk to fire">
                 <select
                   value={draft.trigger.minRisk ?? "high"}
@@ -218,7 +213,7 @@ export function WorkflowBuilder({
             {draft.trigger.kind === "scheduled" && (
               <Field label="Cadence">
                 <select value={draft.trigger.cadence ?? "daily"} onChange={(e) => patchTrigger({ cadence: e.target.value })} className={inputCls}>
-                  {["every 1h", "every 6h", "daily", "weekly"].map((c) => <option key={c} value={c}>{c}</option>)}
+                  {["every 1h", "every 6h", "daily", "weekly", "monthly"].map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </Field>
             )}

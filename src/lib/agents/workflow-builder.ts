@@ -12,8 +12,17 @@
 import type { AgentKind, RiskLevel, ThreatKind } from "@/lib/types";
 
 export type TriggerKind =
-  | "threat_detected" | "exposure_found" | "score_above"
-  | "case_opened" | "incident_raised" | "scheduled" | "manual";
+  // event
+  | "threat_detected" | "incident_raised" | "breach_detected" | "domain_risk"
+  | "deepfake_detected" | "doxxing_detected" | "exposure_found" | "score_above" | "case_opened"
+  // schedule
+  | "scheduled"
+  // manual
+  | "manual" | "agent_request"
+  // api
+  | "webhook" | "external";
+
+export type TriggerCategory = "event" | "schedule" | "manual" | "api";
 
 export type StepType =
   | "agent" | "condition" | "decision" | "notify"
@@ -84,36 +93,71 @@ export const STEP_CATALOG: Record<StepType, { label: string; category: BlockCate
   webhook: { label: "Webhook", category: "integration", description: "Call an external system" },
 };
 
-export const TRIGGER_LABEL: Record<TriggerKind, string> = {
-  threat_detected: "Threat detected",
-  exposure_found: "Exposure found",
-  score_above: "Risk score above…",
-  case_opened: "Case opened",
-  incident_raised: "Incident raised",
-  scheduled: "On a schedule",
-  manual: "Manual / on-demand",
+export const TRIGGER_CATALOG: Record<TriggerKind, { label: string; category: TriggerCategory }> = {
+  threat_detected: { label: "New Threat", category: "event" },
+  incident_raised: { label: "New Incident", category: "event" },
+  breach_detected: { label: "New Breach", category: "event" },
+  domain_risk: { label: "New Domain Risk", category: "event" },
+  deepfake_detected: { label: "New Deepfake", category: "event" },
+  doxxing_detected: { label: "New Doxxing Event", category: "event" },
+  exposure_found: { label: "Exposure found", category: "event" },
+  score_above: { label: "Risk score above…", category: "event" },
+  case_opened: { label: "Case opened", category: "event" },
+  scheduled: { label: "On a schedule", category: "schedule" },
+  manual: { label: "User click", category: "manual" },
+  agent_request: { label: "Agent request", category: "manual" },
+  webhook: { label: "Webhook", category: "api" },
+  external: { label: "External system", category: "api" },
 };
+
+export const TRIGGER_CATEGORIES: { category: TriggerCategory; label: string }[] = [
+  { category: "event", label: "Event triggers" },
+  { category: "schedule", label: "Schedule triggers" },
+  { category: "manual", label: "Manual triggers" },
+  { category: "api", label: "API triggers" },
+];
+
+/** Risk-qualified event triggers that fire off a minimum severity. */
+export const RISK_QUALIFIED_TRIGGERS: TriggerKind[] = [
+  "threat_detected", "incident_raised", "breach_detected", "domain_risk",
+  "deepfake_detected", "doxxing_detected", "exposure_found",
+];
 
 const RISK_LABEL: Record<RiskLevel, string> = { low: "Low", medium: "Medium", high: "High", critical: "Critical" };
 const RISK_RANK: Record<RiskLevel, number> = { low: 0, medium: 1, high: 2, critical: 3 };
 
 /** Human description of a trigger, for the flow preview. */
 export function describeTrigger(t: WorkflowTrigger): string {
+  const sev = t.minRisk ? ` · ${RISK_LABEL[t.minRisk]}+` : "";
   switch (t.kind) {
     case "threat_detected":
-      return `Threat detected${t.threatKind ? ` (${t.threatKind.replace(/_/g, " ")})` : ""}${t.minRisk ? ` · ${RISK_LABEL[t.minRisk]}+` : ""}`;
+      return `New threat${t.threatKind ? ` (${t.threatKind.replace(/_/g, " ")})` : ""}${sev}`;
+    case "incident_raised":
+      return `New incident${sev}`;
+    case "breach_detected":
+      return `New breach${sev}`;
+    case "domain_risk":
+      return `New domain risk${sev}`;
+    case "deepfake_detected":
+      return `New deepfake${sev}`;
+    case "doxxing_detected":
+      return `New doxxing event${sev}`;
     case "exposure_found":
-      return `Exposure found${t.minRisk ? ` · ${RISK_LABEL[t.minRisk]}+` : ""}`;
+      return `Exposure found${sev}`;
     case "score_above":
       return `Risk score above ${t.threshold ?? 70}`;
     case "case_opened":
       return "Case opened";
-    case "incident_raised":
-      return `Incident raised${t.minRisk ? ` · ${RISK_LABEL[t.minRisk]}+` : ""}`;
     case "scheduled":
       return `On a schedule (${t.cadence ?? "daily"})`;
     case "manual":
-      return "Manual / on-demand";
+      return "Manual — user click";
+    case "agent_request":
+      return "On agent request";
+    case "webhook":
+      return "Incoming webhook";
+    case "external":
+      return "External system event";
   }
 }
 

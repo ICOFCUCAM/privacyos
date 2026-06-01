@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
   addStep, describeTrigger, describeStep, emptyWorkflow, flowPreview, moveStep, removeStep, reorderStep,
-  validateWorkflow, simulateRun, STEP_CATALOG, type WorkflowDefinition, type WorkflowStepDef,
+  validateWorkflow, simulateRun, STEP_CATALOG, TRIGGER_CATALOG, TRIGGER_CATEGORIES,
+  type WorkflowDefinition, type WorkflowStepDef,
 } from "./workflow-builder";
 
 const step = (over: Partial<WorkflowStepDef>): WorkflowStepDef => ({
@@ -14,7 +15,7 @@ const wf = (over: Partial<WorkflowDefinition> = {}): WorkflowDefinition => ({
 
 describe("describeTrigger", () => {
   it("describes each trigger kind", () => {
-    expect(describeTrigger({ kind: "threat_detected", minRisk: "high" })).toMatch(/Threat detected.*High/);
+    expect(describeTrigger({ kind: "threat_detected", minRisk: "high" })).toMatch(/New threat.*High/);
     expect(describeTrigger({ kind: "score_above", threshold: 80 })).toBe("Risk score above 80");
     expect(describeTrigger({ kind: "manual" })).toMatch(/Manual/);
   });
@@ -75,7 +76,13 @@ describe("expanded blocks", () => {
   it("describes the new triggers", () => {
     expect(describeTrigger({ kind: "scheduled", cadence: "every 6h" })).toMatch(/schedule.*every 6h/);
     expect(describeTrigger({ kind: "case_opened" })).toBe("Case opened");
-    expect(describeTrigger({ kind: "incident_raised", minRisk: "critical" })).toMatch(/Incident raised.*Critical/);
+    expect(describeTrigger({ kind: "incident_raised", minRisk: "critical" })).toMatch(/New incident.*Critical/);
+    expect(describeTrigger({ kind: "breach_detected", minRisk: "high" })).toMatch(/New breach.*High/);
+    expect(describeTrigger({ kind: "deepfake_detected" })).toMatch(/New deepfake/);
+    expect(describeTrigger({ kind: "doxxing_detected" })).toMatch(/New doxxing/);
+    expect(describeTrigger({ kind: "agent_request" })).toMatch(/agent request/i);
+    expect(describeTrigger({ kind: "webhook" })).toMatch(/webhook/i);
+    expect(describeTrigger({ kind: "external" })).toMatch(/External/);
   });
 
   it("validates condition / webhook / wait blocks", () => {
@@ -94,6 +101,15 @@ describe("expanded blocks", () => {
     for (const meta of Object.values(STEP_CATALOG)) {
       expect(["action", "logic", "human", "integration"]).toContain(meta.category);
     }
+  });
+
+  it("TRIGGER_CATALOG covers the Layer-4 taxonomy (event/schedule/manual/api)", () => {
+    const byCat = (c: string) => Object.values(TRIGGER_CATALOG).filter((t) => t.category === c).map((t) => t.label);
+    expect(TRIGGER_CATEGORIES.map((g) => g.category)).toEqual(["event", "schedule", "manual", "api"]);
+    expect(byCat("event")).toEqual(expect.arrayContaining(["New Threat", "New Incident", "New Breach", "New Domain Risk", "New Deepfake", "New Doxxing Event"]));
+    expect(byCat("manual")).toEqual(expect.arrayContaining(["User click", "Agent request"]));
+    expect(byCat("api")).toEqual(expect.arrayContaining(["Webhook", "External system"]));
+    expect(byCat("schedule").length).toBeGreaterThan(0);
   });
 });
 
@@ -139,7 +155,7 @@ describe("simulateRun (dry-run)", () => {
 describe("flowPreview", () => {
   it("renders trigger then step labels", () => {
     const preview = flowPreview(wf({ steps: [step({ label: "Rotate" }), step({ type: "notify", label: "Notify user", agent: undefined })] }));
-    expect(preview[0]).toMatch(/Threat detected/);
+    expect(preview[0]).toMatch(/New threat/);
     expect(preview).toContain("Rotate");
     expect(preview).toContain("Notify user");
   });
