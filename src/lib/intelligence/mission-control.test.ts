@@ -56,11 +56,14 @@ describe("computePosture", () => {
   });
 });
 
-const enriched = (over: Partial<EnrichedCase> & { case: Partial<Case> }): EnrichedCase => ({
-  case: { id: "c1", title: "Breach", status: "open", riskLevel: "high", relatedExposureIds: [], type: "breach_response", assignedAgent: "security", createdAt: "", updatedAt: "", ...over.case } as Case,
-  ageHours: 10, sla: "on_track", slaHours: 24, evidenceCount: 0, priority: 5,
-  timeline: [], workflowStage: "Analyze", workflowIndex: 1, ...over,
-});
+const enriched = (over: Partial<Omit<EnrichedCase, "case">> & { case?: Partial<Case> } = {}): EnrichedCase => {
+  const { case: caseOver, ...rest } = over;
+  return {
+    case: { id: "c1", title: "Breach", status: "open", riskLevel: "high", relatedExposureIds: [], type: "breach_response", assignedAgent: "security", createdAt: "", updatedAt: "", ...caseOver } as Case,
+    ageHours: 10, sla: "on_track", slaHours: 24, evidenceCount: 0, priority: 5,
+    timeline: [], workflowStage: "Analyze", workflowIndex: 1, ...rest,
+  };
+};
 
 const wf = (over: Partial<Workflow>): Workflow => ({
   id: "w1", name: "Removal", owner: "privacy", trigger: "x", status: "running",
@@ -68,7 +71,7 @@ const wf = (over: Partial<Workflow>): Workflow => ({
 });
 
 const threat = (over: Partial<Threat>): Threat => ({
-  id: "t1", subjectId: "s", kind: "data_breach", title: "Leak", detail: "", riskLevel: "high",
+  id: "t1", subjectId: "s", kind: "credential_leak", title: "Leak", detail: "", riskLevel: "high",
   source: "breach_db", detectedAt: "", acknowledged: false, ...over,
 });
 
