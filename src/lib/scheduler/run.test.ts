@@ -270,6 +270,9 @@ describe("runScheduledCycle", () => {
     const protective = store.createdCases.find((c) => c.type === "executive_protection");
     expect(protective).toBeTruthy();
     expect(protective!.assignedAgent).toBe("executive");
+    // the doxxing leak (address from the doxxing threat) was routed for takedown
+    expect(summary.doxxingTakedownsRouted).toBeGreaterThan(0);
+    expect(store.actions.flat().some((a) => a.agent === "executive" && a.kind === "remove" && /takedown/.test(a.summary))).toBe(true);
   });
 
   it("auto-files broker opt-outs for discovered broker exposures", async () => {

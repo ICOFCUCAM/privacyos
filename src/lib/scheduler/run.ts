@@ -22,6 +22,7 @@ import { reputationCasesFromMentions } from "@/lib/reputation/os/reputation-case
 import { reputationOverview } from "@/lib/reputation/os/analysis";
 import { executiveRiskIndices } from "@/lib/executive/os/risk-indices";
 import { buildThreatActors, actorCasesToOpen } from "@/lib/executive/os/threat-actors";
+import { doxxingReport, takedownPlan, summarizeTakedowns, TAKEDOWN_LABEL } from "@/lib/executive/os/doxxing";
 import { investigationTimeline } from "@/lib/intelligence/threat-intel";
 import { collectReputation, type MentionSource } from "@/lib/reputation/collect";
 import { scanDomain } from "@/lib/domains/scan";
@@ -58,6 +59,7 @@ export async function runScheduledCycle(
   let reputationCasesOpened = 0;
   let executiveEscalations = 0;
   let executiveCasesOpened = 0;
+  let doxxingTakedownsRouted = 0;
   let mentionsCollected = 0;
   let domainRisksFound = 0;
 
@@ -202,7 +204,25 @@ export async function runScheduledCycle(
       executiveCasesOpened += actorCases.length;
     }
 
-    // 6c. Auto-file broker opt-outs for newly-discovered broker/public-record
+    // 6c. Doxxing takedown routing. Classify the footprint's doxxing-enabling
+    // leaks (address/phone/family/employer from exposures + threats) and route
+    // each to its remediation channel, so the Executive Agent has a concrete
+    // takedown plan. Broker-routable leaks are filed by the removal pipeline
+    // below; this records the routed plan and surfaces it on the Doxxing tab.
+    const doxxing = doxxingReport({ exposures, threats, family: [], employees: [] });
+    const takedowns = takedownPlan(doxxing);
+    if (takedowns.length > 0) {
+      const routes = Object.entries(summarizeTakedowns(takedowns).byMethod)
+        .filter(([, n]) => n > 0)
+        .map(([m, n]) => `${n} ${TAKEDOWN_LABEL[m as keyof typeof TAKEDOWN_LABEL]}`)
+        .join(", ");
+      await store.recordActions(fp.userId, fp.subject.id, [
+        { agent: "executive", kind: "remove", summary: `Routed ${takedowns.length} doxxing takedown(s): ${routes}.`, status: "completed" },
+      ]);
+      doxxingTakedownsRouted += takedowns.length;
+    }
+
+    // 6d. Auto-file broker opt-outs for newly-discovered broker/public-record
     // exposures — the Privacy Agent files them so the removal pipeline populates
     // itself from real discoveries (no manual step required).
     try {
@@ -327,6 +347,7 @@ export async function runScheduledCycle(
     reputationCasesOpened,
     executiveEscalations,
     executiveCasesOpened,
+    doxxingTakedownsRouted,
     mentionsCollected,
     domainRisksFound,
     ranAt: new Date().toISOString(),

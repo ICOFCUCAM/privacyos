@@ -68,6 +68,8 @@ export interface ScheduledRunSummary {
   executiveEscalations: number;
   /** Protective cases auto-opened for escalating/harassment threat actors. */
   executiveCasesOpened: number;
+  /** Doxxing leaks routed to a takedown channel this cycle. */
+  doxxingTakedownsRouted: number;
   mentionsCollected: number;
   domainRisksFound: number;
   ranAt: string;

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { executiveRiskIndices, bandFor, type RiskInput } from "./risk-indices";
 import { residenceReport } from "./residence";
-import { doxxingReport } from "./doxxing";
+import { doxxingReport, takedownPlan, summarizeTakedowns } from "./doxxing";
 import { buildThreatActors, summarizeActors, actorCasesToOpen, openExecutiveCases } from "./threat-actors";
 import type { Case } from "@/lib/types";
 import { exposureHeatMap, threatTimeline, exposureGraph } from "./command";
@@ -93,6 +93,31 @@ describe("doxxing", () => {
     expect(r.byKind.family).toBe(1);
     expect(r.byKind.employer).toBe(2); // employer exposure + employee record
     expect(r.total).toBe(6);
+  });
+
+  it("routes each leak to the right takedown channel, critical first", () => {
+    const r = doxxingReport({
+      exposures: [
+        exposure({ category: "address", source: "data_broker", sourceName: "Spokeo", riskLevel: "high" }),
+        exposure({ category: "address", source: "social_media", sourceName: "Reddit thread", riskLevel: "critical" }),
+        exposure({ category: "employer", source: "data_broker", sourceName: "ZoomInfo", riskLevel: "low" }),
+      ],
+      threats: [], family: [], employees: [],
+    });
+    const plan = takedownPlan(r);
+    expect(plan).toHaveLength(3);
+    expect(plan[0].priority).toBe("critical"); // sorted worst-first
+    const broker = plan.find((a) => a.target === "Spokeo")!;
+    expect(broker.method).toBe("broker_optout");
+    const social = plan.find((a) => a.target === "Reddit thread")!;
+    expect(social.method).toBe("platform_report");
+    const employer = plan.find((a) => a.target === "ZoomInfo")!;
+    expect(employer.method).toBe("employer_notice");
+
+    const sum = summarizeTakedowns(plan);
+    expect(sum.total).toBe(3);
+    expect(sum.critical).toBe(1);
+    expect(sum.byMethod.broker_optout).toBe(1);
   });
 });
 

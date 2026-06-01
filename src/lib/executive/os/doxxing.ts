@@ -76,3 +76,81 @@ export const LEAK_LABEL: Record<LeakKind, string> = {
   family: "Family leaks",
   employer: "Employer leaks",
 };
+
+/* ── Takedown workflow ───────────────────────────────────────────────────── */
+
+export type TakedownMethod =
+  | "broker_optout"
+  | "people_search_optout"
+  | "search_delisting"
+  | "platform_report"
+  | "employer_notice";
+
+export type TakedownPriority = "critical" | "high" | "standard";
+
+export interface TakedownAction {
+  leakKind: LeakKind;
+  target: string;
+  method: TakedownMethod;
+  priority: TakedownPriority;
+  detail: string;
+}
+
+export const TAKEDOWN_LABEL: Record<TakedownMethod, string> = {
+  broker_optout: "Broker opt-out",
+  people_search_optout: "People-search opt-out",
+  search_delisting: "Search de-listing",
+  platform_report: "Platform abuse report",
+  employer_notice: "Employer notice",
+};
+
+const PRIORITY_RANK: Record<TakedownPriority, number> = { critical: 0, high: 1, standard: 2 };
+
+function priorityFor(level: RiskLevel): TakedownPriority {
+  return level === "critical" ? "critical" : level === "high" ? "high" : "standard";
+}
+
+/** Route a single leak to the correct takedown channel based on where it lives. */
+function methodForLeak(leak: DoxxLeak): TakedownMethod {
+  const src = leak.source.toLowerCase();
+  if (leak.kind === "employer") return /breach|dark|leak/.test(src) ? "platform_report" : "employer_notice";
+  if (/broker|spokeo|whitepages|beenverified|public.?record|county/.test(src)) return "broker_optout";
+  if (/people|search|pipl|truepeople|intelius/.test(src)) return "people_search_optout";
+  if (/google|bing|search engine/.test(src)) return "search_delisting";
+  if (leak.kind === "family") return "people_search_optout";
+  // Social posts, forums, dark-web doxxing → platform abuse report.
+  return "platform_report";
+}
+
+/**
+ * A prioritized takedown plan: every doxxing leak routed to its remediation
+ * channel, highest-priority first. Pure and deterministic.
+ */
+export function takedownPlan(report: DoxxingReport): TakedownAction[] {
+  return report.leaks
+    .map((leak) => {
+      const method = methodForLeak(leak);
+      return {
+        leakKind: leak.kind,
+        target: leak.source,
+        method,
+        priority: priorityFor(leak.riskLevel),
+        detail: `${TAKEDOWN_LABEL[method]} — ${leak.detail}`,
+      };
+    })
+    .sort((a, b) => PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority]);
+}
+
+export interface TakedownSummary {
+  total: number;
+  byMethod: Record<TakedownMethod, number>;
+  critical: number;
+}
+
+export function summarizeTakedowns(actions: TakedownAction[]): TakedownSummary {
+  const byMethod: Record<TakedownMethod, number> = {
+    broker_optout: 0, people_search_optout: 0, search_delisting: 0, platform_report: 0, employer_notice: 0,
+  };
+  for (const a of actions) byMethod[a.method] += 1;
+  return { total: actions.length, byMethod, critical: actions.filter((a) => a.priority === "critical").length };
+}

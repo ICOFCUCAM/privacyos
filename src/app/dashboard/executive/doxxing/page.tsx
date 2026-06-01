@@ -1,9 +1,12 @@
-import { UserX, MapPin, Phone, Users, Briefcase } from "lucide-react";
+import { UserX, MapPin, Phone, Users, Briefcase, Send } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Card, PageHeader, RiskBadge, SectionTitle } from "@/components/ui";
 import { getDataSource } from "@/lib/data";
 import { getModuleData } from "@/lib/data/modules";
-import { doxxingReport, LEAK_LABEL, type LeakKind } from "@/lib/executive/os/doxxing";
+import {
+  doxxingReport, takedownPlan, LEAK_LABEL, TAKEDOWN_LABEL,
+  type LeakKind, type TakedownPriority,
+} from "@/lib/executive/os/doxxing";
 import { cn, timeAgo, titleCase } from "@/lib/ui";
 import { ExecutiveTabs } from "../tabs";
 
@@ -13,10 +16,17 @@ const KIND_ICON: Record<LeakKind, LucideIcon> = {
   address: MapPin, phone: Phone, family: Users, employer: Briefcase,
 };
 
+const TAKEDOWN_PRIORITY: Record<TakedownPriority, string> = {
+  critical: "text-risk-critical bg-risk-critical/10 ring-risk-critical/30",
+  high: "text-risk-high bg-risk-high/10 ring-risk-high/30",
+  standard: "text-slate-400 bg-bg-elevated ring-border",
+};
+
 export default async function DoxxingPage() {
   const { exposures, threats } = await (await getDataSource()).getDataset();
   const { familyMembers, employeeExposures } = await getModuleData();
   const r = doxxingReport({ exposures, threats, family: familyMembers, employees: employeeExposures });
+  const plan = takedownPlan(r);
 
   return (
     <div className="space-y-5">
@@ -72,6 +82,31 @@ export default async function DoxxingPage() {
           </ul>
         )}
       </Card>
+
+      {plan.length > 0 && (
+        <Card className="p-4">
+          <SectionTitle
+            title="Takedown plan"
+            subtitle="Each leak routed to its remediation channel — highest priority first"
+            action={<span className="inline-flex items-center gap-1 text-xs text-slate-500"><Send className="h-3.5 w-3.5" /> {plan.length} routed</span>}
+          />
+          <ul className="space-y-2">
+            {plan.map((a, i) => {
+              const Icon = KIND_ICON[a.leakKind];
+              return (
+                <li key={i} className="flex items-center gap-3 rounded-lg border border-border bg-bg-subtle/40 px-3 py-2">
+                  <Icon className="h-4 w-4 shrink-0 text-brand-fg" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-white">{TAKEDOWN_LABEL[a.method]}</p>
+                    <p className="truncate text-[11px] text-slate-500">{LEAK_LABEL[a.leakKind]} · {titleCase(a.target)}</p>
+                  </div>
+                  <span className={cn("shrink-0 rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1", TAKEDOWN_PRIORITY[a.priority])}>{a.priority}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </Card>
+      )}
     </div>
   );
 }
