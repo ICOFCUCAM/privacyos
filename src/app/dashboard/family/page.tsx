@@ -15,6 +15,7 @@ import {
   buildRegistry, buildFamilyGraph, memberRisks, childSafety, exposureTracking, sharedExposures,
   REGISTRY_LABEL, type RelationCategory, type ExposureVector, type VectorStatus,
 } from "@/lib/family/os/family-os";
+import { FamilyGraphView } from "@/components/family-graph-view";
 import { ExecutiveTabs } from "../executive/tabs";
 import { cn, titleCase } from "@/lib/ui";
 
@@ -223,24 +224,20 @@ export default async function FamilyPage() {
               </>
             )}
           </div>
-          {/* Relationship map: principal → members */}
+          {/* Relationship map: radial risk-propagation graph */}
           <div className="rounded-xl border border-border bg-bg-subtle/40 p-3">
-            <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400"><Network className="h-3.5 w-3.5" /> Relationship map</p>
-            <div className="mb-2 flex items-center gap-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand/20 text-brand-fg ring-1 ring-brand/40"><User className="h-3.5 w-3.5" /></span>
-              <span className="text-sm font-semibold text-white">{graph.principal}</span>
-              <span className="text-[10px] text-slate-500">principal</span>
-            </div>
-            <ul className="space-y-1.5 border-l border-border pl-3">
-              {graph.edges.map((e) => (
-                <li key={e.member.id} className="flex items-center gap-2 text-xs">
-                  <span className="text-slate-500">{REGISTRY_LABEL[e.category]}</span>
-                  <span className="min-w-0 flex-1 truncate text-slate-300">{e.member.displayName}</span>
-                  {e.inherited > 0 && <span className="shrink-0 text-[10px] text-risk-medium" title="inherited household risk">+{e.inherited}</span>}
-                  <span className={cn("shrink-0 font-semibold", riskTone(e.risk))}>{e.risk}</span>
-                </li>
-              ))}
-            </ul>
+            <p className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400"><Network className="h-3.5 w-3.5" /> Relationship map · risk propagation</p>
+            {graph.edges.length === 0 ? (
+              <p className="mt-2 text-xs text-slate-500">No relatives on the registry.</p>
+            ) : (
+              <>
+                <FamilyGraphView
+                  principal={graph.principal}
+                  nodes={graph.edges.map((e) => ({ id: e.member.id, name: e.member.displayName, relationLabel: REGISTRY_LABEL[e.category], risk: e.risk, inherited: e.inherited, isMinor: e.member.isMinor }))}
+                />
+                <p className="text-center text-[10px] text-slate-500">Node = combined risk · solid edge = inherited household risk · ▾ minor</p>
+              </>
+            )}
           </div>
         </div>
       </Card>
