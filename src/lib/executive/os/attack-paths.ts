@@ -190,3 +190,74 @@ export function analyzeAttackSurface(input: AttackInput): AttackSurface {
 
   return { paths, enabledPaths: enabled.length, topScore: paths[0]?.score ?? 0, chokepoint };
 }
+
+/* ── What-if leverage analysis ───────────────────────────────────────────── */
+
+const CATEGORY_FOR_SIGNAL: Partial<Record<Signal, Exposure["category"]>> = {
+  address: "address", phone: "phone", family: "family", email: "email",
+  username: "username", photo: "photo", financial: "financial", employer: "employer", credential: "credential",
+};
+
+/** Return the footprint with everything that contributes `signal` removed. */
+export function removeSignal(input: AttackInput, signal: Signal): AttackInput {
+  const cat = CATEGORY_FOR_SIGNAL[signal];
+  const exposures = input.exposures.filter((e) => {
+    if (cat && e.category === cat) return false;
+    if (signal === "breach" && e.source === "breach_db") return false;
+    if (signal === "darkweb" && e.source === "dark_web") return false;
+    return true;
+  });
+  const threats = input.threats.filter((t) => {
+    if (signal === "credential" && t.kind === "credential_leak") return false;
+    if (signal === "darkweb" && t.kind === "dark_web_mention") return false;
+    if (signal === "doxxing" && t.kind === "doxxing") return false;
+    if (signal === "location" && t.kind === "location_exposure") return false;
+    if (signal === "impersonation" && (t.kind === "impersonation" || t.kind === "deepfake")) return false;
+    return true;
+  });
+  const credentialLeaks = signal === "credential" ? [] : input.credentialLeaks;
+  return { exposures, threats, credentialLeaks };
+}
+
+export interface RemovalImpact {
+  signal: Signal;
+  label: string;
+  action: string;
+  count: number;
+  pathsBroken: number;
+  pathsAfter: number;
+  topScoreAfter: number;
+  scoreDrop: number;
+}
+
+function enabledScore(s: AttackSurface): number {
+  return s.paths.filter((p) => p.enabled).reduce((sum, p) => sum + p.score, 0);
+}
+
+/**
+ * For every present signal, simulate removing it and measure the impact — a
+ * ranked "remove this → gain that" playbook (the chokepoint is the top row).
+ */
+export function simulateRemovals(input: AttackInput): RemovalImpact[] {
+  const before = analyzeAttackSurface(input);
+  const beforeScore = enabledScore(before);
+  const idx = buildSignalIndex(input);
+
+  return (Object.keys(idx) as Signal[])
+    .map((signal) => {
+      const after = analyzeAttackSurface(removeSignal(input, signal));
+      return {
+        signal,
+        label: SIGNAL_META[signal].label,
+        action: SIGNAL_META[signal].action,
+        count: idx[signal]?.count ?? 0,
+        pathsBroken: before.enabledPaths - after.enabledPaths,
+        pathsAfter: after.enabledPaths,
+        topScoreAfter: after.topScore,
+        scoreDrop: beforeScore - enabledScore(after),
+      };
+    })
+    // Rank by risk removed: with a 50% chain threshold, eliminating one signal
+    // usually *weakens* paths (scoreDrop) more than it fully disables them.
+    .sort((a, b) => b.scoreDrop - a.scoreDrop || b.pathsBroken - a.pathsBroken);
+}

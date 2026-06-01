@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { analyzeAttackSurface, buildSignalIndex } from "./attack-paths";
+import { analyzeAttackSurface, buildSignalIndex, removeSignal, simulateRemovals } from "./attack-paths";
 import type { Exposure, Threat } from "@/lib/types";
 
 const exposure = (over: Partial<Exposure>): Exposure => ({
@@ -70,5 +70,40 @@ describe("analyzeAttackSurface", () => {
     expect(surface.enabledPaths).toBe(0);
     expect(surface.chokepoint).toBeNull();
     expect(surface.paths.every((p) => !p.enabled)).toBe(true);
+  });
+});
+
+describe("what-if leverage", () => {
+  const input = {
+    exposures: [
+      exposure({ category: "address" }), exposure({ category: "phone" }),
+      exposure({ category: "photo" }), exposure({ category: "family" }),
+    ],
+    threats: [threat({ kind: "doxxing" }), threat({ kind: "location_exposure" })],
+  };
+
+  it("removeSignal strips every contributor to a signal", () => {
+    const without = removeSignal(input, "address");
+    expect(without.exposures.some((e) => e.category === "address")).toBe(false);
+    // other categories survive
+    expect(without.exposures.some((e) => e.category === "phone")).toBe(true);
+    // threat-driven signal removal
+    expect(removeSignal(input, "doxxing").threats.some((t) => t.kind === "doxxing")).toBe(false);
+  });
+
+  it("ranks signals by the risk their removal removes", () => {
+    const lev = simulateRemovals(input);
+    // address feeds swatting + stalking → removing it removes the most risk
+    expect(lev[0].signal).toBe("address");
+    expect(lev[0].scoreDrop).toBeGreaterThan(0);
+    // ranked by scoreDrop descending; non-negative remaining-path counts
+    expect([...lev].sort((a, b) => b.scoreDrop - a.scoreDrop)).toEqual(lev);
+    expect(lev.every((r) => r.pathsAfter >= 0 && r.scoreDrop >= 0)).toBe(true);
+  });
+
+  it("matches the chokepoint as the top-leverage signal", () => {
+    const surface = analyzeAttackSurface(input);
+    const lev = simulateRemovals(input);
+    expect(lev[0].signal).toBe(surface.chokepoint!.signal);
   });
 });

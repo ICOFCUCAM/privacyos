@@ -1,8 +1,8 @@
-import { Target, Crosshair, ShieldCheck, Zap, ArrowRight } from "lucide-react";
+import { Target, Crosshair, ShieldCheck, Zap, ArrowRight, SlidersHorizontal } from "lucide-react";
 import { Card, PageHeader, SectionTitle } from "@/components/ui";
 import { getDataSource } from "@/lib/data";
 import { getModuleData } from "@/lib/data/modules";
-import { analyzeAttackSurface, type AttackPath } from "@/lib/executive/os/attack-paths";
+import { analyzeAttackSurface, simulateRemovals, type AttackPath } from "@/lib/executive/os/attack-paths";
 import { cn } from "@/lib/ui";
 import { ExecutiveTabs } from "../tabs";
 
@@ -19,6 +19,7 @@ export default async function AttackPathsPage() {
   const { exposures, threats } = await (await getDataSource()).getDataset();
   const { credentialLeaks } = await getModuleData();
   const surface = analyzeAttackSurface({ exposures, threats, credentialLeaks });
+  const leverage = simulateRemovals({ exposures, threats, credentialLeaks }).filter((r) => r.pathsBroken > 0 || r.scoreDrop > 0);
 
   return (
     <div className="space-y-5">
@@ -73,6 +74,29 @@ export default async function AttackPathsPage() {
           {surface.paths.map((p) => <PathRow key={p.id} p={p} />)}
         </ul>
       </Card>
+
+      {/* What-if leverage analysis */}
+      {leverage.length > 0 && (
+        <Card className="p-4">
+          <SectionTitle title="Remove-this leverage" subtitle="What collapses if you eliminate each signal — most leverage first" action={<SlidersHorizontal className="h-4 w-4 text-slate-500" />} />
+          <ul className="space-y-1.5">
+            {leverage.map((r) => (
+              <li key={r.signal} className="flex items-center gap-3 rounded-lg border border-border bg-bg-subtle/40 px-3 py-2">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm text-slate-200">{r.action}</p>
+                  <p className="text-[11px] text-slate-500">{r.label}{r.count > 0 && <> · {r.count} item{r.count === 1 ? "" : "s"}</>} · {r.pathsAfter} path(s) would remain</p>
+                </div>
+                {r.pathsBroken > 0 && (
+                  <span className="shrink-0 rounded-md bg-risk-low/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-risk-low ring-1 ring-risk-low/30">
+                    −{r.pathsBroken} path{r.pathsBroken === 1 ? "" : "s"}
+                  </span>
+                )}
+                <span className="shrink-0 text-xs font-semibold text-risk-low">−{r.scoreDrop}</span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
     </div>
   );
 }
