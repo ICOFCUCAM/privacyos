@@ -7,10 +7,12 @@
  * cycle instead of waiting for someone to open the page. Pure and unit-tested.
  */
 
-import type { RiskLevel } from "@/lib/types";
+import type { Case, RiskLevel } from "@/lib/types";
 import type { SentimentLabel } from "@/lib/suite-types";
 import type { NewCaseFields } from "@/lib/agents/recommendation-routing";
 import { suppressionTactics } from "./recovery";
+
+const RISK_RANK: Record<RiskLevel, number> = { low: 0, medium: 1, high: 2, critical: 3 };
 
 export interface ReputationMentionLike {
   title: string;
@@ -65,4 +67,11 @@ export function reputationCasesFromMentions(
     out.push(c);
   }
   return out;
+}
+
+/** Open reputation-recovery cases (the autonomous loop's output), worst first. */
+export function openReputationRecoveryCases(cases: Case[]): Case[] {
+  return cases
+    .filter((c) => c.type === "reputation_recovery" && c.status !== "resolved")
+    .sort((a, b) => RISK_RANK[b.riskLevel] - RISK_RANK[a.riskLevel] || b.createdAt.localeCompare(a.createdAt));
 }

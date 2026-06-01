@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { caseFromMention, reputationCasesFromMentions, shouldOpenReputationCase, type ReputationMentionLike } from "./reputation-cases";
+import { caseFromMention, reputationCasesFromMentions, shouldOpenReputationCase, openReputationRecoveryCases, type ReputationMentionLike } from "./reputation-cases";
+import type { Case } from "@/lib/types";
 
 const m = (over: Partial<ReputationMentionLike>): ReputationMentionLike => ({
   title: "Story", sourceName: "news.com", sentiment: "negative", sentimentScore: -0.7, isDefamatory: false, ...over,
@@ -42,5 +43,23 @@ describe("reputationCasesFromMentions", () => {
       ["Defamatory content: A"], // already open
     );
     expect(cases.map((c) => c.title)).toEqual(["Negative coverage: C"]);
+  });
+});
+
+describe("openReputationRecoveryCases", () => {
+  const c = (over: Partial<Case>): Case => ({
+    id: Math.random().toString(36).slice(2), subjectId: "s", type: "reputation_recovery", title: "T",
+    summary: "", status: "open", riskLevel: "high", assignedAgent: "reputation", relatedExposureIds: [],
+    createdAt: "2026-05-01T00:00:00Z", updatedAt: "2026-05-01T00:00:00Z", ...over,
+  });
+
+  it("returns only open reputation_recovery cases, worst first", () => {
+    const out = openReputationRecoveryCases([
+      c({ id: "a", riskLevel: "high" }),
+      c({ id: "b", riskLevel: "critical" }),
+      c({ id: "resolved", status: "resolved" }),       // excluded
+      c({ id: "other", type: "breach_response" }),       // excluded
+    ]);
+    expect(out.map((x) => x.id)).toEqual(["b", "a"]);
   });
 });

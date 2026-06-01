@@ -1,10 +1,12 @@
-import { LifeBuoy, ArrowDownToLine, Wrench, Siren } from "lucide-react";
-import { Card, PageHeader, SectionTitle } from "@/components/ui";
+import Link from "next/link";
+import { LifeBuoy, ArrowDownToLine, Wrench, Siren, FolderKanban, ArrowRight } from "lucide-react";
+import { Card, PageHeader, RiskBadge, SectionTitle } from "@/components/ui";
 import { getDataSource } from "@/lib/data";
 import { getModuleData } from "@/lib/data/modules";
 import { recoveryProgram, type CrisisTier } from "@/lib/reputation/os/recovery";
 import { getRankings } from "@/lib/reputation/os/serp-cache";
-import { cn } from "@/lib/ui";
+import { openReputationRecoveryCases } from "@/lib/reputation/os/reputation-cases";
+import { cn, titleCase } from "@/lib/ui";
 import { ReputationTabs } from "../tabs";
 
 export const metadata = { title: "Reputation — Recovery" };
@@ -17,11 +19,13 @@ const TIER: Record<CrisisTier, { label: string; cls: string; bg: string; ring: s
 
 export default async function RecoveryPage() {
   const { mentions } = await getModuleData();
-  const { subject } = await (await getDataSource()).getDataset();
+  const { subject, cases } = await (await getDataSource()).getDataset();
   // Reuse the same cached SERP row the SEO tab populates — no extra credit.
   const { results } = await getRankings(subject.displayName, subject.id);
   const r = recoveryProgram(mentions, results);
   const T = TIER[r.crisis.tier];
+  // The autonomous loop opens these from negative/defamatory coverage.
+  const activeCases = openReputationRecoveryCases(cases);
 
   return (
     <div className="space-y-5">
@@ -47,6 +51,31 @@ export default async function RecoveryPage() {
           ))}
         </ol>
       </Card>
+
+      {/* Active recovery cases — opened autonomously from coverage */}
+      {activeCases.length > 0 && (
+        <Card className="p-4">
+          <SectionTitle
+            title="Active recovery cases"
+            subtitle="Opened automatically from negative/defamatory coverage"
+            action={<Link href="/dashboard/cases" className="inline-flex items-center gap-1 text-xs font-medium text-brand-fg hover:underline">All cases <ArrowRight className="h-3.5 w-3.5" /></Link>}
+          />
+          <ul className="space-y-2">
+            {activeCases.map((c) => (
+              <li key={c.id}>
+                <Link href="/dashboard/cases" className="flex items-center gap-3 rounded-xl border border-border bg-bg-subtle/40 p-3 transition hover:border-brand/30 hover:bg-bg-subtle/70">
+                  <FolderKanban className="h-4 w-4 shrink-0 text-brand-fg" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-white">{c.title}</p>
+                    <p className="text-[11px] text-slate-500">{titleCase(c.status)} · {titleCase(c.assignedAgent)} agent</p>
+                  </div>
+                  <RiskBadge level={c.riskLevel} />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
 
       <div className="grid gap-5 lg:grid-cols-2">
         {/* Suppression */}
