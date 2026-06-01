@@ -177,7 +177,7 @@ export interface LegalRequest {
 }
 
 /* ── Reporting & notifications ───────────────────────────────────────────── */
-export type ReportType = "privacy" | "executive" | "family" | "travel" | "business" | "threat" | "compliance" | "risk" | "board";
+export type ReportType = "privacy" | "executive" | "family" | "travel" | "identity" | "business" | "threat" | "compliance" | "risk" | "board";
 
 export interface ReportMeta {
   id: string;

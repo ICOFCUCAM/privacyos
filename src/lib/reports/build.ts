@@ -20,6 +20,7 @@ import {
 import { assessTrips } from "@/lib/intelligence/travel-risk";
 import { tripPhase, destinationIntel, travelReadiness, travelOverview } from "@/lib/travel/os/travel-os";
 import { brandRiskIndices, brandImpersonation, BRAND_INDEX_META } from "@/lib/business/os/brand-os";
+import { buildAccounts, passwordHygiene, identityRisk, restorationPlaybook } from "@/lib/identity/os/identity-os";
 import { titleCase } from "@/lib/ui";
 import type { ReportContext } from "./engine";
 import type { ReportType } from "@/lib/suite-types";
@@ -167,6 +168,25 @@ export async function buildReportContext(type: ReportType): Promise<ReportContex
             { label: "Outstanding measures", value: `${ready.criticalMeasures} critical · ${ready.highMeasures} high` },
           ] },
           { heading: "Itinerary", rows: trips.length ? trips.map((t) => ({ label: t.alert.destination, value: `${titleCase(tripPhase(t))} · ${titleCase(t.posture)} · risk ${t.riskScore}` })) : [{ label: "No trips", value: "Itinerary empty" }] },
+        ],
+      };
+    }
+    case "identity": {
+      const accounts = buildAccounts({ credentialLeaks: mod.credentialLeaks, exposures: data.exposures, knownEmails: data.subject.emails });
+      const idRisk = identityRisk(accounts);
+      const hygiene = passwordHygiene(accounts);
+      const playbook = restorationPlaybook(idRisk);
+      return {
+        ...base,
+        stats: [
+          { label: "Identity risk", value: `${idRisk.overall}/100` },
+          { label: "Breached accounts", value: `${idRisk.breachedAccounts}/${accounts.length}` },
+          { label: "Passwords exposed", value: idRisk.passwordsExposed },
+          { label: "Password hygiene", value: `${hygiene.score}/100` },
+        ],
+        sections: [
+          { heading: "Account inventory", rows: accounts.map((a) => ({ label: a.account, value: `ATO ${a.atoRisk}/100 · ${a.breaches} breach(es)${a.passwordExposed ? " · password" : ""}${a.darkWeb ? " · dark web" : ""}` })) },
+          { heading: "Restoration playbook", rows: playbook.map((s) => ({ label: `${s.step}. ${s.action}`, value: titleCase(s.priority) })) },
         ],
       };
     }

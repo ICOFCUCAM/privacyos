@@ -24,6 +24,7 @@ export const REPORT_TITLES: Record<ReportType, string> = {
   executive: "Executive Protection Report",
   family: "Family Protection Report",
   travel: "Travel Security Report",
+  identity: "Digital Identity Report",
   business: "Business Risk Report",
   threat: "Threat Intelligence Report",
   compliance: "Compliance Report",

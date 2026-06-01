@@ -25,6 +25,16 @@ describe("buildReportContext — executive", () => {
   });
 });
 
+describe("buildReportContext — identity", () => {
+  it("renders the account inventory and restoration playbook", async () => {
+    const ctx = await buildReportContext("identity");
+    expect(ctx.stats[0].label).toBe("Identity risk");
+    const headings = ctx.sections.map((s) => s.heading);
+    expect(headings).toContain("Account inventory");
+    expect(headings).toContain("Restoration playbook");
+  });
+});
+
 describe("buildReportContext — business", () => {
   it("leads with the Brand Risk Score and brand impersonation", async () => {
     const ctx = await buildReportContext("business");
