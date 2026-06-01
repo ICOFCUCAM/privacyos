@@ -15,14 +15,22 @@ import { getModuleData } from "@/lib/data/modules";
 import { executiveRiskIndices } from "@/lib/executive/os/risk-indices";
 import { analyzeAttackSurface } from "@/lib/executive/os/attack-paths";
 import { sharedExposures, memberRisks } from "@/lib/family/os/family-os";
+import { protectionSuite, summarizeSuite, type SuiteBand } from "@/lib/suite/protection-suite";
 import {
   buildPriorityQueue, computePosture, countUnresolvedExposures,
   type ActionKind, type ActionUrgency, type PostureLevel,
 } from "@/lib/intelligence/mission-control";
 import { cn, titleCase } from "@/lib/ui";
-import { Crown, Target } from "lucide-react";
+import { Crown, Target, LayoutGrid } from "lucide-react";
 
 export const metadata = { title: "Mission Control" };
+
+const SUITE_BAND: Record<SuiteBand, string> = {
+  low: "text-risk-low ring-risk-low/30",
+  elevated: "text-risk-medium ring-risk-medium/30",
+  high: "text-risk-high ring-risk-high/30",
+  critical: "text-risk-critical ring-risk-critical/30",
+};
 
 const POSTURE: Record<PostureLevel, { ring: string; bg: string; text: string; dot: string; icon: LucideIcon }> = {
   operational: { ring: "ring-risk-low/30", bg: "bg-risk-low/10", text: "text-risk-low", dot: "bg-risk-low", icon: CheckCircle2 },
@@ -56,7 +64,14 @@ export default async function MissionControlPage() {
   const definitions = await listWorkflowDefinitions();
   const enabledAutomations = definitions.filter((d) => d.enabled).length;
   const unresolvedExposures = countUnresolvedExposures(data.exposures.map((e) => e.status));
-  const { familyMembers, travelAlerts, credentialLeaks } = await getModuleData();
+  const mod = await getModuleData();
+  const { familyMembers, travelAlerts, credentialLeaks } = mod;
+  const suite = protectionSuite({
+    exposures: data.exposures, threats: data.threats, mentions: mod.mentions, familyMembers, travelAlerts,
+    credentialLeaks, domainRisks: mod.domainRisks, employeeExposures: mod.employeeExposures,
+    thirdPartyRisks: mod.thirdPartyRisks, subjectEmails: data.subject.emails,
+  });
+  const suiteSummary = summarizeSuite(suite);
   const execRisk = executiveRiskIndices({ exposures: data.exposures, threats: data.threats, family: familyMembers, travel: travelAlerts, credentialLeaks });
   const surface = analyzeAttackSurface({ exposures: data.exposures, threats: data.threats, credentialLeaks });
   const childSafetyAlerts = memberRisks(familyMembers, sharedExposures(data.exposures))
@@ -116,6 +131,26 @@ export default async function MissionControlPage() {
         <Metric label="Active workflows" value={String(wfMetrics.active)} sub={wfMetrics.awaitingApproval > 0 ? `${wfMetrics.awaitingApproval} awaiting approval` : "fully autonomous"} tone="text-white" icon={GitBranch} href="/dashboard/workflows" />
         <Metric label="Active threats" value={String(threatSummary.active)} sub={`${threatSummary.bySeverity.critical} critical · ${threatSummary.bySeverity.high} high`} tone="text-white" icon={ShieldAlert} href="/dashboard/threats" />
       </div>
+
+      {/* Cross-domain protection posture (Protection Suite) */}
+      <Link href="/dashboard/suite" className="block">
+        <Card className="p-3 transition hover:border-brand/30">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-white">
+              <LayoutGrid className="h-3.5 w-3.5 text-brand-fg" /> Protection Suite
+            </span>
+            <span className="text-[11px] text-slate-500">{suiteSummary.atRisk} of {suiteSummary.domains} domains at risk</span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {suite.map((d) => (
+                <span key={d.key} className={cn("inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium ring-1", SUITE_BAND[d.band])}>
+                  {d.label} {d.score}
+                </span>
+              ))}
+            </div>
+            <ArrowRight className="ml-auto h-3.5 w-3.5 text-slate-500" />
+          </div>
+        </Card>
+      </Link>
 
       <div className="grid gap-5 lg:grid-cols-3">
         {/* Priority action queue */}
