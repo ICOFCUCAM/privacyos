@@ -21,6 +21,7 @@ import { synthesizeRecommendations } from "@/lib/agents/synthesis";
 import { assessTrips } from "@/lib/intelligence/travel-risk";
 import { travelOverview, destinationIntel } from "@/lib/travel/os/travel-os";
 import { RISK_INDEX_META, type ExecutiveRiskIndices } from "@/lib/executive/os/risk-indices";
+import { allFrameworkCoverage, overallFrameworkCoverage } from "@/lib/compliance/frameworks";
 import {
   buildPriorityQueue, computePosture, countUnresolvedExposures,
   type ActionKind, type ActionUrgency, type PostureLevel,
@@ -107,7 +108,11 @@ export default async function MissionControlPage() {
   const travel = travelOverview(trips);
   const destinations = destinationIntel(trips);
   const legalOpen = mod.legalRequests.filter((l) => l.status !== "completed");
-  const legalEscalated = mod.legalRequests.filter((l) => l.status === "escalated").length;
+  const compliance = overallFrameworkCoverage();
+  const frameworks = [...allFrameworkCoverage()].sort((a, b) => a.coverage - b.coverage);
+  const STANDING_CLS: Record<string, string> = {
+    Compliant: "text-risk-low ring-risk-low/30", "On track": "text-risk-medium ring-risk-medium/30", "At risk": "text-risk-high ring-risk-high/30",
+  };
 
   const posture = computePosture({
     riskScore: data.riskScore.overall,
@@ -240,7 +245,7 @@ export default async function MissionControlPage() {
         <DomainPanel icon={Crown} title="Executive risks" href="/dashboard/executive" headline={String(execRisk.overall)} headlineTone={domainTone(execRisk.overall)} sub={`${titleCase(execRisk.band)} risk`} items={execWorst.slice(0, 3).map((e) => ({ label: e.label, badge: String(e.value), badgeCls: RISK_CLS[domainBand(e.value)] }))} empty="Low risk" />
         <DomainPanel icon={Users} title="Family risks" href="/dashboard/family" headline={String(fam.familyRisk)} headlineTone={domainTone(fam.familyRisk)} sub={`${fam.minors} minor(s) · ${famSafety.alerts.length} alert(s)`} items={famRisks.slice(0, 3).map((r) => ({ label: r.member.displayName, badge: String(r.total), badgeCls: RISK_CLS[r.band] }))} empty="No family on file" />
         <DomainPanel icon={Plane} title="Travel risks" href="/dashboard/travel" headline={titleCase(travel.highestPosture)} headlineTone={travel.highestPosture === "high" ? "text-risk-critical" : travel.highestPosture === "elevated" ? "text-risk-high" : travel.highestPosture === "guarded" ? "text-risk-medium" : "text-risk-low"} sub={`${travel.upcoming} upcoming · ${travel.destinations} dest.`} items={destinations.slice(0, 3).map((d) => ({ label: d.destination, badge: titleCase(d.posture) }))} empty="No trips" />
-        <DomainPanel icon={Scale} title="Compliance" href="/dashboard/compliance" headline={String(legalOpen.length)} headlineTone={legalEscalated > 0 ? "text-risk-high" : "text-white"} sub={legalEscalated > 0 ? `${legalEscalated} escalated` : `${mod.legalRequests.length} requests`} items={legalOpen.slice(0, 3).map((l) => ({ label: `${titleCase(l.type)} → ${l.recipient}`, badge: titleCase(l.status) }))} empty="All requests complete" />
+        <DomainPanel icon={Scale} title="Compliance" href="/dashboard/compliance" headline={`${compliance}%`} headlineTone={compliance >= 90 ? "text-risk-low" : compliance >= 70 ? "text-risk-medium" : "text-risk-high"} sub={`${legalOpen.length} open request(s) · framework coverage`} items={frameworks.slice(0, 3).map((f) => ({ label: f.name, badge: f.standing, badgeCls: STANDING_CLS[f.standing] }))} empty="No frameworks tracked" />
       </div>
     </div>
   );
