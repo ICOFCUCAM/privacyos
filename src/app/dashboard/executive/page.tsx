@@ -64,13 +64,13 @@ function indexTone(v: number): string {
 
 export default async function ExecutivePage() {
   const { exposures, threats } = await (await getDataSource()).getDataset();
-  const { familyMembers, travelAlerts } = await getModuleData();
-  const indices = executiveRiskIndices({ exposures, threats, family: familyMembers, travel: travelAlerts });
+  const { familyMembers, travelAlerts, credentialLeaks } = await getModuleData();
+  const indices = executiveRiskIndices({ exposures, threats, family: familyMembers, travel: travelAlerts, credentialLeaks });
   const posture = assessExecutive(exposures, threats);
   const P = POSTURE[posture.status];
   const B = BAND[indices.band];
   const trend = ((await getScoreHistory()).find((h) => h.kind === "executive")?.points ?? []).map((p) => p.value);
-  const recommendations = riskRecommendations({ exposures, threats, family: familyMembers, travel: travelAlerts }, indices);
+  const recommendations = riskRecommendations({ exposures, threats, family: familyMembers, travel: travelAlerts, credentialLeaks }, indices);
   const physicalThreats = threats.filter((t) => !t.acknowledged && ["doxxing", "location_exposure"].includes(t.kind));
 
   return (

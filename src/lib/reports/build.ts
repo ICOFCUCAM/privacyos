@@ -74,7 +74,7 @@ export async function buildReportContext(type: ReportType): Promise<ReportContex
         sections: [topExposures, threatRows],
       };
     case "executive": {
-      const indices = executiveRiskIndices({ exposures: data.exposures, threats: data.threats, family: mod.familyMembers, travel: mod.travelAlerts });
+      const indices = executiveRiskIndices({ exposures: data.exposures, threats: data.threats, family: mod.familyMembers, travel: mod.travelAlerts, credentialLeaks: mod.credentialLeaks });
       // Use live property data for the residence section when available (keyed
       // + authenticated); otherwise residenceReport infers from address exposures.
       const topAddress = data.exposures.filter((e) => e.category === "address").sort((a, b) => b.riskScore - a.riskScore)[0];

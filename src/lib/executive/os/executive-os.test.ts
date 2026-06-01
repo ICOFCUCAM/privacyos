@@ -59,6 +59,16 @@ describe("risk indices", () => {
     expect(withAck.physical).toBe(0);
   });
 
+  it("raises the digital index when credential leaks are supplied", () => {
+    const base = { exposures: [], threats: [], family: [], travel: [] };
+    const without = executiveRiskIndices(base);
+    const withLeaks = executiveRiskIndices({ ...base, credentialLeaks: [
+      { id: "l1", account: "a@x.com", breachName: "B", dataClasses: ["Passwords"], pwnCount: 1000, riskLevel: "critical" },
+      { id: "l2", account: "b@x.com", breachName: "B", dataClasses: ["Passwords"], pwnCount: 1000, riskLevel: "high" },
+    ] });
+    expect(withLeaks.digital).toBeGreaterThan(without.digital);
+  });
+
   it("recommends a top action per elevated index, worst-first, none when low", () => {
     const input: RiskInput = {
       exposures: [exposure({ category: "address", riskLevel: "critical" }), exposure({ category: "address", riskLevel: "critical" })],

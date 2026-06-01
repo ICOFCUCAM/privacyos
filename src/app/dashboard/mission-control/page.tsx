@@ -54,8 +54,8 @@ export default async function MissionControlPage() {
   const definitions = await listWorkflowDefinitions();
   const enabledAutomations = definitions.filter((d) => d.enabled).length;
   const unresolvedExposures = countUnresolvedExposures(data.exposures.map((e) => e.status));
-  const { familyMembers, travelAlerts } = await getModuleData();
-  const execRisk = executiveRiskIndices({ exposures: data.exposures, threats: data.threats, family: familyMembers, travel: travelAlerts });
+  const { familyMembers, travelAlerts, credentialLeaks } = await getModuleData();
+  const execRisk = executiveRiskIndices({ exposures: data.exposures, threats: data.threats, family: familyMembers, travel: travelAlerts, credentialLeaks });
 
   const posture = computePosture({
     riskScore: data.riskScore.overall,

@@ -8,7 +8,7 @@
  */
 
 import type { Exposure, RiskLevel, Threat } from "@/lib/types";
-import type { FamilyMember, TravelAlert } from "@/lib/suite-types";
+import type { CredentialLeak, FamilyMember, TravelAlert } from "@/lib/suite-types";
 
 const RISK_WEIGHT: Record<RiskLevel, number> = { low: 8, medium: 18, high: 32, critical: 48 };
 const RISK_RANK: Record<RiskLevel, number> = { low: 0, medium: 1, high: 2, critical: 3 };
@@ -31,6 +31,8 @@ export interface RiskInput {
   threats: Threat[];
   family: FamilyMember[];
   travel: TravelAlert[];
+  /** Leaked credentials from the dark-web feed — raises the digital index when present. */
+  credentialLeaks?: CredentialLeak[];
 }
 
 const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
@@ -63,10 +65,11 @@ export function executiveRiskIndices(input: RiskInput): ExecutiveRiskIndices {
     at.filter((t) => PHYSICAL_THREATS.has(t.kind)).reduce((s, t) => s + RISK_WEIGHT[t.riskLevel] * 1.4, 0),
   );
 
-  // Digital — credentials, accounts, dark web, impersonation.
+  // Digital — credentials, accounts, dark web, impersonation, leaked logins.
   const digital = clamp(
     input.exposures.filter((e) => DIGITAL_CATEGORIES.has(e.category)).reduce((s, e) => s + RISK_WEIGHT[e.riskLevel], 0) +
-    at.filter((t) => DIGITAL_THREATS.has(t.kind)).reduce((s, t) => s + RISK_WEIGHT[t.riskLevel] * 1.1, 0),
+    at.filter((t) => DIGITAL_THREATS.has(t.kind)).reduce((s, t) => s + RISK_WEIGHT[t.riskLevel] * 1.1, 0) +
+    (input.credentialLeaks ?? []).reduce((s, l) => s + RISK_WEIGHT[l.riskLevel], 0),
   );
 
   // Family — relatives' risk; minors weigh heavier.
@@ -118,7 +121,7 @@ export function riskRecommendations(input: RiskInput, indices: ExecutiveRiskIndi
   const count = (fn: (e: Exposure) => boolean) => input.exposures.filter(fn).length;
 
   const physicalItems = count((e) => PHYSICAL_CATEGORIES.has(e.category)) + at.filter((t) => PHYSICAL_THREATS.has(t.kind)).length;
-  const digitalItems = count((e) => DIGITAL_CATEGORIES.has(e.category)) + at.filter((t) => DIGITAL_THREATS.has(t.kind)).length;
+  const digitalItems = count((e) => DIGITAL_CATEGORIES.has(e.category)) + at.filter((t) => DIGITAL_THREATS.has(t.kind)).length + (input.credentialLeaks ?? []).length;
   const familyAtRisk = input.family.filter((m) => m.riskLevel !== "low").length;
   const travelTrips = input.travel.filter((t) => t.riskLevel !== "low").length;
   const personalPending = input.exposures.filter((e) => e.status !== "removed").length;
