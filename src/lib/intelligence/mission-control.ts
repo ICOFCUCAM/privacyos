@@ -27,6 +27,10 @@ export interface MissionInput {
   enabledAutomations: number;
   /** Executive Risk Score, 0–100 (higher = more at risk). */
   executiveRisk: number;
+  /** Live (chainable) attack paths from the kill-chain analysis. */
+  attackPaths: number;
+  /** Score of the most-feasible attack path, 0–100. */
+  topAttackScore: number;
 }
 
 export interface OperationalPosture {
@@ -39,12 +43,13 @@ export interface OperationalPosture {
   agentsTotal: number;
   itemsHandled: number;
   executiveRisk: number;
+  attackPaths: number;
 }
 
 const ACTIVE_AGENT_STATUSES = new Set(["running", "blocked"]);
 
 export function computePosture(input: MissionInput): OperationalPosture {
-  const { cases, threats, workflows, riskScore, executiveRisk } = input;
+  const { cases, threats, workflows, riskScore, executiveRisk, attackPaths, topAttackScore } = input;
   const agentsActive = input.agents.filter((a) => ACTIVE_AGENT_STATUSES.has(a.status)).length;
   const itemsHandled = input.agents.reduce((s, a) => s + a.itemsHandled, 0);
 
@@ -54,6 +59,7 @@ export function computePosture(input: MissionInput): OperationalPosture {
   if (threats.bySeverity.critical > 0) criticalDrivers.push(`${threats.bySeverity.critical} critical threat${threats.bySeverity.critical === 1 ? "" : "s"}`);
   if (workflows.escalated > 0) criticalDrivers.push(`${workflows.escalated} escalated workflow${workflows.escalated === 1 ? "" : "s"}`);
   if (executiveRisk >= 75) criticalDrivers.push(`Executive risk critical (${executiveRisk})`);
+  if (topAttackScore >= 70) criticalDrivers.push(`Live attack path (score ${topAttackScore})`);
 
   const elevatedDrivers: string[] = [];
   if (workflows.awaitingApproval > 0) elevatedDrivers.push(`${workflows.awaitingApproval} awaiting approval`);
@@ -61,6 +67,7 @@ export function computePosture(input: MissionInput): OperationalPosture {
   if (threats.active > 0) elevatedDrivers.push(`${threats.active} active threat${threats.active === 1 ? "" : "s"}`);
   if (cases.open > 0) elevatedDrivers.push(`${cases.open} open case${cases.open === 1 ? "" : "s"}`);
   if (executiveRisk >= 50 && executiveRisk < 75) elevatedDrivers.push(`Executive risk elevated (${executiveRisk})`);
+  if (attackPaths > 0 && topAttackScore >= 45 && topAttackScore < 70) elevatedDrivers.push(`${attackPaths} live attack path${attackPaths === 1 ? "" : "s"}`);
 
   let level: PostureLevel;
   let drivers: string[];
@@ -81,7 +88,7 @@ export function computePosture(input: MissionInput): OperationalPosture {
     operational: "All systems operational — fleet on autopilot",
   }[level];
 
-  return { level, headline, drivers, riskScore, agentsActive, agentsTotal: input.agents.length, itemsHandled, executiveRisk };
+  return { level, headline, drivers, riskScore, agentsActive, agentsTotal: input.agents.length, itemsHandled, executiveRisk, attackPaths };
 }
 
 /* ── Unified priority queue ──────────────────────────────────────────────── */

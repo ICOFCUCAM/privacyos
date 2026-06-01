@@ -22,6 +22,8 @@ const base: MissionInput = {
   unresolvedExposures: 0,
   enabledAutomations: 3,
   executiveRisk: 0,
+  attackPaths: 0,
+  topAttackScore: 0,
 };
 
 describe("computePosture", () => {
@@ -53,6 +55,16 @@ describe("computePosture", () => {
     const elev = computePosture({ ...base, executiveRisk: 60 });
     expect(elev.level).toBe("elevated");
     expect(elev.drivers.join(" ")).toMatch(/Executive risk elevated/);
+  });
+
+  it("factors live attack paths into posture + drivers", () => {
+    const crit = computePosture({ ...base, attackPaths: 2, topAttackScore: 82 });
+    expect(crit.level).toBe("critical");
+    expect(crit.drivers.join(" ")).toMatch(/Live attack path \(score 82\)/);
+    expect(crit.attackPaths).toBe(2);
+    const elev = computePosture({ ...base, attackPaths: 1, topAttackScore: 55 });
+    expect(elev.level).toBe("elevated");
+    expect(elev.drivers.join(" ")).toMatch(/1 live attack path/);
   });
 });
 
