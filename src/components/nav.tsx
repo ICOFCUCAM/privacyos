@@ -23,6 +23,7 @@ export const navGroups: NavGroup[] = [
     group: "",
     items: [
       { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+      { href: "/dashboard/suite", label: "Protection Suite", icon: LayoutGrid },
       { href: "/dashboard/mission-control", label: "Mission Control", icon: Gauge },
     ],
   },
