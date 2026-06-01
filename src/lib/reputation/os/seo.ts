@@ -17,6 +17,8 @@ export interface KeywordRank {
   rank: number;
   target: number;
   trend: RankTrend;
+  /** True when rank is a real live SERP position (not modeled). */
+  liveRank?: boolean;
 }
 
 export type ResultSentiment = "owned" | "positive" | "neutral" | "negative";
@@ -129,6 +131,25 @@ export function classifyPageOne(subject: Subject, mentions: Mention[], results: 
   const negative = slots.filter((s) => s.sentiment === "negative").length;
   const dominance = slots.length === 0 ? 0 : Math.round(((owned + positive) / slots.length) * 100);
   return { slots, owned, positive, negative, dominance };
+}
+
+/** The live page-one position of the subject's first owned result, or null. */
+export function ownedRankFrom(pageOne: PageOneDominance): number | null {
+  const owned = pageOne.slots.find((s) => s.sentiment === "owned");
+  return owned ? owned.position : null;
+}
+
+/**
+ * Override the subject's own-name keyword with its real owned position from live
+ * SERP data (free — reuses the cached page-one). Other keywords stay modeled.
+ */
+export function withLiveNameRank(keywords: KeywordRank[], subjectName: string, ownedPosition: number | null): KeywordRank[] {
+  if (ownedPosition == null) return keywords;
+  return keywords.map((k) =>
+    k.keyword === subjectName
+      ? { ...k, rank: ownedPosition, trend: (ownedPosition <= k.target ? "flat" : "up") as RankTrend, liveRank: true }
+      : k,
+  );
 }
 
 export function competitiveVisibility(subject: Subject): CompetitorVisibility[] {

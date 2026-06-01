@@ -3,7 +3,7 @@ import type { LucideIcon } from "lucide-react";
 import { Card, PageHeader, SectionTitle } from "@/components/ui";
 import { getDataSource } from "@/lib/data";
 import { getModuleData } from "@/lib/data/modules";
-import { seoProfile, classifyPageOne, type RankTrend, type ResultSentiment } from "@/lib/reputation/os/seo";
+import { seoProfile, classifyPageOne, ownedRankFrom, withLiveNameRank, type RankTrend, type ResultSentiment } from "@/lib/reputation/os/seo";
 import { getRankings } from "@/lib/reputation/os/serp-cache";
 import { cn } from "@/lib/ui";
 import { ReputationTabs } from "../tabs";
@@ -30,6 +30,8 @@ export default async function SeoPage() {
   const { results, live, cachedAt } = await getRankings(subject.displayName, subject.id);
   const pageOne = live && results.length ? classifyPageOne(subject, mentions, results) : seo.pageOne;
   const liveLabel = cachedAt ? "Live · Google (cached)" : "Live · Google";
+  // The own-name keyword gets its real position from the live page-one (free).
+  const keywords = live ? withLiveNameRank(seo.keywords, subject.displayName, ownedRankFrom(pageOne)) : seo.keywords;
   const onTarget = seo.keywords.filter((k) => k.rank <= k.target).length;
   const health = Math.max(0, Math.min(100, Math.round(pageOne.dominance * 0.6 + (onTarget / seo.keywords.length) * 40)));
 
@@ -72,12 +74,13 @@ export default async function SeoPage() {
           <Card className="p-4">
             <SectionTitle title="Keyword tracking" subtitle="Rank vs target" />
             <ul className="space-y-1.5">
-              {seo.keywords.map((k, i) => {
+              {keywords.map((k, i) => {
                 const Icon = TREND_ICON[k.trend];
                 return (
                   <li key={i} className="flex items-center gap-3 rounded-lg border border-border bg-bg-subtle/40 px-3 py-2">
                     <Icon className={cn("h-3.5 w-3.5 shrink-0", TREND_CLS[k.trend])} />
                     <span className="min-w-0 flex-1 truncate text-xs text-slate-300">{k.keyword}</span>
+                    {k.liveRank && <span className="shrink-0 rounded bg-risk-low/10 px-1 py-0.5 text-[9px] font-semibold uppercase text-risk-low ring-1 ring-risk-low/30">Live</span>}
                     <span className="shrink-0 text-xs text-slate-500">#{k.rank} <span className="text-slate-600">→ #{k.target}</span></span>
                   </li>
                 );

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { analysisScores, monitoringCoverage, reputationOverview } from "./analysis";
 import { growthProgram, executiveVisibility, contentCalendar } from "./growth";
-import { seoProfile, pageOneDominance } from "./seo";
+import { seoProfile, pageOneDominance, ownedRankFrom, withLiveNameRank } from "./seo";
 import { mediaProgram, generatePressRelease } from "./media";
 import { recoveryProgram, crisisPlan, suppressionPlan } from "./recovery";
 import { socialStrategies } from "./social";
@@ -80,6 +80,21 @@ describe("seo", () => {
     const s = seoProfile(subject, profile);
     expect(s.keywords.length).toBeGreaterThan(0);
     expect(s.competitive.find((c) => c.you)).toBeTruthy();
+  });
+  it("feeds the live owned position into the own-name keyword only", () => {
+    const pageOne = pageOneDominance(subject, profile);
+    const owned = ownedRankFrom(pageOne);
+    expect(owned).toBe(1); // position 1 is the owned profile
+    const keywords = withLiveNameRank(seoProfile(subject, profile).keywords, subject.displayName, owned);
+    const name = keywords.find((k) => k.keyword === subject.displayName)!;
+    expect(name.rank).toBe(1);
+    expect(name.liveRank).toBe(true);
+    // other keywords stay modeled (no live flag)
+    expect(keywords.filter((k) => k.liveRank).length).toBe(1);
+  });
+  it("withLiveNameRank is a no-op when there's no owned position", () => {
+    const ks = seoProfile(subject, profile).keywords;
+    expect(withLiveNameRank(ks, subject.displayName, null)).toEqual(ks);
   });
 });
 
