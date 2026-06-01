@@ -1,16 +1,21 @@
 import Link from "next/link";
 import {
   Crown, ShieldCheck, MapPin, UserX, KeyRound, Megaphone, Home, ShieldAlert,
-  ArrowRight, Siren, FileLock2, CheckCircle2, AlertTriangle,
+  ArrowRight, Siren, FileLock2, CheckCircle2, AlertTriangle, Crosshair, LayoutGrid,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Card, PageHeader, RiskBadge, SectionTitle } from "@/components/ui";
 import { getDataSource } from "@/lib/data";
+import { getModuleData } from "@/lib/data/modules";
 import {
   assessExecutive,
   type DomainStatus, type PostureStatus, type ProtectionDomain, type ProtectiveAction,
 } from "@/lib/intelligence/executive-protection";
+import {
+  executiveRiskIndices, RISK_INDEX_META, type RiskBand, type ExecutiveRiskIndices,
+} from "@/lib/executive/os/risk-indices";
 import { cn, titleCase } from "@/lib/ui";
+import { ExecutiveTabs } from "./tabs";
 
 export const metadata = { title: "Executive Protection" };
 
@@ -31,17 +36,30 @@ const POSTURE: Record<PostureStatus, { label: string; cls: string; bg: string; r
   critical: { label: "Critical", cls: "text-risk-high", bg: "bg-risk-high/10", ring: "ring-risk-high/30", dot: "bg-risk-high", icon: Siren },
 };
 
+const BAND: Record<RiskBand, { cls: string; ring: string; stroke: string }> = {
+  low: { cls: "text-risk-low", ring: "ring-risk-low/30", stroke: "#22c55e" },
+  elevated: { cls: "text-risk-medium", ring: "ring-risk-medium/30", stroke: "#eab308" },
+  high: { cls: "text-risk-high", ring: "ring-risk-high/30", stroke: "#f97316" },
+  critical: { cls: "text-risk-critical", ring: "ring-risk-critical/30", stroke: "#ef4444" },
+};
+
 const URGENCY: Record<ProtectiveAction["urgency"], string> = {
   critical: "text-risk-critical bg-risk-critical/10 ring-risk-critical/30",
   high: "text-risk-high bg-risk-high/10 ring-risk-high/30",
   medium: "text-risk-medium bg-risk-medium/10 ring-risk-medium/30",
 };
 
+function indexTone(v: number): string {
+  return v >= 75 ? "text-risk-critical" : v >= 50 ? "text-risk-high" : v >= 25 ? "text-risk-medium" : "text-risk-low";
+}
+
 export default async function ExecutivePage() {
   const { exposures, threats } = await (await getDataSource()).getDataset();
+  const { familyMembers, travelAlerts } = await getModuleData();
+  const indices = executiveRiskIndices({ exposures, threats, family: familyMembers, travel: travelAlerts });
   const posture = assessExecutive(exposures, threats);
   const P = POSTURE[posture.status];
-  const PIcon = P.icon;
+  const B = BAND[indices.band];
   const physicalThreats = threats.filter((t) => !t.acknowledged && ["doxxing", "location_exposure"].includes(t.kind));
 
   return (
@@ -49,7 +67,7 @@ export default async function ExecutivePage() {
       <PageHeader
         icon={Crown}
         title="Executive Protection"
-        subtitle="VIP-grade protection across physical safety, impersonation, credentials, reputation and residence — one principal-level posture with a prioritized hardening plan."
+        subtitle="VIP-grade protection — one Executive Risk Score across personal, family, physical, digital and travel security, with residence, doxxing and threat-actor tracking."
         actions={
           <span className={cn("inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold ring-1", P.bg, P.cls, P.ring)}>
             <span className={cn("h-2 w-2 rounded-full", P.dot)} />
@@ -58,28 +76,39 @@ export default async function ExecutivePage() {
         }
       />
 
-      {/* Posture + protection score */}
+      <ExecutiveTabs />
+
+      {/* Executive Risk Score + indices */}
       <Card className="p-4">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-          <ProtectionGauge score={posture.protectionScore} />
-          <div className="min-w-0 flex-1">
-            <div className={cn("inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-semibold ring-1", P.bg, P.cls, P.ring)}>
-              <PIcon className="h-3.5 w-3.5" /> {P.label} posture
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+          <div className="flex shrink-0 items-center gap-4">
+            <RiskGauge score={indices.overall} stroke={B.stroke} />
+            <div>
+              <p className="text-sm font-semibold text-white">Executive Risk Score</p>
+              <p className={cn("text-xs font-semibold uppercase", B.cls)}>{indices.band} risk</p>
+              <p className="mt-1 text-xs text-slate-500">{posture.activeThreats} active threat{posture.activeThreats === 1 ? "" : "s"} · {posture.tier} protection</p>
             </div>
-            <p className="mt-2 text-sm text-slate-300">
-              Recommended protection tier: <span className="font-semibold text-white">{posture.tier}</span>.{" "}
-              {posture.activeThreats === 0
-                ? "No active threats against the principal."
-                : `${posture.activeThreats} active threat${posture.activeThreats === 1 ? "" : "s"} under management.`}
-            </p>
-            <div className="mt-3 grid grid-cols-3 gap-3">
-              <Mini label="Physical signals" value={posture.physicalSignals} tone={posture.physicalSignals > 0 ? "text-risk-high" : "text-risk-low"} />
-              <Mini label="Residence exposures" value={posture.residenceExposures} tone={posture.residenceExposures > 0 ? "text-risk-medium" : "text-risk-low"} />
-              <Mini label="Active threats" value={posture.activeThreats} tone="text-white" />
-            </div>
+          </div>
+          <div className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-5">
+            {RISK_INDEX_META.map((m) => {
+              const v = indices[m.key as keyof ExecutiveRiskIndices] as number;
+              return (
+                <div key={m.key} className="rounded-xl border border-border bg-bg-subtle/40 p-3 text-center">
+                  <p className={cn("text-2xl font-bold", indexTone(v))}>{v}</p>
+                  <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-400">{m.label}</p>
+                </div>
+              );
+            })}
           </div>
         </div>
       </Card>
+
+      {/* Pillar quick-links */}
+      <div className="grid gap-3 sm:grid-cols-3">
+        <PillarLink href="/dashboard/executive/residence" icon={Home} title="Residence Protection" detail="Address, property records, satellite & listings" />
+        <PillarLink href="/dashboard/executive/doxxing" icon={UserX} title="Doxxing Protection" detail="Address, phone, family & employer leaks" />
+        <PillarLink href="/dashboard/executive/threat-actors" icon={Crosshair} title="Threat Actor Tracking" detail="Profiles, escalation & harassment" />
+      </div>
 
       {/* Protection domains */}
       <Card className="p-4">
@@ -132,9 +161,9 @@ export default async function ExecutivePage() {
             </ol>
           )}
           <div className="mt-3 flex flex-wrap gap-3 border-t border-border pt-3 text-xs">
+            <Link href="/dashboard/executive/command" className="inline-flex items-center gap-1 font-medium text-brand-fg hover:underline"><LayoutGrid className="h-3.5 w-3.5" /> Command view</Link>
             <Link href="/dashboard/incidents" className="inline-flex items-center gap-1 font-medium text-brand-fg hover:underline"><Siren className="h-3.5 w-3.5" /> Incident response</Link>
             <Link href="/dashboard/evidence" className="inline-flex items-center gap-1 font-medium text-brand-fg hover:underline"><FileLock2 className="h-3.5 w-3.5" /> Evidence vault</Link>
-            <Link href="/dashboard/cases" className="inline-flex items-center gap-1 font-medium text-brand-fg hover:underline">Open cases <ArrowRight className="h-3.5 w-3.5" /></Link>
           </div>
         </Card>
 
@@ -165,31 +194,38 @@ export default async function ExecutivePage() {
   );
 }
 
-/** Protection gauge — higher score = better protected (green). */
-function ProtectionGauge({ score }: { score: number }) {
+function PillarLink({ href, icon: Icon, title, detail }: { href: string; icon: LucideIcon; title: string; detail: string }) {
+  return (
+    <Link href={href}>
+      <Card className="p-4 transition hover:border-brand/30">
+        <div className="flex items-center gap-2">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-bg-elevated text-brand-fg ring-1 ring-border">
+            <Icon className="h-4 w-4" />
+          </span>
+          <span className="text-sm font-semibold text-white">{title}</span>
+          <ArrowRight className="ml-auto h-4 w-4 text-slate-600" />
+        </div>
+        <p className="mt-1.5 text-[11px] text-slate-500">{detail}</p>
+      </Card>
+    </Link>
+  );
+}
+
+/** Risk gauge — higher score = more risk (red). */
+function RiskGauge({ score, stroke }: { score: number; stroke: string }) {
   const radius = 52;
   const circ = 2 * Math.PI * radius;
   const dash = (score / 100) * circ;
-  const color = score >= 75 ? "#22c55e" : score >= 45 ? "#eab308" : "#ef4444";
   return (
     <div className="relative shrink-0" style={{ height: 128, width: 128 }}>
       <svg className="h-full w-full -rotate-90" viewBox="0 0 120 120">
         <circle cx="60" cy="60" r={radius} fill="none" stroke="#1f2430" strokeWidth="10" />
-        <circle cx="60" cy="60" r={radius} fill="none" stroke={color} strokeWidth="10" strokeLinecap="round" strokeDasharray={`${dash} ${circ}`} />
+        <circle cx="60" cy="60" r={radius} fill="none" stroke={stroke} strokeWidth="10" strokeLinecap="round" strokeDasharray={`${dash} ${circ}`} />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-3xl font-bold text-white">{score}</span>
-        <span className="text-[10px] text-slate-400">protected</span>
+        <span className="text-[10px] text-slate-400">risk</span>
       </div>
-    </div>
-  );
-}
-
-function Mini({ label, value, tone }: { label: string; value: number; tone?: string }) {
-  return (
-    <div className="rounded-lg border border-border bg-bg-subtle/40 p-2.5">
-      <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">{label}</p>
-      <p className={cn("mt-0.5 text-xl font-bold", tone)}>{value}</p>
     </div>
   );
 }
