@@ -13,6 +13,7 @@ import { doxxingReport, LEAK_LABEL, type LeakKind } from "@/lib/executive/os/dox
 import { buildThreatActors } from "@/lib/executive/os/threat-actors";
 import { impersonationReport, IMPERSONATION_LABEL, type ImpersonationCategory } from "@/lib/executive/os/impersonation";
 import { darkWebReport, DARKWEB_LABEL, type DarkWebCategory } from "@/lib/executive/os/darkweb";
+import { analyzeAttackSurface } from "@/lib/executive/os/attack-paths";
 import { titleCase } from "@/lib/ui";
 import type { ReportContext } from "./engine";
 import type { ReportType } from "@/lib/suite-types";
@@ -84,15 +85,21 @@ export async function buildReportContext(type: ReportType): Promise<ReportContex
       const actors = buildThreatActors(data.threats);
       const impersonation = impersonationReport({ threats: data.threats, incidents: mod.incidents, domainRisks: mod.domainRisks, exposures: data.exposures });
       const darkweb = darkWebReport({ credentialLeaks: mod.credentialLeaks, threats: data.threats, exposures: data.exposures });
+      const surface = analyzeAttackSurface({ exposures: data.exposures, threats: data.threats, credentialLeaks: mod.credentialLeaks });
+      const livePaths = surface.paths.filter((p) => p.enabled);
       return {
         ...base,
         stats: [
           { label: "Executive Risk Score", value: `${indices.overall}/100` },
-          { label: "Physical security", value: `${indices.physical}/100` },
+          { label: "Live attack paths", value: surface.enabledPaths },
           { label: "Doxxing leaks", value: doxxing.total },
           { label: "Threat actors", value: actors.length },
         ],
         sections: [
+          ...(surface.chokepoint ? [{ heading: "Highest-leverage fix (chokepoint)", rows: [
+            { label: surface.chokepoint.action, value: `collapses ${surface.chokepoint.breaks} of ${surface.enabledPaths} live path(s)` },
+          ] }] : []),
+          { heading: "Attack paths", rows: (livePaths.length ? livePaths : surface.paths.slice(0, 3)).map((p) => ({ label: p.name, value: `${p.enabled ? "LIVE · " : ""}score ${p.score} · ${p.present}/${p.total} links` })) },
           { heading: "Executive risk indices", rows: RISK_INDEX_META.map((m) => ({ label: m.label, value: `${indices[m.key]}/100` })) },
           { heading: "Residence protection", rows: residence.findings.map((f) => ({ label: f.label, value: `${titleCase(f.status)}${f.sources.length ? ` · ${f.sources.join(", ")}` : ""}` })) },
           { heading: "Doxxing exposure", rows: (Object.keys(doxxing.byKind) as LeakKind[]).map((k) => ({ label: LEAK_LABEL[k], value: `${doxxing.byKind[k]} leak(s)` })) },

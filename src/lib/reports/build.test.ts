@@ -11,6 +11,9 @@ describe("buildReportContext — executive", () => {
     expect(headings).toContain("Threat actors");
     expect(headings).toContain("Impersonation & deepfake");
     expect(headings).toContain("Dark-web exposure");
+    expect(headings).toContain("Attack paths");
+    // the headline stat row includes live attack paths
+    expect(ctx.stats.map((s) => s.label)).toContain("Live attack paths");
 
     // five named indices + four residence checks
     expect(ctx.sections.find((s) => s.heading === "Executive risk indices")!.rows).toHaveLength(5);
