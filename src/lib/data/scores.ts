@@ -21,11 +21,14 @@ export function demoScoreHistory(): ScoreSeries[] {
   const identity = overall.map((p) => ({ date: p.date, value: Math.round(p.value * ratio) }));
   // Reputation health (higher = better) trends opposite to exposure risk.
   const reputation = overall.map((p) => ({ date: p.date, value: Math.max(0, Math.min(100, Math.round(100 - p.value * 0.7))) }));
+  // Executive risk (higher = more at risk) tracks the exposure risk score.
+  const executive = overall.map((p) => ({ date: p.date, value: Math.max(0, Math.min(100, Math.round(p.value * 0.85))) }));
   return [
     { kind: "overall", points: overall },
     { kind: "privacy", points: overall }, // privacy === exposure overall in the model
     { kind: "identity", points: identity },
     { kind: "reputation", points: reputation },
+    { kind: "executive", points: executive },
   ];
 }
 

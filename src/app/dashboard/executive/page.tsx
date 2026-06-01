@@ -4,9 +4,10 @@ import {
   ArrowRight, Siren, FileLock2, CheckCircle2, AlertTriangle, Crosshair, LayoutGrid,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { Card, PageHeader, RiskBadge, SectionTitle } from "@/components/ui";
+import { Card, LineChart, PageHeader, RiskBadge, SectionTitle } from "@/components/ui";
 import { getDataSource } from "@/lib/data";
 import { getModuleData } from "@/lib/data/modules";
+import { getScoreHistory } from "@/lib/data/scores";
 import {
   assessExecutive,
   type DomainStatus, type PostureStatus, type ProtectionDomain, type ProtectiveAction,
@@ -60,6 +61,7 @@ export default async function ExecutivePage() {
   const posture = assessExecutive(exposures, threats);
   const P = POSTURE[posture.status];
   const B = BAND[indices.band];
+  const trend = ((await getScoreHistory()).find((h) => h.kind === "executive")?.points ?? []).map((p) => p.value);
   const physicalThreats = threats.filter((t) => !t.acknowledged && ["doxxing", "location_exposure"].includes(t.kind));
 
   return (
@@ -87,6 +89,12 @@ export default async function ExecutivePage() {
               <p className="text-sm font-semibold text-white">Executive Risk Score</p>
               <p className={cn("text-xs font-semibold uppercase", B.cls)}>{indices.band} risk</p>
               <p className="mt-1 text-xs text-slate-500">{posture.activeThreats} active threat{posture.activeThreats === 1 ? "" : "s"} · {posture.tier} protection</p>
+              {trend.length >= 2 && (
+                <div className="mt-2 w-40">
+                  <LineChart values={trend} height={32} color={B.stroke} />
+                  <p className="text-[10px] text-slate-500">Risk trend</p>
+                </div>
+              )}
             </div>
           </div>
           <div className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-5">

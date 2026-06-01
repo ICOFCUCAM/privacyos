@@ -193,9 +193,10 @@ describe("runScheduledCycle", () => {
     expect(store.investigations[0].steps.length).toBeGreaterThanOrEqual(2);
     // one agent state per fleet member, per run
     expect(store.runs[0].agentStates).toHaveLength(AGENT_COUNT);
-    // three score snapshots per subject + a reputation-health snapshot
+    // three score snapshots per subject + reputation-health & executive-risk snapshots
     expect(store.scores[0].map((s) => s.kind)).toEqual(["privacy", "identity", "overall"]);
     expect(store.scores.flat().some((s) => s.kind === "reputation")).toBe(true);
+    expect(store.scores.flat().some((s) => s.kind === "executive")).toBe(true);
     // critical threat raised a notification
     expect(store.notifications[0][0].riskLevel).toBe("critical");
     // critical threat auto-opened a tracked case per subject, assigned to security

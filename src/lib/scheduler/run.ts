@@ -160,6 +160,7 @@ export async function runScheduledCycle(
     // cycle, the Executive Agent escalates (record + alert). Gating to new
     // criticals keeps it from re-firing every cron tick.
     const execRisk = executiveRiskIndices({ exposures, threats, family: [], travel: [] });
+    await store.recordScores(fp.userId, fp.subject.id, [{ kind: "executive", value: execRisk.overall }]);
     await store.recordActions(fp.userId, fp.subject.id, [
       {
         agent: "executive",
