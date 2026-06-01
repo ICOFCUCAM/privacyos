@@ -15,7 +15,7 @@ const STATUS_META: Record<WorkflowStatus, { label: string; cls: string; dot: str
   running: { label: "Running", cls: "text-risk-low", dot: "bg-risk-low", icon: Play },
   awaiting_approval: { label: "Awaiting approval", cls: "text-risk-medium", dot: "bg-risk-medium", icon: UserCheck },
   escalated: { label: "Escalated", cls: "text-risk-high", dot: "bg-risk-high", icon: ArrowUpRight },
-  complete: { label: "Complete", cls: "text-slate-400", dot: "bg-slate-500", icon: CheckCircle2 },
+  complete: { label: "Success", cls: "text-risk-low", dot: "bg-risk-low", icon: CheckCircle2 },
 };
 
 export default async function WorkflowsPage() {
@@ -35,14 +35,56 @@ export default async function WorkflowsPage() {
         subtitle="The operating layer connecting the agent fleet — every detection runs as a coordinated, multi-agent workflow."
       />
 
-      {/* Metrics */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <Kpi label="Active workflows" value={String(metrics.active)} tone="text-white" />
-        <Kpi label="Awaiting approval" value={String(metrics.awaitingApproval)} tone="text-risk-medium" />
-        <Kpi label="Escalated" value={String(metrics.escalated)} tone="text-risk-high" />
-        <Kpi label="Completed" value={String(metrics.completedToday)} tone="text-risk-low" />
-        <Kpi label="Analyst-hours saved" value={String(metrics.hoursSaved)} tone="text-risk-low" icon={<Clock className="h-3.5 w-3.5 text-slate-400" />} />
+      {/* Metrics — Workflow Dashboard (Layer 1) */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Kpi label="Active Workflows" value={String(metrics.active)} tone="text-white" />
+        <Kpi label="Workflow Runs Today" value={String(metrics.runsToday)} tone="text-white" />
+        <Kpi label="Automated Cases" value={String(metrics.automatedCases)} tone="text-white" />
+        <Kpi label="Success Rate" value={`${metrics.successRate}%`} tone={metrics.successRate >= 90 ? "text-risk-low" : metrics.successRate >= 70 ? "text-risk-medium" : "text-risk-high"} />
+        <Kpi label="Failed Runs" value={String(metrics.failedRuns)} tone={metrics.failedRuns > 0 ? "text-risk-high" : "text-risk-low"} />
+        <Kpi label="Avg Completion Time" value={`${metrics.avgCompletionMin}m`} tone="text-white" icon={<Clock className="h-3.5 w-3.5 text-slate-400" />} />
+        <Kpi label="Actions Executed" value={String(metrics.actionsExecuted)} tone="text-white" />
+        <Kpi label="Agents Utilized" value={String(metrics.agentsUtilized)} tone="text-risk-low" />
       </div>
+
+      {/* Recent Runs */}
+      <Card className="p-4">
+        <SectionTitle title="Recent Runs" subtitle="Latest workflow executions" action={<span className="text-xs text-slate-500">{workflows.length} run{workflows.length === 1 ? "" : "s"}</span>} />
+        {workflows.length === 0 ? (
+          <p className="text-sm text-slate-500">No runs yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-border text-[10px] uppercase tracking-wide text-slate-500">
+                  <th className="py-2 pr-3 font-medium">Workflow</th>
+                  <th className="py-2 pr-3 font-medium">Status</th>
+                  <th className="py-2 pr-3 font-medium">Duration</th>
+                  <th className="py-2 pr-3 text-right font-medium">Cases</th>
+                </tr>
+              </thead>
+              <tbody>
+                {workflows.map((w) => {
+                  const m = STATUS_META[w.status];
+                  const Icon = m.icon;
+                  return (
+                    <tr key={w.id} className="border-b border-border/50 last:border-0">
+                      <td className="py-2 pr-3 font-medium text-white">{w.name}</td>
+                      <td className="py-2 pr-3">
+                        <span className={cn("inline-flex items-center gap-1.5 text-xs font-semibold", m.cls)}>
+                          <Icon className="h-3.5 w-3.5" /> {m.label}
+                        </span>
+                      </td>
+                      <td className="py-2 pr-3 text-slate-300">{w.durationMin}m</td>
+                      <td className="py-2 pr-3 text-right text-slate-300">{w.casesOpened}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
 
       {/* Live workflows */}
       <Card className="p-4">

@@ -63,11 +63,25 @@ describe("buildWorkflows + metrics", () => {
     expect(m.escalated).toBe(1);
     expect(m.active).toBeGreaterThanOrEqual(1);
     expect(m.hoursSaved).toBeGreaterThan(0);
+    // Layer-1 dashboard metrics
+    expect(m.runsToday).toBe(wf.length);
+    expect(m.failedRuns).toBe(1); // escalated
+    expect(m.successRate).toBe(50); // 1 complete / (1 complete + 1 failed)
+    expect(m.automatedCases).toBe(wf.reduce((s, w) => s + w.casesOpened, 0));
+    expect(m.actionsExecuted).toBe(wf.reduce((s, w) => s + w.actionsExecuted, 0));
+    expect(m.agentsUtilized).toBeGreaterThan(0);
+    expect(m.avgCompletionMin).toBeGreaterThanOrEqual(1);
+    // per-run fields populate
+    expect(wf[0].durationMin).toBeGreaterThanOrEqual(1);
+    expect(wf[0].casesOpened).toBeGreaterThanOrEqual(1);
   });
 
   it("handles an empty run set", () => {
     const m = workflowMetrics([]);
     expect(m.active).toBe(0);
     expect(m.hoursSaved).toBe(0);
+    expect(m.runsToday).toBe(0);
+    expect(m.successRate).toBe(100); // nothing failed
+    expect(m.avgCompletionMin).toBe(0);
   });
 });

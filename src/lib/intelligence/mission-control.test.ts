@@ -16,7 +16,7 @@ const agents = (active: number, total = 5): AgentState[] =>
 const base: MissionInput = {
   riskScore: 40,
   agents: agents(2),
-  workflows: { active: 1, awaitingApproval: 0, escalated: 0, completedToday: 2, hoursSaved: 5 },
+  workflows: { active: 1, awaitingApproval: 0, escalated: 0, completedToday: 2, hoursSaved: 5, runsToday: 3, automatedCases: 4, successRate: 100, failedRuns: 0, avgCompletionMin: 3, actionsExecuted: 9, agentsUtilized: 4 },
   cases: { open: 0, resolved: 3, critical: 0, resolvedToday: 1, mttrHours: 10, bySeverity: { low: 0, medium: 0, high: 0, critical: 0 }, slaBreached: 0, slaAtRisk: 0, escalated: 0 },
   threats: { active: 0, total: 2, bySeverity: { low: 0, medium: 0, high: 0, critical: 0 }, agentsWorking: 0 },
   unresolvedExposures: 0,
@@ -86,7 +86,8 @@ const enriched = (over: Partial<Omit<EnrichedCase, "case">> & { case?: Partial<C
 
 const wf = (over: Partial<Workflow>): Workflow => ({
   id: "w1", name: "Removal", owner: "privacy", trigger: "x", status: "running",
-  stepsDone: 1, totalSteps: 2, agents: ["privacy"], blocked: false, ...over,
+  stepsDone: 1, totalSteps: 2, agents: ["privacy"], blocked: false,
+  durationMin: 1, casesOpened: 1, actionsExecuted: 1, ...over,
 });
 
 const threat = (over: Partial<Threat>): Threat => ({
