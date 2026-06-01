@@ -8,7 +8,7 @@
  * model). Never throws — caching must not break the SEO page.
  */
 
-import { getSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { getCacheSession } from "@/lib/data/cache-session";
 import { resolveSerpSource, type SerpResult, type SerpProvider, type SerpSource } from "./serp-connector";
 
 /** How long cached rankings stay fresh. */
@@ -41,12 +41,10 @@ export async function getRankings(
 ): Promise<CachedRankings> {
   // No session → don't spend a paid SERP credit uncached; use the model.
   const noLive: CachedRankings = { results: [], live: false, provider: "none" };
-  if (!isSupabaseConfigured()) return noLive;
+  const session = await getCacheSession();
+  if (!session) return noLive;
   try {
-    const db = await getSupabaseServerClient();
-    if (!db) return noLive;
-    const { data: { user } } = await db.auth.getUser();
-    if (!user) return noLive;
+    const { db, userId } = session;
 
     const { data: row } = await db
       .from("serp_cache")
@@ -62,7 +60,7 @@ export async function getRankings(
     // Only persist real (live) results — never cache the deterministic fallback.
     if (fresh.live && fresh.results.length > 0) {
       await db.from("serp_cache").upsert(
-        { user_id: user.id, subject_id: subjectId, query, provider: fresh.provider, results: fresh.results, fetched_at: new Date(now).toISOString() },
+        { user_id: userId, subject_id: subjectId, query, provider: fresh.provider, results: fresh.results, fetched_at: new Date(now).toISOString() },
         { onConflict: "user_id,subject_id" },
       );
     }

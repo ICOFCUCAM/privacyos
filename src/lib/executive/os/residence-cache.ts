@@ -7,7 +7,7 @@
  * spending a credit uncached. Never throws — the Residence tab must not break.
  */
 
-import { getSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { getCacheSession } from "@/lib/data/cache-session";
 import { isFresh } from "@/lib/reputation/os/serp-cache";
 import { resolveResidenceSource, type ResidenceSignals, type ResidenceSource } from "./residence-connector";
 
@@ -20,12 +20,11 @@ export async function getResidenceSignals(
   now = Date.now(),
 ): Promise<{ signals: ResidenceSignals | null; live: boolean }> {
   const noLive = { signals: null, live: false };
-  if (!address || !isSupabaseConfigured()) return noLive;
+  if (!address) return noLive;
+  const session = await getCacheSession();
+  if (!session) return noLive;
   try {
-    const db = await getSupabaseServerClient();
-    if (!db) return noLive;
-    const { data: { user } } = await db.auth.getUser();
-    if (!user) return noLive;
+    const { db, userId } = session;
 
     const { data: row } = await db
       .from("residence_cache")
@@ -40,7 +39,7 @@ export async function getResidenceSignals(
     const fresh = await source.lookup(address);
     if (fresh.live) {
       await db.from("residence_cache").upsert(
-        { user_id: user.id, address, signals: fresh.signals, fetched_at: new Date(now).toISOString() },
+        { user_id: userId, address, signals: fresh.signals, fetched_at: new Date(now).toISOString() },
         { onConflict: "user_id,address" },
       );
     }

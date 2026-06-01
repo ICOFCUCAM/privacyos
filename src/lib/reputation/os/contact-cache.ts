@@ -7,7 +7,7 @@
  * throws — enrichment must not break the Media page.
  */
 
-import { getSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { getCacheSession } from "@/lib/data/cache-session";
 import { isFresh } from "./serp-cache";
 import { resolveHunterSource, type HunterContact, type HunterSource } from "./hunter-connector";
 
@@ -26,12 +26,11 @@ export async function getContacts(
 ): Promise<{ contacts: HunterContact[]; live: boolean }> {
   // No session → don't spend a paid Hunter credit uncached.
   const noLive = { contacts: [], live: false };
-  if (!domain || !isSupabaseConfigured()) return noLive;
+  if (!domain) return noLive;
+  const session = await getCacheSession();
+  if (!session) return noLive;
   try {
-    const db = await getSupabaseServerClient();
-    if (!db) return noLive;
-    const { data: { user } } = await db.auth.getUser();
-    if (!user) return noLive;
+    const { db, userId } = session;
 
     const { data: row } = await db
       .from("contact_cache")
@@ -46,7 +45,7 @@ export async function getContacts(
     const fresh = await source.findContacts(domain);
     if (fresh.live && fresh.contacts.length > 0) {
       await db.from("contact_cache").upsert(
-        { user_id: user.id, domain, contacts: fresh.contacts, fetched_at: new Date(now).toISOString() },
+        { user_id: userId, domain, contacts: fresh.contacts, fetched_at: new Date(now).toISOString() },
         { onConflict: "user_id,domain" },
       );
     }
