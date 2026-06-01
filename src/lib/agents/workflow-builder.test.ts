@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  addStep, describeTrigger, describeStep, emptyWorkflow, flowPreview, moveStep, removeStep,
+  addStep, describeTrigger, describeStep, emptyWorkflow, flowPreview, moveStep, removeStep, reorderStep,
   validateWorkflow, simulateRun, STEP_CATALOG, type WorkflowDefinition, type WorkflowStepDef,
 } from "./workflow-builder";
 
@@ -35,6 +35,14 @@ describe("editing ops", () => {
 
     def = removeStep(def, "b");
     expect(def.steps.map((s) => s.id)).toEqual(["a"]);
+  });
+
+  it("reorders by index (drag-and-drop) immutably, clamped", () => {
+    let def = wf({ steps: [step({ id: "a" }), step({ id: "b" }), step({ id: "c" })] });
+    expect(reorderStep(def, 0, 2).steps.map((s) => s.id)).toEqual(["b", "c", "a"]); // drag a → end
+    expect(reorderStep(def, 2, 0).steps.map((s) => s.id)).toEqual(["c", "a", "b"]); // drag c → front
+    expect(reorderStep(def, 1, 1).steps.map((s) => s.id)).toEqual(["a", "b", "c"]); // no-op
+    expect(reorderStep(def, 0, 9).steps.map((s) => s.id)).toEqual(["a", "b", "c"]); // out of range
   });
 });
 

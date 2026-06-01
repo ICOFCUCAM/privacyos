@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   Plus, Trash2, ArrowUp, ArrowDown, Bot, GitFork, Bell, FileText,
   Save, Power, PowerOff, Pencil, AlertTriangle, ArrowRight, Zap,
-  Filter, FolderKanban, Webhook, Clock, Play,
+  Filter, FolderKanban, Webhook, Clock, Play, GripVertical,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Card, SectionTitle } from "@/components/ui";
@@ -13,7 +13,7 @@ import { WorkflowFlow } from "@/components/workflow-flow";
 import { cn, titleCase } from "@/lib/ui";
 import type { AgentKind, RiskLevel } from "@/lib/types";
 import {
-  addStep, describeTrigger, emptyWorkflow, moveStep, newStepId,
+  addStep, describeTrigger, emptyWorkflow, moveStep, reorderStep, newStepId,
   removeStep, validateWorkflow, simulateRun, describeStep,
   type StepType, type TriggerKind, type WorkflowDefinition, type WorkflowStepDef,
   type ConditionField, type ConditionOp, type SampleEvent, type StepOutcome,
@@ -74,6 +74,16 @@ export function WorkflowBuilder({
   const [condOnFalse, setCondOnFalse] = useState<"stop" | "continue">("stop");
   const [stepDelay, setStepDelay] = useState(24);
   const [stepUrl, setStepUrl] = useState("");
+
+  // Drag-and-drop reordering
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [overIndex, setOverIndex] = useState<number | null>(null);
+
+  function onDrop(to: number) {
+    if (dragIndex !== null && dragIndex !== to) setDraft((d) => reorderStep(d, dragIndex, to));
+    setDragIndex(null);
+    setOverIndex(null);
+  }
 
   // Dry-run sample event
   const [simRisk, setSimRisk] = useState<RiskLevel>("critical");
@@ -306,21 +316,34 @@ export function WorkflowBuilder({
           </div>
         </div>
 
-        {/* Steps list */}
+        {/* Steps list — drag to reorder */}
         <div className="mt-4">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-            Steps · {draft.steps.length}
+            Blocks · {draft.steps.length} <span className="font-normal text-slate-500">· drag to reorder</span>
           </p>
           {draft.steps.length === 0 ? (
             <p className="rounded-lg border border-dashed border-border bg-bg-subtle/30 px-3 py-4 text-center text-xs text-slate-500">
-              No steps yet — add the actions this workflow should run, in order.
+              No blocks yet — add the actions this workflow should run, in order.
             </p>
           ) : (
             <ol className="space-y-1.5">
               {draft.steps.map((s, i) => {
                 const M = STEP_META[s.type];
                 return (
-                  <li key={s.id} className="flex items-center gap-2.5 rounded-lg border border-border bg-bg-subtle/40 px-3 py-2">
+                  <li
+                    key={s.id}
+                    draggable
+                    onDragStart={() => setDragIndex(i)}
+                    onDragOver={(e) => { e.preventDefault(); if (overIndex !== i) setOverIndex(i); }}
+                    onDrop={() => onDrop(i)}
+                    onDragEnd={() => { setDragIndex(null); setOverIndex(null); }}
+                    className={cn(
+                      "flex items-center gap-2.5 rounded-lg border bg-bg-subtle/40 px-3 py-2 transition",
+                      dragIndex === i ? "opacity-50" : "",
+                      overIndex === i && dragIndex !== null && dragIndex !== i ? "border-brand/50 ring-1 ring-brand/40" : "border-border",
+                    )}
+                  >
+                    <span className="shrink-0 cursor-grab text-slate-600 active:cursor-grabbing" title="Drag to reorder"><GripVertical className="h-3.5 w-3.5" /></span>
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-bg-elevated text-[10px] font-bold text-slate-400">{i + 1}</span>
                     <M.icon className="h-3.5 w-3.5 shrink-0 text-brand-fg" />
                     <div className="min-w-0 flex-1">

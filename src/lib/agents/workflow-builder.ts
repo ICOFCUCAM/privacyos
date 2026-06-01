@@ -158,6 +158,16 @@ export function moveStep(def: WorkflowDefinition, stepId: string, dir: -1 | 1): 
   return { ...def, steps };
 }
 
+/** Reorder by index — drag step `from` to position `to`. */
+export function reorderStep(def: WorkflowDefinition, from: number, to: number): WorkflowDefinition {
+  const n = def.steps.length;
+  if (from === to || from < 0 || from >= n || to < 0 || to >= n) return def;
+  const steps = [...def.steps];
+  const [moved] = steps.splice(from, 1);
+  steps.splice(to, 0, moved);
+  return { ...def, steps };
+}
+
 export interface ValidationResult {
   valid: boolean;
   errors: string[];
