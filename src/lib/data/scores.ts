@@ -6,7 +6,12 @@
 
 import { getSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import type { ScoreKind, ScorePoint } from "@/lib/suite-types";
-import { demoRiskScore } from "./demo";
+import { demoRiskScore, demoSubject, demoExposures, demoThreats } from "./demo";
+import { mentions, incidents, credentialLeaks, domainRisks, employeeExposures, familyMembers, travelAlerts, thirdPartyRisks } from "./modules";
+import { computeScoreSet } from "@/lib/scoring/scores";
+import { reputationOverview } from "@/lib/reputation/os/analysis";
+
+const clampScore = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
 
 export interface ScoreSeries {
   kind: ScoreKind;
@@ -15,20 +20,31 @@ export interface ScoreSeries {
 
 /** Deterministic demo history derived from the demo risk score. */
 export function demoScoreHistory(): ScoreSeries[] {
-  const overall = demoRiskScore.trend.map((p) => ({ date: p.date, value: p.overall }));
-  // Identity tracks overall, scaled by the current identity:overall ratio.
-  const ratio = demoRiskScore.overall ? demoRiskScore.identity / demoRiskScore.overall : 1;
-  const identity = overall.map((p) => ({ date: p.date, value: Math.round(p.value * ratio) }));
-  // Reputation health (higher = better) trends opposite to exposure risk.
-  const reputation = overall.map((p) => ({ date: p.date, value: Math.max(0, Math.min(100, Math.round(100 - p.value * 0.7))) }));
-  // Executive risk (higher = more at risk) tracks the exposure risk score.
-  const executive = overall.map((p) => ({ date: p.date, value: Math.max(0, Math.min(100, Math.round(p.value * 0.85))) }));
+  const trend = demoRiskScore.trend;
+  const lastOverall = trend[trend.length - 1]?.overall || 1;
+  // Anchor each trend to its *current* score so the line lands on today's card.
+  const current = computeScoreSet({
+    risk: demoRiskScore, mentions, incidents, credentialLeaks, domainRisks, employeeExposures,
+    exposures: demoExposures, threats: demoThreats, familyMembers, travelAlerts, thirdPartyRisks, subjectEmails: demoSubject.emails,
+  });
+  const repHealth = reputationOverview(mentions).health;
+
+  // A risk-shaped series following the demo trajectory, ending exactly at `target`.
+  const riskSeries = (kind: ScoreKind, target: number): ScoreSeries => ({
+    kind, points: trend.map((p) => ({ date: p.date, value: clampScore(target * (p.overall / lastOverall)) })),
+  });
+  // Reputation health = inverse of a risk-shaped series ending at (100 − health).
+  const reputation: ScoreSeries = {
+    kind: "reputation",
+    points: trend.map((p) => ({ date: p.date, value: 100 - clampScore((100 - repHealth) * (p.overall / lastOverall)) })),
+  };
+
   return [
-    { kind: "overall", points: overall },
-    { kind: "privacy", points: overall }, // privacy === exposure overall in the model
-    { kind: "identity", points: identity },
-    { kind: "reputation", points: reputation },
-    { kind: "executive", points: executive },
+    riskSeries("overall", current.overall),
+    riskSeries("privacy", current.privacy),
+    riskSeries("identity", current.identity),
+    reputation,
+    riskSeries("executive", current.executive),
   ];
 }
 
