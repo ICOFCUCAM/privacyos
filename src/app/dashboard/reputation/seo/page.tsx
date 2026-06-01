@@ -25,9 +25,10 @@ export default async function SeoPage() {
   const { mentions } = await getModuleData();
   const seo = seoProfile(subject, mentions);
 
-  // Live Google rankings via Serper when SERPER_API_KEY is set; else the model.
-  const { results, live } = await resolveSerpSource().search(subject.displayName, 10);
+  // Live rankings via Bing/Serper when keyed; else the deterministic model.
+  const { results, live, provider } = await resolveSerpSource().search(subject.displayName, 10);
   const pageOne = live && results.length ? classifyPageOne(subject, mentions, results) : seo.pageOne;
+  const liveLabel = provider === "bing" ? "Live · Bing" : "Live · Google";
   const onTarget = seo.keywords.filter((k) => k.rank <= k.target).length;
   const health = Math.max(0, Math.min(100, Math.round(pageOne.dominance * 0.6 + (onTarget / seo.keywords.length) * 40)));
 
@@ -50,7 +51,7 @@ export default async function SeoPage() {
             subtitle="Top 10 search results for the principal's name"
             action={
               <span className={cn("rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1", live ? "bg-risk-low/10 text-risk-low ring-risk-low/30" : "bg-bg-elevated text-slate-400 ring-border")}>
-                {live ? "Live · Google" : "Modeled"}
+                {live ? liveLabel : "Modeled"}
               </span>
             }
           />

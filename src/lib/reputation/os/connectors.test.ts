@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { mapSerperOrganic, resolveSerpSource, SerperSource, NoSerpSource } from "./serp-connector";
+import { mapSerperOrganic, mapBingWebPages, resolveSerpSource, SerperSource, BingSerpSource, NoSerpSource } from "./serp-connector";
 import { mapItunesPodcasts, ItunesPodcastSource } from "./podcast-connector";
 import { classifyPageOne } from "./seo";
 import { podcastOpportunities, discoverOpportunities } from "./intelligence";
@@ -27,9 +27,34 @@ describe("SERP connector", () => {
     expect(r[1].position).toBe(2); // index fallback
   });
 
-  it("resolves NoSerpSource without a key and SerperSource with one", () => {
+  it("resolves the right source by env, preferring Bing", () => {
     expect(resolveSerpSource({})).toBeInstanceOf(NoSerpSource);
     expect(resolveSerpSource({ SERPER_API_KEY: "k" })).toBeInstanceOf(SerperSource);
+    expect(resolveSerpSource({ BING_SEARCH_API_KEY: "b" })).toBeInstanceOf(BingSerpSource);
+    // Bing wins when both are set
+    expect(resolveSerpSource({ BING_SEARCH_API_KEY: "b", SERPER_API_KEY: "k" })).toBeInstanceOf(BingSerpSource);
+  });
+
+  it("maps Bing webPages to ranked positions", () => {
+    const r = mapBingWebPages([
+      { name: "A", url: "https://www.linkedin.com/in/jv" },
+      { name: "B", url: "https://news.com/x" },
+      { name: "no url" },
+    ]);
+    expect(r).toHaveLength(2);
+    expect(r[0]).toMatchObject({ position: 1, domain: "linkedin.com" });
+    expect(r[1].position).toBe(2);
+  });
+
+  it("Bing source goes live on response, reports provider, falls back on error", async () => {
+    const ok = new BingSerpSource("key", vi.fn(async () => jsonResponse({ webPages: { value: [{ name: "T", url: "https://x.com/a" }] } })) as unknown as typeof fetch);
+    const a = await ok.search("q");
+    expect(a.live).toBe(true);
+    expect(a.provider).toBe("bing");
+    expect(a.results[0].domain).toBe("x.com");
+
+    const bad = new BingSerpSource("key", vi.fn(async () => { throw new Error("net"); }) as unknown as typeof fetch);
+    expect((await bad.search("q")).live).toBe(false);
   });
 
   it("returns live results when the API responds, falls back on error", async () => {
