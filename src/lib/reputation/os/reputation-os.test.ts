@@ -6,7 +6,7 @@ import { mediaProgram, generatePressRelease } from "./media";
 import { recoveryProgram, crisisPlan, suppressionPlan } from "./recovery";
 import { socialStrategies } from "./social";
 import { discoverOpportunities, summarizeOpportunities } from "./intelligence";
-import { generateAllCampaigns, generateRecoveryPlan } from "./campaigns";
+import { generateAllCampaigns, generateRecoveryPlan, generatePRPlan } from "./campaigns";
 import type { Subject } from "@/lib/types";
 import type { Mention } from "@/lib/suite-types";
 
@@ -164,5 +164,13 @@ describe("campaigns", () => {
   it("recovery plan files takedowns when defamation is present", () => {
     const plan = generateRecoveryPlan(subject, [defam]);
     expect(plan.steps.find((s) => s.phase === "Legal")!.action).toMatch(/takedown/i);
+  });
+  it("PR plan pitches a real covering outlet when coverage exists", () => {
+    const covered = mention({ sourceName: "Reuters", channel: "news", sentiment: "positive", sentimentScore: 0.6 });
+    const pitch = generatePRPlan(subject, [covered]).steps.find((s) => s.phase === "Pitch")!;
+    expect(pitch.action).toContain("Reuters");
+    expect(pitch.action).toMatch(/recent coverage/i);
+    // falls back to a curated outlet with no coverage
+    expect(generatePRPlan(subject, []).steps.find((s) => s.phase === "Pitch")!.action).not.toContain("Reuters");
   });
 });

@@ -12,6 +12,7 @@ import { contentRecommendations, executiveVisibility } from "./growth";
 import { pressOpportunities, outreachWorkflow } from "./media";
 import { suppressionPlan, crisisPlan } from "./recovery";
 import { analysisScores } from "./analysis";
+import { journalistsFromCoverage } from "./journalist-connector";
 
 export type CampaignKind = "growth" | "pr" | "recovery";
 
@@ -49,18 +50,24 @@ export function generateGrowthCampaign(subject: Subject, mentions: Mention[]): C
   };
 }
 
-export function generatePRPlan(subject: Subject): Campaign {
+export function generatePRPlan(subject: Subject, mentions: Mention[] = []): Campaign {
   const ops = pressOpportunities(subject).slice(0, 3);
   const outreach = outreachWorkflow();
+  // Prefer a real outlet already covering the principal (warm target) over a
+  // curated opportunity; falls back when there's no live coverage.
+  const covered = journalistsFromCoverage(mentions, 1)[0];
+  const pitch = covered
+    ? `Pitch ${covered.outlet} — follow up on their recent coverage of ${subject.displayName}`
+    : `Pitch ${ops[0]?.outlet ?? "tier-1 outlet"}: ${ops[0]?.angle ?? "exclusive"}`;
   return {
     kind: "pr",
     name: `${subject.displayName}: Earned-Media Push`,
     goal: "Secure tier-1 press coverage",
     durationWeeks: 4,
-    projectedLift: 12,
+    projectedLift: covered ? 14 : 12,
     steps: [
       { phase: "Prep", action: "Generate press release & media list", channel: "Media engine" },
-      { phase: "Pitch", action: `Pitch ${ops[0]?.outlet ?? "tier-1 outlet"}: ${ops[0]?.angle ?? "exclusive"}`, channel: "Email" },
+      { phase: "Pitch", action: pitch, channel: "Email" },
       { phase: "Follow-up", action: outreach[3]?.action ?? "Follow up after 48h", channel: "Email" },
       { phase: "Amplify", action: "Amplify published coverage", channel: "Social" },
     ],
@@ -90,7 +97,7 @@ export function generateRecoveryPlan(subject: Subject, mentions: Mention[]): Cam
 export function generateAllCampaigns(subject: Subject, mentions: Mention[]): Campaign[] {
   return [
     generateGrowthCampaign(subject, mentions),
-    generatePRPlan(subject),
+    generatePRPlan(subject, mentions),
     generateRecoveryPlan(subject, mentions),
   ];
 }
