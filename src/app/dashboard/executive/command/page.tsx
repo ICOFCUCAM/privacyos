@@ -1,7 +1,15 @@
-import { LayoutGrid, Grid3x3, BarChart3, Clock } from "lucide-react";
+import Link from "next/link";
+import { LayoutGrid, Grid3x3, BarChart3, Clock, ShieldCheck, AlertTriangle, ArrowRight } from "lucide-react";
 import { Card, PageHeader, RiskBadge, SectionTitle } from "@/components/ui";
 import { getDataSource } from "@/lib/data";
+import { getModuleData } from "@/lib/data/modules";
 import { exposureHeatMap, exposureGraph, threatTimeline } from "@/lib/executive/os/command";
+import { residenceReport } from "@/lib/executive/os/residence";
+import { doxxingReport } from "@/lib/executive/os/doxxing";
+import { impersonationReport } from "@/lib/executive/os/impersonation";
+import { darkWebReport } from "@/lib/executive/os/darkweb";
+import { buildThreatActors, summarizeActors } from "@/lib/executive/os/threat-actors";
+import { protectionCoverage, summarizeCoverage } from "@/lib/executive/os/coverage";
 import { cn, timeAgo, titleCase } from "@/lib/ui";
 import type { RiskLevel } from "@/lib/types";
 import { ExecutiveTabs } from "../tabs";
@@ -18,10 +26,23 @@ const BAR: Record<RiskLevel, string> = {
 
 export default async function CommandPage() {
   const { exposures, threats } = await (await getDataSource()).getDataset();
+  const { incidents, domainRisks, credentialLeaks, familyMembers, travelAlerts } = await getModuleData();
   const heat = exposureHeatMap(exposures);
   const graph = exposureGraph(exposures);
   const timeline = threatTimeline(threats);
   const maxBar = Math.max(1, ...graph.map((g) => g.count));
+
+  // Protection-coverage rollup across every pillar.
+  const coverage = protectionCoverage({
+    residenceExposed: residenceReport(exposures).exposedCount,
+    doxxingLeaks: doxxingReport({ exposures, threats, family: familyMembers, employees: [] }).total,
+    impersonationActive: impersonationReport({ threats, incidents, domainRisks, exposures }).active,
+    darkWebActive: darkWebReport({ credentialLeaks, threats, exposures }).active,
+    actorsActive: summarizeActors(buildThreatActors(threats)).active,
+    familyAtRisk: familyMembers.filter((m) => m.riskLevel !== "low").length,
+    travelElevated: travelAlerts.filter((t) => t.riskLevel !== "low").length,
+  });
+  const coverageSummary = summarizeCoverage(coverage);
 
   return (
     <div className="space-y-5">
@@ -31,6 +52,35 @@ export default async function CommandPage() {
         subtitle="Heat maps, exposure graphs and the threat timeline — the principal's protection picture at a glance."
       />
       <ExecutiveTabs />
+
+      {/* Protection coverage rollup */}
+      <Card className="p-4">
+        <SectionTitle
+          title="Protection coverage"
+          subtitle={`${coverageSummary.secure}/${coverageSummary.pillars} pillars secure · ${coverageSummary.needingAction} need action`}
+        />
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 lg:grid-cols-7">
+          {coverage.map((p) => {
+            const ok = p.status === "secure";
+            return (
+              <Link
+                key={p.key}
+                href={p.href}
+                className={cn("group rounded-xl border bg-bg-subtle/40 p-3 transition hover:bg-bg-subtle/70", ok ? "border-border" : "border-risk-high/30")}
+              >
+                <div className="flex items-center justify-between">
+                  {ok
+                    ? <ShieldCheck className="h-4 w-4 text-risk-low" />
+                    : <AlertTriangle className="h-4 w-4 text-risk-high" />}
+                  <ArrowRight className="h-3.5 w-3.5 text-slate-600 transition group-hover:text-brand-fg" />
+                </div>
+                <p className={cn("mt-1.5 text-lg font-bold", ok ? "text-risk-low" : "text-risk-high")}>{p.count}</p>
+                <p className="truncate text-[10px] font-medium uppercase tracking-wide text-slate-400">{p.label}</p>
+              </Link>
+            );
+          })}
+        </div>
+      </Card>
 
       <div className="grid gap-5 lg:grid-cols-2">
         {/* Heat map */}
