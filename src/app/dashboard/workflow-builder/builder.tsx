@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   Plus, Trash2, ArrowUp, ArrowDown, Bot, GitFork, Bell, FileText,
   Save, Power, PowerOff, Pencil, AlertTriangle, ArrowRight, Zap,
-  Filter, FolderKanban, Webhook, Clock,
+  Filter, FolderKanban, Webhook, Clock, Play,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Card, SectionTitle } from "@/components/ui";
@@ -13,8 +13,9 @@ import { cn, titleCase } from "@/lib/ui";
 import type { AgentKind, RiskLevel } from "@/lib/types";
 import {
   addStep, describeTrigger, emptyWorkflow, flowPreview, moveStep, newStepId,
-  removeStep, validateWorkflow,
+  removeStep, validateWorkflow, simulateRun, describeStep,
   type StepType, type TriggerKind, type WorkflowDefinition, type WorkflowStepDef,
+  type ConditionField, type ConditionOp, type SampleEvent, type StepOutcome,
 } from "@/lib/agents/workflow-builder";
 import { deleteWorkflowAction, saveWorkflowAction, toggleWorkflowAction } from "./actions";
 
@@ -34,8 +35,19 @@ const TRIGGERS: { kind: TriggerKind; label: string }[] = [
   { kind: "threat_detected", label: "Threat detected" },
   { kind: "exposure_found", label: "Exposure found" },
   { kind: "score_above", label: "Risk score above…" },
+  { kind: "case_opened", label: "Case opened" },
+  { kind: "incident_raised", label: "Incident raised" },
+  { kind: "scheduled", label: "On a schedule" },
   { kind: "manual", label: "Manual / on-demand" },
 ];
+
+const OUTCOME_CLS: Record<StepOutcome, string> = {
+  run: "text-risk-low ring-risk-low/30",
+  paused: "text-risk-medium ring-risk-medium/30",
+  waited: "text-risk-medium ring-risk-medium/30",
+  skipped: "text-slate-500 ring-border",
+  stopped: "text-risk-high ring-risk-high/30",
+};
 
 const RISKS: RiskLevel[] = ["low", "medium", "high", "critical"];
 
@@ -50,15 +62,29 @@ export function WorkflowBuilder({
   const [pending, start] = useTransition();
   const [draft, setDraft] = useState<WorkflowDefinition>(emptyWorkflow());
 
-  // New-step form state
+  // New-block form state
   const [stepType, setStepType] = useState<StepType>("agent");
   const [stepAgent, setStepAgent] = useState<AgentKind>(agents[0] ?? "privacy");
   const [stepLabel, setStepLabel] = useState("");
   const [stepApproval, setStepApproval] = useState(false);
+  const [condField, setCondField] = useState<ConditionField>("risk");
+  const [condOp, setCondOp] = useState<ConditionOp>("gte");
+  const [condValue, setCondValue] = useState("critical");
+  const [condOnFalse, setCondOnFalse] = useState<"stop" | "continue">("stop");
+  const [stepDelay, setStepDelay] = useState(24);
+  const [stepUrl, setStepUrl] = useState("");
+
+  // Dry-run sample event
+  const [simRisk, setSimRisk] = useState<RiskLevel>("critical");
+  const [simKind, setSimKind] = useState("doxxing");
+  const [simScore, setSimScore] = useState(85);
+  const [simSource, setSimSource] = useState("dark_web");
 
   const validation = validateWorkflow(draft);
   const preview = flowPreview(draft);
   const isEditing = draft.id !== "draft";
+  const sampleEvent: SampleEvent = { risk: simRisk, kind: simKind, score: simScore, source: simSource };
+  const simulation = simulateRun(draft, sampleEvent);
 
   function patchTrigger(p: Partial<WorkflowDefinition["trigger"]>) {
     setDraft((d) => ({ ...d, trigger: { ...d.trigger, ...p } }));
@@ -72,10 +98,14 @@ export function WorkflowBuilder({
       label,
       ...(stepType === "agent" ? { agent: stepAgent } : {}),
       ...(stepType === "decision" ? { requiresApproval: stepApproval } : {}),
+      ...(stepType === "condition" ? { condition: { field: condField, op: condOp, value: condValue }, onFalse: condOnFalse } : {}),
+      ...(stepType === "wait" ? { delayHours: stepDelay } : {}),
+      ...(stepType === "webhook" ? { url: stepUrl } : {}),
     };
     setDraft((d) => addStep(d, step));
     setStepLabel("");
     setStepApproval(false);
+    setStepUrl("");
   }
 
   function resetDraft() {
@@ -152,7 +182,7 @@ export function WorkflowBuilder({
               </select>
             </Field>
 
-            {(draft.trigger.kind === "threat_detected" || draft.trigger.kind === "exposure_found") && (
+            {(draft.trigger.kind === "threat_detected" || draft.trigger.kind === "exposure_found" || draft.trigger.kind === "incident_raised") && (
               <Field label="Minimum risk to fire">
                 <select
                   value={draft.trigger.minRisk ?? "high"}
@@ -172,6 +202,14 @@ export function WorkflowBuilder({
                   onChange={(e) => patchTrigger({ threshold: Number(e.target.value) })}
                   className={inputCls}
                 />
+              </Field>
+            )}
+
+            {draft.trigger.kind === "scheduled" && (
+              <Field label="Cadence">
+                <select value={draft.trigger.cadence ?? "daily"} onChange={(e) => patchTrigger({ cadence: e.target.value })} className={inputCls}>
+                  {["every 1h", "every 6h", "daily", "weekly"].map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
               </Field>
             )}
           </div>
@@ -209,7 +247,40 @@ export function WorkflowBuilder({
               </Field>
             )}
 
-            <Field label="Step label">
+            {stepType === "condition" && (
+              <div className="space-y-2">
+                <div className="grid grid-cols-3 gap-1.5">
+                  <select value={condField} onChange={(e) => setCondField(e.target.value as ConditionField)} className={inputCls} aria-label="Condition field">
+                    {(["risk", "score", "kind", "source"] as ConditionField[]).map((f) => <option key={f} value={f}>{f}</option>)}
+                  </select>
+                  <select value={condOp} onChange={(e) => setCondOp(e.target.value as ConditionOp)} className={inputCls} aria-label="Operator">
+                    {(["gte", "eq", "contains"] as ConditionOp[]).map((o) => <option key={o} value={o}>{o === "gte" ? "≥" : o}</option>)}
+                  </select>
+                  <input value={condValue} onChange={(e) => setCondValue(e.target.value)} className={inputCls} placeholder="value" aria-label="Value" />
+                </div>
+                <label className="flex items-center gap-2 text-xs text-slate-400">
+                  If not met:
+                  <select value={condOnFalse} onChange={(e) => setCondOnFalse(e.target.value as "stop" | "continue")} className={cn(inputCls, "w-auto")}>
+                    <option value="stop">stop the run</option>
+                    <option value="continue">continue anyway</option>
+                  </select>
+                </label>
+              </div>
+            )}
+
+            {stepType === "wait" && (
+              <Field label="Delay (hours)">
+                <input type="number" min={1} value={stepDelay} onChange={(e) => setStepDelay(Number(e.target.value))} className={inputCls} />
+              </Field>
+            )}
+
+            {stepType === "webhook" && (
+              <Field label="Webhook URL">
+                <input value={stepUrl} onChange={(e) => setStepUrl(e.target.value)} placeholder="https://hooks.example.com/…" className={inputCls} />
+              </Field>
+            )}
+
+            <Field label="Block label">
               <input
                 value={stepLabel}
                 onChange={(e) => setStepLabel(e.target.value)}
@@ -258,6 +329,9 @@ export function WorkflowBuilder({
                         {M.label}
                         {s.agent && ` · ${titleCase(s.agent)} agent`}
                         {s.requiresApproval && " · needs approval"}
+                        {s.condition && ` · if ${s.condition.field} ${s.condition.op === "gte" ? "≥" : s.condition.op} ${s.condition.value} → ${s.onFalse === "continue" ? "continue" : "stop"}`}
+                        {s.type === "wait" && s.delayHours ? ` · ${s.delayHours}h` : ""}
+                        {s.url && ` · ${s.url}`}
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-0.5">
@@ -293,6 +367,38 @@ export function WorkflowBuilder({
             ))}
           </div>
         </div>
+
+        {/* Dry-run test panel */}
+        {draft.steps.length > 0 && (
+          <div className="mt-4 rounded-xl border border-border bg-bg-subtle/30 p-3">
+            <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+              <Play className="h-3 w-3 text-brand" /> Test run · sample event
+            </p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <Field label="risk">
+                <select value={simRisk} onChange={(e) => setSimRisk(e.target.value as RiskLevel)} className={inputCls}>
+                  {RISKS.map((r) => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </Field>
+              <Field label="score"><input type="number" min={0} max={100} value={simScore} onChange={(e) => setSimScore(Number(e.target.value))} className={inputCls} /></Field>
+              <Field label="kind"><input value={simKind} onChange={(e) => setSimKind(e.target.value)} className={inputCls} /></Field>
+              <Field label="source"><input value={simSource} onChange={(e) => setSimSource(e.target.value)} className={inputCls} /></Field>
+            </div>
+            <ol className="mt-3 space-y-1">
+              {simulation.steps.map((r, i) => (
+                <li key={i} className="flex items-center gap-2 text-[11px]">
+                  <span className="w-4 shrink-0 text-right text-slate-600">{i + 1}</span>
+                  <span className="min-w-0 flex-1 truncate text-slate-300">{describeStep(r.step)}</span>
+                  <span className="shrink-0 truncate text-[10px] text-slate-500">{r.detail}</span>
+                  <span className={cn("shrink-0 rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ring-1", OUTCOME_CLS[r.outcome])}>{r.outcome}</span>
+                </li>
+              ))}
+            </ol>
+            <p className="mt-2 text-[10px] text-slate-500">
+              {simulation.reached} of {draft.steps.length} block(s) would execute{simulation.stoppedAt != null ? ` · stops at block ${simulation.stoppedAt + 1}` : ""}.
+            </p>
+          </div>
+        )}
 
         {/* Validation + save */}
         {!validation.valid && (
