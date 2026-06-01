@@ -39,4 +39,17 @@ describe("protectionSuite", () => {
     expect(s.worst).not.toBeNull();
     expect(s.atRisk).toBeGreaterThanOrEqual(0);
   });
+
+  it("a clean principal flags nothing — no-coverage reputation isn't 'elevated'", () => {
+    const rows = protectionSuite(base);
+    const rep = rows.find((r) => r.key === "reputation")!;
+    expect(rep.band).toBe("low");            // no mentions → no coverage, not elevated
+    expect(rep.caption).toMatch(/no coverage/i);
+    expect(summarizeSuite(rows).atRisk).toBe(0);
+    // with real negative coverage, reputation is scored normally
+    const withRep = protectionSuite({ ...base, mentions: [
+      { id: "m", subjectId: "s", sourceName: "x", sourceType: "news", title: "bad", url: "", sentiment: "negative", sentimentScore: -0.9, publishedAt: "", channel: "news" } as never,
+    ] });
+    expect(withRep.find((r) => r.key === "reputation")!.caption).toMatch(/health/);
+  });
 });

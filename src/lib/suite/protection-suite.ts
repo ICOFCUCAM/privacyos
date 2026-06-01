@@ -66,6 +66,9 @@ export function protectionSuite(input: SuiteInput): DomainScore[] {
   const brand = brandRiskIndices({ domainRisks: input.domainRisks, employeeExposures: input.employeeExposures, thirdPartyRisks: input.thirdPartyRisks, credentialLeaks: input.credentialLeaks });
   const identity = identityRisk(buildAccounts({ credentialLeaks: input.credentialLeaks, exposures: input.exposures, knownEmails: input.subjectEmails }));
   const reputation = reputationOverview(input.mentions);
+  // reputationOverview returns a neutral baseline health (~64) even with zero
+  // mentions, so don't let "no coverage" masquerade as elevated risk.
+  const repHasData = input.mentions.length > 0;
 
   const travelScore = POSTURE_SCORE[travel.highestPosture];
 
@@ -75,12 +78,14 @@ export function protectionSuite(input: SuiteInput): DomainScore[] {
     { key: "travel", label: "Travel", href: "/dashboard/travel", score: travelScore, band: riskBand(travelScore), higherIsWorse: true, caption: `${travel.upcoming} upcoming · ${travel.highestPosture} posture` },
     { key: "brand", label: "Brand", href: "/dashboard/business", score: brand.overall, band: riskBand(brand.overall), higherIsWorse: true, caption: `${brand.band} brand risk` },
     { key: "identity", label: "Identity", href: "/dashboard/identity", score: identity.overall, band: riskBand(identity.overall), higherIsWorse: true, caption: `${identity.breachedAccounts} breached account(s)` },
-    { key: "reputation", label: "Reputation", href: "/dashboard/reputation", score: reputation.health, band: healthBand(reputation.health), higherIsWorse: false, caption: `${reputation.health}/100 health` },
+    { key: "reputation", label: "Reputation", href: "/dashboard/reputation", score: reputation.health, band: repHasData ? healthBand(reputation.health) : "low", higherIsWorse: false, caption: repHasData ? `${reputation.health}/100 health` : "no coverage yet" },
   ];
 
-  // Worst first: risk rows by score desc; reputation ranked by its inverted band.
-  return rows.sort((a, b) => effectiveRisk(b) - effectiveRisk(a));
+  // Worst first: by band severity, then by risk-equivalent score within a band.
+  return rows.sort((a, b) => BAND_RANK[b.band] - BAND_RANK[a.band] || effectiveRisk(b) - effectiveRisk(a));
 }
+
+const BAND_RANK: Record<SuiteBand, number> = { low: 0, elevated: 1, high: 2, critical: 3 };
 
 function effectiveRisk(d: DomainScore): number {
   return d.higherIsWorse ? d.score : 100 - d.score;
