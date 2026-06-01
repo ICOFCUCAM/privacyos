@@ -38,7 +38,29 @@ worst-first (surfaced on the Overview as "Reduce executive risk").
 > credential feed in the footprint), so it under-reads there — which is why the
 > autonomous escalation keys on the **physical** index, not the composite.
 
-## 2. Monitoring pillars
+## 2. Attack Path Analysis — the kill-chain (`attack-paths.ts`)
+
+The flagship feature. Instead of a flat exposure list, it models how an
+adversary **chains** the footprint into real-world harm.
+
+- `buildSignalIndex(input)` reduces exposures + threats + credential leaks to 14
+  attack **signals** (address, phone, family, email, credential, darkweb,
+  doxxing, location, impersonation, …).
+- `analyzeAttackSurface(input)` scores six attack paths — swatting, stalking,
+  identity theft, account takeover, extortion, pretexting — each
+  feasibility × impact, **"live"** once ≥half its chain (and ≥2 links) are
+  present. It then computes the **chokepoint**: the single signal whose removal
+  collapses the most live paths (the "one shot").
+- `simulateRemovals(input)` is the what-if leverage analysis: for every present
+  signal it re-runs the surface with that signal removed and ranks by risk
+  removed (`scoreDrop`) — a full "remove-this → gain-that" playbook.
+
+Surface: the **Attack Paths** tab (`/attack-paths`) — chokepoint hero, each path
+drawn as a lit/struck-through kill-chain, and the leverage table. The chokepoint
+also appears as a banner on the **Command Center** (`/dashboard`) and the
+Executive **Overview**.
+
+## 3. Monitoring pillars
 
 | Pillar | Engine | Surface | Detects | Acts |
 |---|---|---|---|---|
@@ -54,7 +76,7 @@ worst-first (surfaced on the Overview as "Reduce executive risk").
 `protectionCoverage` rollup across all seven pillars, an exposure heat map
 (category × severity), an exposure-by-category graph, and the threat timeline.
 
-## 3. Live data & keys
+## 4. Live data & keys
 
 | Capability | Provider | Env var | Cache (table, TTL) |
 |---|---|---|---|
@@ -69,7 +91,7 @@ Connectors share `src/lib/net/keyed-fetch.ts`; per-user caches share
 `src/lib/data/cache-session.ts` (no session → skip the cache *and* the paid
 call).
 
-## 4. Autonomous behavior (in the protection cycle, `scheduler/run.ts`)
+## 5. Autonomous behavior (in the protection cycle, `scheduler/run.ts`)
 
 Each cycle, per subject:
 - recomputes the Executive Risk Score and records it as a **score snapshot**
@@ -78,24 +100,34 @@ Each cycle, per subject:
   critical finding pushes the **physical** index critical;
 - clusters threats into actors and **auto-opens `executive_protection` cases**
   for active/harassment actors (deduped by title);
-- routes the footprint's doxxing leaks to takedown channels and records the plan.
+- routes the footprint's doxxing leaks to takedown channels and records the plan;
+- sweeps impersonation/deepfake and dark-web signals (observability);
+- runs the **attack-path analysis** and records the chokepoint (the
+  highest-leverage fix) + the count of live paths.
 
 Run-summary counters: `executiveEscalations`, `executiveCasesOpened`,
-`doxxingTakedownsRouted`.
+`doxxingTakedownsRouted`, `impersonationSignals`, `darkWebSignals`,
+`attackPathsLive`.
 
-## 5. Cross-surface wiring
+## 6. Cross-surface wiring
 
-- **Mission Control** factors the Executive Risk Score into the unified posture
-  (critical ≥75 / elevated ≥50 drivers) and shows an "Executive risk" tile.
+- **Mission Control** factors the Executive Risk Score **and a live critical
+  attack path** into the unified posture (critical ≥75 / elevated ≥50 drivers;
+  attack top-score ≥70 critical / ≥45 elevated) and shows "Executive risk" +
+  "Attack paths" tiles.
+- **Command Center** (`/dashboard`) shows the attack-path chokepoint as a
+  "one shot" banner.
 - **Executive Protection report** (`reports/build.ts`, type `executive`) renders
-  the five indices, all seven pillars, and (when keyed) live residence data.
+  the five indices, all seven pillars, the **attack paths + chokepoint**, and
+  (when keyed) live residence data.
 - The Executive Risk Score is **trend-charted** on the Overview from the
   persisted snapshots.
 
-## 6. File map
+## 7. File map
 
 ```
 src/lib/executive/os/
+  attack-paths.ts      kill-chain: signals, paths, chokepoint, what-if leverage
   risk-indices.ts      Executive Risk Score, indices, recommendations
   residence.ts         residence checks (+ -connector, -cache for live data)
   doxxing.ts           leak classification + takedown routing
@@ -106,11 +138,11 @@ src/lib/executive/os/
   coverage.ts          seven-pillar protection-coverage rollup
   *.test.ts            unit tests for every engine
 src/app/dashboard/executive/
-  page.tsx + tabs.tsx + residence/ doxxing/ impersonation/ dark-web/
-  threat-actors/ command/
+  page.tsx + tabs.tsx + attack-paths/ residence/ doxxing/ impersonation/
+  dark-web/ threat-actors/ command/
 ```
 
-## 7. Not yet built (paid-partner / data-dependent)
+## 8. Not yet built (paid-partner / data-dependent)
 
 - Independent **satellite/street-view** detection (currently inferred or via the
   property record's geocode).
