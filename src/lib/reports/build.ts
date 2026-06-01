@@ -17,6 +17,8 @@ import { analyzeAttackSurface } from "@/lib/executive/os/attack-paths";
 import {
   buildRegistry, sharedExposures, memberRisks, childSafety, exposureTracking, familyOverview,
 } from "@/lib/family/os/family-os";
+import { assessTrips } from "@/lib/intelligence/travel-risk";
+import { tripPhase, destinationIntel, travelReadiness, travelOverview } from "@/lib/travel/os/travel-os";
 import { titleCase } from "@/lib/ui";
 import type { ReportContext } from "./engine";
 import type { ReportType } from "@/lib/suite-types";
@@ -141,6 +143,29 @@ export async function buildReportContext(type: ReportType): Promise<ReportContex
             { label: "Members reached", value: `${fo.propagationReach}` },
           ] },
           { heading: "Family members", rows: frisks.map((r) => ({ label: `${r.member.displayName} (${r.member.relation})`, value: `${r.total}/100${r.member.isMinor ? " · minor" : ""}` })) },
+        ],
+      };
+    }
+    case "travel": {
+      const trips = assessTrips(mod.travelAlerts, data.exposures, data.threats);
+      const to = travelOverview(trips);
+      const dests = destinationIntel(trips);
+      const ready = travelReadiness(trips);
+      return {
+        ...base,
+        stats: [
+          { label: "Trips", value: to.trips },
+          { label: "Upcoming", value: to.upcoming },
+          { label: "Highest posture", value: titleCase(to.highestPosture) },
+          { label: "Readiness", value: `${ready.readiness}/100` },
+        ],
+        sections: [
+          { heading: "Destination intelligence", rows: dests.map((d) => ({ label: d.destination, value: `${titleCase(d.posture)} · risk ${d.highestRisk}${d.nextDays != null ? ` · in ${d.nextDays}d` : ""}` })) },
+          { heading: "Pre-travel readiness", rows: [
+            { label: "Readiness", value: `${ready.readiness}/100` },
+            { label: "Outstanding measures", value: `${ready.criticalMeasures} critical · ${ready.highMeasures} high` },
+          ] },
+          { heading: "Itinerary", rows: trips.length ? trips.map((t) => ({ label: t.alert.destination, value: `${titleCase(tripPhase(t))} · ${titleCase(t.posture)} · risk ${t.riskScore}` })) : [{ label: "No trips", value: "Itinerary empty" }] },
         ],
       };
     }

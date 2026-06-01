@@ -25,6 +25,17 @@ describe("buildReportContext — executive", () => {
   });
 });
 
+describe("buildReportContext — travel", () => {
+  it("renders destination intelligence, readiness and itinerary", async () => {
+    const ctx = await buildReportContext("travel");
+    const headings = ctx.sections.map((s) => s.heading);
+    expect(headings).toContain("Destination intelligence");
+    expect(headings).toContain("Pre-travel readiness");
+    expect(headings).toContain("Itinerary");
+    expect(ctx.stats.map((s) => s.label)).toContain("Readiness");
+  });
+});
+
 describe("buildReportContext — family", () => {
   it("renders registry, child safety, exposure tracking and risk propagation", async () => {
     const ctx = await buildReportContext("family");
