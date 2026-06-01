@@ -9,10 +9,11 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Card, SectionTitle } from "@/components/ui";
+import { WorkflowFlow } from "@/components/workflow-flow";
 import { cn, titleCase } from "@/lib/ui";
 import type { AgentKind, RiskLevel } from "@/lib/types";
 import {
-  addStep, describeTrigger, emptyWorkflow, flowPreview, moveStep, newStepId,
+  addStep, describeTrigger, emptyWorkflow, moveStep, newStepId,
   removeStep, validateWorkflow, simulateRun, describeStep,
   type StepType, type TriggerKind, type WorkflowDefinition, type WorkflowStepDef,
   type ConditionField, type ConditionOp, type SampleEvent, type StepOutcome,
@@ -81,7 +82,6 @@ export function WorkflowBuilder({
   const [simSource, setSimSource] = useState("dark_web");
 
   const validation = validateWorkflow(draft);
-  const preview = flowPreview(draft);
   const isEditing = draft.id !== "draft";
   const sampleEvent: SampleEvent = { risk: simRisk, kind: simKind, score: simScore, source: simSource };
   const simulation = simulateRun(draft, sampleEvent);
@@ -346,26 +346,12 @@ export function WorkflowBuilder({
           )}
         </div>
 
-        {/* Flow preview */}
-        <div className="mt-4 rounded-xl border border-border bg-bg-subtle/30 p-3">
-          <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-            <Zap className="h-3 w-3 text-brand" /> Flow preview
+        {/* Flow graph (live — tinted by the dry-run outcome below) */}
+        <div className="mt-4 rounded-xl border border-border bg-bg-subtle/30 p-4">
+          <p className="mb-3 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+            <Zap className="h-3 w-3 text-brand" /> Flow
           </p>
-          <div className="flex flex-wrap items-center gap-1.5">
-            {preview.map((label, i) => (
-              <span key={i} className="inline-flex items-center gap-1.5">
-                <span className={cn(
-                  "rounded-md px-2 py-1 text-[11px] font-medium ring-1",
-                  i === 0
-                    ? "bg-brand/12 text-brand-fg ring-brand/25"
-                    : "bg-bg-elevated text-slate-300 ring-border",
-                )}>
-                  {label}
-                </span>
-                {i < preview.length - 1 && <ArrowRight className="h-3 w-3 text-slate-600" />}
-              </span>
-            ))}
-          </div>
+          <WorkflowFlow def={draft} simulation={draft.steps.length > 0 ? simulation.steps : undefined} />
         </div>
 
         {/* Dry-run test panel */}
