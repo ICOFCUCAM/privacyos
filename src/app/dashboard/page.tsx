@@ -59,6 +59,12 @@ export default async function OverviewPage() {
     credentialLeaks: mod.credentialLeaks,
     domainRisks: mod.domainRisks,
     employeeExposures: mod.employeeExposures,
+    exposures: data.exposures,
+    threats: data.threats,
+    familyMembers: mod.familyMembers,
+    travelAlerts: mod.travelAlerts,
+    thirdPartyRisks: mod.thirdPartyRisks,
+    subjectEmails: data.subject.emails,
   });
   const suiteScores = [
     { label: "Privacy", value: scores.privacy },

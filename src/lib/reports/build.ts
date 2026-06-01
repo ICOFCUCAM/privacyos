@@ -38,6 +38,12 @@ export async function buildReportContext(type: ReportType): Promise<ReportContex
     credentialLeaks: mod.credentialLeaks,
     domainRisks: mod.domainRisks,
     employeeExposures: mod.employeeExposures,
+    exposures: data.exposures,
+    threats: data.threats,
+    familyMembers: mod.familyMembers,
+    travelAlerts: mod.travelAlerts,
+    thirdPartyRisks: mod.thirdPartyRisks,
+    subjectEmails: data.subject.emails,
   });
 
   const activeThreats = data.threats.filter((t) => !t.acknowledged);
