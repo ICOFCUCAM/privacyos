@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Crown, Home, UserX, Crosshair, LayoutGrid, Users, Plane, VenetianMask } from "lucide-react";
+import { Crown, Home, UserX, Crosshair, LayoutGrid, Users, Plane, VenetianMask, EyeOff } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/ui";
 
@@ -11,6 +11,7 @@ export const EXECUTIVE_TABS: { href: string; label: string; icon: LucideIcon }[]
   { href: "/dashboard/executive/residence", label: "Residence", icon: Home },
   { href: "/dashboard/executive/doxxing", label: "Doxxing", icon: UserX },
   { href: "/dashboard/executive/impersonation", label: "Impersonation", icon: VenetianMask },
+  { href: "/dashboard/executive/dark-web", label: "Dark Web", icon: EyeOff },
   { href: "/dashboard/executive/threat-actors", label: "Threat Actors", icon: Crosshair },
   { href: "/dashboard/family", label: "Family", icon: Users },
   { href: "/dashboard/travel", label: "Travel", icon: Plane },
