@@ -85,10 +85,20 @@ export function generatePressRelease(subject: Subject, mentions: Mention[]): Pre
   };
 }
 
-export function outreachWorkflow(): OutreachStep[] {
+export interface OutreachTarget {
+  name: string;
+  outlet: string;
+  email?: string;
+}
+
+/** When a real top target is known, the pitch step names them (and their email). */
+export function outreachWorkflow(target?: OutreachTarget): OutreachStep[] {
+  const pitch = target
+    ? `Personalize the pitch to ${target.name} at ${target.outlet}${target.email ? ` — ${target.email}` : ""}`
+    : "Personalize the pitch to each outlet's angle";
   return [
     { step: 1, action: "Shortlist journalists by beat & relevance", channel: "Journalist DB" },
-    { step: 2, action: "Personalize the pitch to each outlet's angle", channel: "Email" },
+    { step: 2, action: pitch, channel: "Email" },
     { step: 3, action: "Send embargoed press release to tier-1 first", channel: "Email" },
     { step: 4, action: "Follow up after 48h; offer an exclusive or data", channel: "Email / DM" },
     { step: 5, action: "Amplify published coverage across owned channels", channel: "Social" },

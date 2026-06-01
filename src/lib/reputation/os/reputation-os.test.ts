@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { analysisScores, monitoringCoverage, reputationOverview } from "./analysis";
 import { growthProgram, executiveVisibility, contentCalendar } from "./growth";
 import { seoProfile, pageOneDominance, ownedRankFrom, withLiveNameRank } from "./seo";
-import { mediaProgram, generatePressRelease } from "./media";
+import { mediaProgram, generatePressRelease, outreachWorkflow } from "./media";
 import { recoveryProgram, crisisPlan, suppressionPlan } from "./recovery";
 import { socialStrategies } from "./social";
 import { discoverOpportunities, summarizeOpportunities } from "./intelligence";
@@ -108,6 +108,14 @@ describe("media", () => {
     const m = mediaProgram(subject, profile);
     expect(m.opportunities[0].fit).toBeGreaterThanOrEqual(m.opportunities[1].fit);
     expect(m.journalists[0].relevance).toBeGreaterThanOrEqual(m.journalists[1].relevance);
+  });
+  it("outreach names a known target (with email) in the pitch step", () => {
+    const generic = outreachWorkflow();
+    expect(generic[1].action).toMatch(/each outlet/i);
+    const named = outreachWorkflow({ name: "Ann Lee", outlet: "TechCrunch", email: "ann@tc.com" });
+    expect(named[1].action).toContain("Ann Lee");
+    expect(named[1].action).toContain("TechCrunch");
+    expect(named[1].action).toContain("ann@tc.com");
   });
 });
 

@@ -24,13 +24,14 @@ export async function getContacts(
   source: HunterSource = resolveHunterSource(),
   now = Date.now(),
 ): Promise<{ contacts: HunterContact[]; live: boolean }> {
-  if (!domain) return { contacts: [], live: false };
-  if (!isSupabaseConfigured()) return source.findContacts(domain);
+  // No session → don't spend a paid Hunter credit uncached.
+  const noLive = { contacts: [], live: false };
+  if (!domain || !isSupabaseConfigured()) return noLive;
   try {
     const db = await getSupabaseServerClient();
-    if (!db) return source.findContacts(domain);
+    if (!db) return noLive;
     const { data: { user } } = await db.auth.getUser();
-    if (!user) return source.findContacts(domain);
+    if (!user) return noLive;
 
     const { data: row } = await db
       .from("contact_cache")
@@ -51,6 +52,6 @@ export async function getContacts(
     }
     return fresh;
   } catch {
-    return source.findContacts(domain);
+    return noLive;
   }
 }

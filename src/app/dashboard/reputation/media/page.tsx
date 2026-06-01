@@ -2,7 +2,7 @@ import { Newspaper, Users, FileText, Send, ExternalLink } from "lucide-react";
 import { Card, PageHeader, SectionTitle } from "@/components/ui";
 import { getDataSource } from "@/lib/data";
 import { getModuleData } from "@/lib/data/modules";
-import { mediaProgram } from "@/lib/reputation/os/media";
+import { mediaProgram, outreachWorkflow } from "@/lib/reputation/os/media";
 import { resolveJournalists, attachContact } from "@/lib/reputation/os/journalist-connector";
 import { getContacts } from "@/lib/reputation/os/contact-cache";
 import { cn, timeAgo } from "@/lib/ui";
@@ -23,6 +23,11 @@ export default async function MediaPage() {
       i < 3 && j.provider === "coverage" ? attachContact(j, (await getContacts(j.outlet)).contacts) : j,
     ),
   );
+  // Outreach targets the warmest real contact (named/emailed first).
+  const top = journalists.find((j) => j.email) ?? journalists[0];
+  const outreach = top
+    ? outreachWorkflow({ name: top.contactName ?? top.outlet, outlet: top.outlet, email: top.email })
+    : m.outreach;
 
   return (
     <div className="space-y-5">
@@ -107,7 +112,7 @@ export default async function MediaPage() {
       <Card className="p-4">
         <SectionTitle title="Media outreach workflow" subtitle="From shortlist to amplification" action={<Send className="h-4 w-4 text-slate-500" />} />
         <ol className="space-y-1.5">
-          {m.outreach.map((s) => (
+          {outreach.map((s) => (
             <li key={s.step} className="flex items-center gap-3 rounded-lg border border-border bg-bg-subtle/40 px-3 py-2">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-bg-elevated text-[11px] font-bold text-slate-400">{s.step}</span>
               <span className="min-w-0 flex-1 text-xs text-slate-300">{s.action}</span>

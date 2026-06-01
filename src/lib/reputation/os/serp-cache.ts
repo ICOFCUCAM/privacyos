@@ -39,12 +39,14 @@ export async function getRankings(
   source: SerpSource = resolveSerpSource(),
   now = Date.now(),
 ): Promise<CachedRankings> {
-  if (!isSupabaseConfigured()) return source.search(query);
+  // No session → don't spend a paid SERP credit uncached; use the model.
+  const noLive: CachedRankings = { results: [], live: false, provider: "none" };
+  if (!isSupabaseConfigured()) return noLive;
   try {
     const db = await getSupabaseServerClient();
-    if (!db) return source.search(query);
+    if (!db) return noLive;
     const { data: { user } } = await db.auth.getUser();
-    if (!user) return source.search(query);
+    if (!user) return noLive;
 
     const { data: row } = await db
       .from("serp_cache")
@@ -66,6 +68,6 @@ export async function getRankings(
     }
     return fresh;
   } catch {
-    return source.search(query);
+    return noLive;
   }
 }
