@@ -25,6 +25,18 @@ describe("buildReportContext — executive", () => {
   });
 });
 
+describe("buildReportContext — board", () => {
+  it("includes the cross-domain protection posture", async () => {
+    const ctx = await buildReportContext("board");
+    const headings = ctx.sections.map((s) => s.heading);
+    expect(headings).toContain("Protection posture (all domains)");
+    expect(ctx.stats.map((s) => s.label)).toContain("Domains at risk");
+    // all six domains listed
+    const posture = ctx.sections.find((s) => s.heading === "Protection posture (all domains)")!;
+    expect(posture.rows).toHaveLength(6);
+  });
+});
+
 describe("buildReportContext — identity", () => {
   it("renders the account inventory and restoration playbook", async () => {
     const ctx = await buildReportContext("identity");

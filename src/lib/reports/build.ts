@@ -21,6 +21,7 @@ import { assessTrips } from "@/lib/intelligence/travel-risk";
 import { tripPhase, destinationIntel, travelReadiness, travelOverview } from "@/lib/travel/os/travel-os";
 import { brandRiskIndices, brandImpersonation, BRAND_INDEX_META } from "@/lib/business/os/brand-os";
 import { buildAccounts, passwordHygiene, identityRisk, restorationPlaybook } from "@/lib/identity/os/identity-os";
+import { protectionSuite, summarizeSuite } from "@/lib/suite/protection-suite";
 import { titleCase } from "@/lib/ui";
 import type { ReportContext } from "./engine";
 import type { ReportType } from "@/lib/suite-types";
@@ -246,23 +247,32 @@ export async function buildReportContext(type: ReportType): Promise<ReportContex
         sections: [topExposures, threatRows, incidentRows],
       };
     case "board":
-    default:
+    default: {
+      const suite = protectionSuite({
+        exposures: data.exposures, threats: data.threats, mentions: mod.mentions, familyMembers: mod.familyMembers,
+        travelAlerts: mod.travelAlerts, credentialLeaks: mod.credentialLeaks, domainRisks: mod.domainRisks,
+        employeeExposures: mod.employeeExposures, thirdPartyRisks: mod.thirdPartyRisks, subjectEmails: data.subject.emails,
+      });
+      const suiteSummary = summarizeSuite(suite);
       return {
         ...base,
         stats: [
           { label: "Overall risk", value: scores.overall },
+          { label: "Domains at risk", value: `${suiteSummary.atRisk}/${suiteSummary.domains}` },
           { label: "Active threats", value: activeThreats.length },
-          { label: "Open incidents", value: openIncidents.length },
           { label: "Open cases", value: openCases.length },
         ],
         sections: [
           { heading: "Executive summary", rows: [
             { label: "Overall posture", value: `${scores.overall}/100 risk` },
+            { label: "Worst domain", value: suiteSummary.worst ? `${suiteSummary.worst.label} — ${suiteSummary.worst.score}/100 (${suiteSummary.worst.band})` : "None" },
             { label: "Top concern", value: activeThreats[0]?.title ?? "None active" },
             { label: "Remediation in flight", value: `${openCases.length} cases, ${mod.legalRequests.filter((l) => l.status !== "completed").length} legal requests` },
           ] },
+          { heading: "Protection posture (all domains)", rows: suite.map((d) => ({ label: d.label, value: `${d.score}/100 ${d.higherIsWorse ? "risk" : "health"} · ${titleCase(d.band)}` })) },
           topExposures,
         ],
       };
+    }
   }
 }
