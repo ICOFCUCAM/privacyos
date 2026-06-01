@@ -11,6 +11,8 @@ import {
   assessTrips, summarizeTravel,
   type TravelAssessment, type TravelMeasure, type TravelPosture,
 } from "@/lib/intelligence/travel-risk";
+import { executiveRiskIndices } from "@/lib/executive/os/risk-indices";
+import { ExecutiveTabs } from "../executive/tabs";
 import { cn } from "@/lib/ui";
 
 export const metadata = { title: "Travel Risk" };
@@ -36,6 +38,7 @@ export default async function TravelPage() {
   const trips = assessTrips(travelAlerts, data.exposures, data.threats);
   const summary = summarizeTravel(trips);
   const SP = POSTURE[summary.highestPosture];
+  const travelIndex = executiveRiskIndices({ exposures: [], threats: [], family: [], travel: travelAlerts }).travel;
 
   return (
     <div className="space-y-5">
@@ -44,11 +47,18 @@ export default async function TravelPage() {
         title="Travel Risk"
         subtitle="Pre-travel risk assessments that correlate each itinerary with the principal's live exposure and threat intelligence — with protective measures per trip."
         actions={
-          <span className={cn("inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold ring-1", SP.bg, SP.cls, SP.ring)}>
-            Highest posture: {SP.label}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className={cn("inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold ring-1", travelIndex >= 50 ? "bg-risk-high/10 text-risk-high ring-risk-high/30" : travelIndex >= 25 ? "bg-risk-medium/10 text-risk-medium ring-risk-medium/30" : "bg-risk-low/10 text-risk-low ring-risk-low/30")}>
+              Travel Security Index {travelIndex}
+            </span>
+            <span className={cn("inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold ring-1", SP.bg, SP.cls, SP.ring)}>
+              Highest posture: {SP.label}
+            </span>
+          </div>
         }
       />
+
+      <ExecutiveTabs />
 
       {/* Summary */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

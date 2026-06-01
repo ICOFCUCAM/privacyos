@@ -8,6 +8,8 @@ import {
   assessFamily, summarizeFamily,
   type FamilyPosture, type MemberAssessment, type MemberCategory, type MemberStatus, type Safeguard,
 } from "@/lib/intelligence/family-protection";
+import { executiveRiskIndices } from "@/lib/executive/os/risk-indices";
+import { ExecutiveTabs } from "../executive/tabs";
 import { cn } from "@/lib/ui";
 
 export const metadata = { title: "Family Protection" };
@@ -41,6 +43,7 @@ export default async function FamilyPage() {
   const roster = assessFamily(familyMembers);
   const summary = summarizeFamily(familyMembers);
   const SP = POSTURE[summary.posture];
+  const familyIndex = executiveRiskIndices({ exposures: [], threats: [], family: familyMembers, travel: [] }).family;
 
   return (
     <div className="space-y-5">
@@ -48,8 +51,17 @@ export default async function FamilyPage() {
         icon={Users}
         title="Family Protection"
         subtitle="Protect children, partners and elderly relatives — each with safeguards tuned to who they are, plus a family-wide protection posture."
-        actions={<DataBadge live={moduleData.live} />}
+        actions={
+          <div className="flex items-center gap-2">
+            <span className={cn("inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold ring-1", familyIndex >= 50 ? "bg-risk-high/10 text-risk-high ring-risk-high/30" : familyIndex >= 25 ? "bg-risk-medium/10 text-risk-medium ring-risk-medium/30" : "bg-risk-low/10 text-risk-low ring-risk-low/30")}>
+              Family Risk Index {familyIndex}
+            </span>
+            <DataBadge live={moduleData.live} />
+          </div>
+        }
       />
+
+      <ExecutiveTabs />
 
       {/* Posture + summary */}
       <Card className="p-4">
