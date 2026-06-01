@@ -20,7 +20,7 @@ $100M product, but a coherent architecture you can build the rest on top of.
 | Area | Status |
 | --- | --- |
 | Next.js 15 + TypeScript + Tailwind app | ✅ runnable |
-| Multi-section dashboard (overview, exposures, threats, reputation, cases, recommendations, agents, executive, family, business, reports) | ✅ |
+| Multi-section dashboard (overview, protection suite, mission control, identity, exposures, threats, reputation, cases, executive, family, travel, business, reports) | ✅ |
 | Proprietary 5-axis risk scoring engine | ✅ unit-tested |
 | AI agent orchestration layer (8 specialized agents) | ✅ unit-tested |
 | Pluggable LLM provider (Claude / OpenAI / deterministic mock) | ✅ |
@@ -37,18 +37,31 @@ See [`ARCHITECTURE.md`](./ARCHITECTURE.md) for the design,
 
 ### Product suites
 
-PrivacyOS is organized into four suites, all navigable in the dashboard:
+PrivacyOS is organized into protection modules, all navigable in the dashboard
+and unified by the **Protection Suite** cross-domain scorecard
+(`/dashboard/suite`) and **Mission Control** (`/dashboard/mission-control`):
 
 - **PrivacyOS** — exposure inventory, threat feed, cases, AI recommendations
-- **ReputationOS** — mentions, sentiment trend, defamation tracking, SEO recovery
-- **ExecutiveOS** — incidents (deepfake/impersonation/doxxing), family, travel risk
-- **BusinessOS** — domains, employee exposure, credential leaks, third-party risk
-- **Automation** — AI agents, legal document generator, reporting engine, alerts
+- **Digital Identity OS** — per-account ATO risk, password hygiene, dark-web
+  identity monitoring, restoration playbook ([docs](docs/digital-identity-os.md))
+- **ReputationOS** — mentions, sentiment, defamation, SEO recovery, journalists
+- **Executive Protection OS** — Executive Risk Score (5 indices), **Attack Path
+  Analysis** (kill-chain + chokepoint), Residence, Doxxing, Impersonation,
+  Dark-Web, Threat-Actor tracking, Command ([docs](docs/executive-protection-os.md))
+- **Family Protection OS** — registry, exposure tracking, child safety, family
+  graph with risk propagation ([docs](docs/family-protection-os.md))
+- **Travel Security OS** — trip registry, destination intelligence, pre-travel
+  readiness ([docs](docs/travel-security-os.md))
+- **Business / Brand Protection OS** — Brand Risk Score, brand impersonation,
+  domains, workforce, third-party risk ([docs](docs/business-brand-os.md))
+- **Automation** — AI agents, autonomous protection cycle, legal document
+  generator, reporting engine, alerts
 
 Six scoring axes (`src/lib/scoring/scores.ts`), six discovery layers
 (`src/lib/discovery/`), a legal engine (`src/lib/legal/`) exporting six document
 types via `GET /api/legal`, and a reporting engine (`src/lib/reports/`) producing
-seven print-ready reports via `GET /api/reports/[type]`.
+**ten** print-ready reports via `GET /api/reports/[type]` (privacy, executive,
+family, travel, identity, business, threat, compliance, risk, board).
 
 ---
 
