@@ -186,6 +186,8 @@ describe("runScheduledCycle", () => {
 
     expect(summary.subjectsProcessed).toBe(2);
     expect(summary.newThreats).toBe(2);
+    // the dark-web credential-leak threats were tracked by the dark-web sweep
+    expect(summary.darkWebSignals).toBeGreaterThan(0);
     expect(store.runs).toHaveLength(2);
     // each new threat gets a recorded investigation (Discovery → Threat Intel → …)
     expect(store.investigations).toHaveLength(2);
@@ -251,6 +253,7 @@ describe("runScheduledCycle", () => {
           threats: [
             { id: `d-${subject.id}`, kind: "doxxing", title: "Home address doxxed", detail: "address posted", ...base },
             { id: `l-${subject.id}`, kind: "location_exposure", title: "Live location leaked", detail: "geotag", ...base },
+            { id: `i-${subject.id}`, kind: "impersonation", title: "Fake executive profile", detail: "impersonation", ...base },
           ],
           log: ["physical threats"],
         };
@@ -273,6 +276,9 @@ describe("runScheduledCycle", () => {
     // the doxxing leak (address from the doxxing threat) was routed for takedown
     expect(summary.doxxingTakedownsRouted).toBeGreaterThan(0);
     expect(store.actions.flat().some((a) => a.agent === "executive" && a.kind === "remove" && /takedown/.test(a.summary))).toBe(true);
+    // the impersonation threat was tracked by the impersonation sweep
+    expect(summary.impersonationSignals).toBeGreaterThan(0);
+    expect(store.actions.flat().some((a) => a.kind === "monitor" && /impersonation\/deepfake signal/.test(a.summary))).toBe(true);
   });
 
   it("auto-files broker opt-outs for discovered broker exposures", async () => {

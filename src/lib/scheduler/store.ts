@@ -70,6 +70,10 @@ export interface ScheduledRunSummary {
   executiveCasesOpened: number;
   /** Doxxing leaks routed to a takedown channel this cycle. */
   doxxingTakedownsRouted: number;
+  /** Active impersonation/deepfake signals tracked this cycle. */
+  impersonationSignals: number;
+  /** Active dark-web signals monitored this cycle. */
+  darkWebSignals: number;
   mentionsCollected: number;
   domainRisksFound: number;
   ranAt: string;

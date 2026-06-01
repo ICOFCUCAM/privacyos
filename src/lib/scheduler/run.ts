@@ -23,6 +23,8 @@ import { reputationOverview } from "@/lib/reputation/os/analysis";
 import { executiveRiskIndices } from "@/lib/executive/os/risk-indices";
 import { buildThreatActors, actorCasesToOpen } from "@/lib/executive/os/threat-actors";
 import { doxxingReport, takedownPlan, summarizeTakedowns, TAKEDOWN_LABEL } from "@/lib/executive/os/doxxing";
+import { impersonationReport } from "@/lib/executive/os/impersonation";
+import { darkWebReport } from "@/lib/executive/os/darkweb";
 import { investigationTimeline } from "@/lib/intelligence/threat-intel";
 import { collectReputation, type MentionSource } from "@/lib/reputation/collect";
 import { scanDomain } from "@/lib/domains/scan";
@@ -60,6 +62,8 @@ export async function runScheduledCycle(
   let executiveEscalations = 0;
   let executiveCasesOpened = 0;
   let doxxingTakedownsRouted = 0;
+  let impersonationSignals = 0;
+  let darkWebSignals = 0;
   let mentionsCollected = 0;
   let domainRisksFound = 0;
 
@@ -222,7 +226,27 @@ export async function runScheduledCycle(
       doxxingTakedownsRouted += takedowns.length;
     }
 
-    // 6d. Auto-file broker opt-outs for newly-discovered broker/public-record
+    // 6d. Impersonation & dark-web monitoring. Read the footprint for the
+    // remaining ExecutiveOS pillars (incidents/domain-risks/credential feeds
+    // aren't in the footprint, so this catches the threat/exposure-driven
+    // signals) and record the sweep. Takedown/breach cases for these are opened
+    // by the threat-case pipeline above; this is observability, not escalation.
+    const impersonation = impersonationReport({ threats, incidents: [], domainRisks: [], exposures });
+    if (impersonation.active > 0) {
+      await store.recordActions(fp.userId, fp.subject.id, [
+        { agent: "executive", kind: "monitor", summary: `Tracking ${impersonation.active} impersonation/deepfake signal(s).`, status: "completed" },
+      ]);
+      impersonationSignals += impersonation.active;
+    }
+    const darkweb = darkWebReport({ credentialLeaks: [], threats, exposures });
+    if (darkweb.active > 0) {
+      await store.recordActions(fp.userId, fp.subject.id, [
+        { agent: "security", kind: "monitor", summary: `Monitoring ${darkweb.active} dark-web signal(s).`, status: "completed" },
+      ]);
+      darkWebSignals += darkweb.active;
+    }
+
+    // 6e. Auto-file broker opt-outs for newly-discovered broker/public-record
     // exposures — the Privacy Agent files them so the removal pipeline populates
     // itself from real discoveries (no manual step required).
     try {
@@ -348,6 +372,8 @@ export async function runScheduledCycle(
     executiveEscalations,
     executiveCasesOpened,
     doxxingTakedownsRouted,
+    impersonationSignals,
+    darkWebSignals,
     mentionsCollected,
     domainRisksFound,
     ranAt: new Date().toISOString(),
