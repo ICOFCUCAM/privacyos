@@ -66,6 +66,8 @@ export interface ScheduledRunSummary {
   reputationCasesOpened: number;
   /** Times the principal was escalated to critical executive risk this cycle. */
   executiveEscalations: number;
+  /** Protective cases auto-opened for escalating/harassment threat actors. */
+  executiveCasesOpened: number;
   mentionsCollected: number;
   domainRisksFound: number;
   ranAt: string;

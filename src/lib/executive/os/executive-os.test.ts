@@ -2,7 +2,8 @@ import { describe, it, expect } from "vitest";
 import { executiveRiskIndices, bandFor, type RiskInput } from "./risk-indices";
 import { residenceReport } from "./residence";
 import { doxxingReport } from "./doxxing";
-import { buildThreatActors, summarizeActors } from "./threat-actors";
+import { buildThreatActors, summarizeActors, actorCasesToOpen, openExecutiveCases } from "./threat-actors";
+import type { Case } from "@/lib/types";
 import { exposureHeatMap, threatTimeline, exposureGraph } from "./command";
 import type { Exposure, Threat } from "@/lib/types";
 import type { EmployeeExposure, FamilyMember, TravelAlert } from "@/lib/suite-types";
@@ -114,6 +115,36 @@ describe("threat actors", () => {
     const s = summarizeActors(actors);
     expect(s.actors).toBe(2);
     expect(s.harassmentCampaigns).toBe(1);
+  });
+
+  it("opens protective cases for active/harassment actors, deduped", () => {
+    const actors = buildThreatActors([
+      threat({ source: "dark_web", kind: "doxxing", detectedAt: daysAgo(1) }),
+      threat({ source: "dark_web", kind: "dark_web_mention", detectedAt: daysAgo(2) }),
+      threat({ source: "dark_web", kind: "credential_leak", detectedAt: daysAgo(3) }),
+      threat({ source: "news", kind: "negative_press", detectedAt: daysAgo(70) }), // dormant → no case
+    ], NOW);
+    const cases = actorCasesToOpen(actors);
+    expect(cases).toHaveLength(1);
+    expect(cases[0]).toMatchObject({ type: "executive_protection", assignedAgent: "executive" });
+    expect(cases[0].title).toMatch(/Dark-web actor/);
+    // dedup against an already-open case of the same title
+    expect(actorCasesToOpen(actors, [cases[0].title])).toHaveLength(0);
+  });
+
+  it("openExecutiveCases filters to open executive_protection cases, worst first", () => {
+    const c = (over: Partial<Case>): Case => ({
+      id: Math.random().toString(36).slice(2), subjectId: "s", type: "executive_protection", title: "T",
+      summary: "", status: "open", riskLevel: "high", assignedAgent: "executive", relatedExposureIds: [],
+      createdAt: daysAgo(2), updatedAt: daysAgo(1), ...over,
+    });
+    const out = openExecutiveCases([
+      c({ id: "a", riskLevel: "high" }),
+      c({ id: "b", riskLevel: "critical" }),
+      c({ id: "r", status: "resolved" }),
+      c({ id: "o", type: "breach_response" }),
+    ]);
+    expect(out.map((x) => x.id)).toEqual(["b", "a"]);
   });
 });
 

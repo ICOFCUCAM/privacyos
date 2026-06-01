@@ -21,6 +21,7 @@ import { casesForNewThreats } from "@/lib/agents/threat-cases";
 import { reputationCasesFromMentions } from "@/lib/reputation/os/reputation-cases";
 import { reputationOverview } from "@/lib/reputation/os/analysis";
 import { executiveRiskIndices } from "@/lib/executive/os/risk-indices";
+import { buildThreatActors, actorCasesToOpen } from "@/lib/executive/os/threat-actors";
 import { investigationTimeline } from "@/lib/intelligence/threat-intel";
 import { collectReputation, type MentionSource } from "@/lib/reputation/collect";
 import { scanDomain } from "@/lib/domains/scan";
@@ -56,6 +57,7 @@ export async function runScheduledCycle(
   let casesOpened = 0;
   let reputationCasesOpened = 0;
   let executiveEscalations = 0;
+  let executiveCasesOpened = 0;
   let mentionsCollected = 0;
   let domainRisksFound = 0;
 
@@ -186,7 +188,21 @@ export async function runScheduledCycle(
       executiveEscalations += 1;
     }
 
-    // 6b. Auto-file broker opt-outs for newly-discovered broker/public-record
+    // 6b. Threat-actor tracking → protective cases. Cluster the active threats
+    // into actor profiles and open an executive-protection case for any actor
+    // that's actively escalating or running a harassment campaign (deduped).
+    const actors = buildThreatActors(threats, new Date(now).getTime());
+    const execOpenTitles = await store.listOpenCaseTitlesForSubject(fp.subject.id);
+    const actorCases = actorCasesToOpen(actors, execOpenTitles);
+    if (actorCases.length > 0) {
+      await store.createCases(fp.userId, fp.subject.id, actorCases);
+      await store.recordActions(fp.userId, fp.subject.id, [
+        { agent: "executive", kind: "escalate", summary: `Opened ${actorCases.length} protective case(s) for escalating/harassment threat actors.`, status: "completed" },
+      ]);
+      executiveCasesOpened += actorCases.length;
+    }
+
+    // 6c. Auto-file broker opt-outs for newly-discovered broker/public-record
     // exposures — the Privacy Agent files them so the removal pipeline populates
     // itself from real discoveries (no manual step required).
     try {
@@ -310,6 +326,7 @@ export async function runScheduledCycle(
     casesOpened,
     reputationCasesOpened,
     executiveEscalations,
+    executiveCasesOpened,
     mentionsCollected,
     domainRisksFound,
     ranAt: new Date().toISOString(),

@@ -1,8 +1,9 @@
-import { Crosshair, AlertTriangle, Megaphone, Activity } from "lucide-react";
+import Link from "next/link";
+import { Crosshair, AlertTriangle, Megaphone, Activity, FolderKanban, ArrowRight } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Card, PageHeader, RiskBadge, SectionTitle } from "@/components/ui";
 import { getDataSource } from "@/lib/data";
-import { buildThreatActors, summarizeActors, type Escalation } from "@/lib/executive/os/threat-actors";
+import { buildThreatActors, summarizeActors, openExecutiveCases, type Escalation } from "@/lib/executive/os/threat-actors";
 import { cn, timeAgo, titleCase } from "@/lib/ui";
 import { ExecutiveTabs } from "../tabs";
 
@@ -16,9 +17,10 @@ const ESCALATION: Record<Escalation, { label: string; cls: string }> = {
 };
 
 export default async function ThreatActorsPage() {
-  const { threats } = await (await getDataSource()).getDataset();
+  const { threats, cases } = await (await getDataSource()).getDataset();
   const actors = buildThreatActors(threats);
   const summary = summarizeActors(actors);
+  const protectiveCases = openExecutiveCases(cases);
 
   return (
     <div className="space-y-5">
@@ -34,6 +36,30 @@ export default async function ThreatActorsPage() {
         <Kpi label="Active / rising" value={String(summary.active)} icon={Activity} tone={summary.active > 0 ? "text-risk-high" : "text-risk-low"} />
         <Kpi label="Harassment campaigns" value={String(summary.harassmentCampaigns)} icon={Megaphone} tone={summary.harassmentCampaigns > 0 ? "text-risk-high" : "text-risk-low"} />
       </div>
+
+      {protectiveCases.length > 0 && (
+        <Card className="p-4">
+          <SectionTitle
+            title="Active protective cases"
+            subtitle="Opened automatically for escalating / harassment actors"
+            action={<Link href="/dashboard/cases" className="inline-flex items-center gap-1 text-xs font-medium text-brand-fg hover:underline">All cases <ArrowRight className="h-3.5 w-3.5" /></Link>}
+          />
+          <ul className="space-y-2">
+            {protectiveCases.map((c) => (
+              <li key={c.id}>
+                <Link href="/dashboard/cases" className="flex items-center gap-3 rounded-xl border border-border bg-bg-subtle/40 p-3 transition hover:border-brand/30 hover:bg-bg-subtle/70">
+                  <FolderKanban className="h-4 w-4 shrink-0 text-brand-fg" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-white">{c.title}</p>
+                    <p className="text-[11px] text-slate-500">{titleCase(c.status)} · {titleCase(c.assignedAgent ?? "executive")} agent</p>
+                  </div>
+                  <RiskBadge level={c.riskLevel} />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
 
       <Card className="p-4">
         <SectionTitle title="Actor profiles" subtitle="Most-escalated first — expand for the activity timeline" />

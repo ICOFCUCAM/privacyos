@@ -67,6 +67,7 @@ const TYPE_RESPONDER: Record<CaseType, AgentKind> = {
   deepfake_incident: "deepfake",
   impersonation_takedown: "deepfake",
   breach_response: "security",
+  executive_protection: "executive",
   legal_request: "legal",
 };
 

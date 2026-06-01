@@ -265,6 +265,11 @@ describe("runScheduledCycle", () => {
     expect(escalation!.riskLevel).toBe("critical");
     // the Executive Agent recorded the escalation
     expect(store.actions.flat().some((a) => a.agent === "executive" && a.kind === "escalate")).toBe(true);
+    // the escalating actor (3 recent threats incl. doxxing) opened a protective case
+    expect(summary.executiveCasesOpened).toBe(1);
+    const protective = store.createdCases.find((c) => c.type === "executive_protection");
+    expect(protective).toBeTruthy();
+    expect(protective!.assignedAgent).toBe("executive");
   });
 
   it("auto-files broker opt-outs for discovered broker exposures", async () => {

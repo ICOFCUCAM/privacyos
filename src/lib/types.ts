@@ -91,6 +91,7 @@ export type CaseType =
   | "deepfake_incident"
   | "impersonation_takedown"
   | "breach_response"
+  | "executive_protection"
   | "legal_request";
 
 export type CaseStatus = "open" | "in_progress" | "awaiting_response" | "escalated" | "resolved";

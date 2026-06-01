@@ -6,7 +6,8 @@
  * Derived from the threat feed. Pure and unit-tested.
  */
 
-import type { RiskLevel, Threat, ThreatKind } from "@/lib/types";
+import type { Case, RiskLevel, Threat, ThreatKind } from "@/lib/types";
+import type { NewCaseFields } from "@/lib/agents/recommendation-routing";
 
 const RISK_RANK: Record<RiskLevel, number> = { low: 0, medium: 1, high: 2, critical: 3 };
 const DAY = 86_400_000;
@@ -83,6 +84,49 @@ export function buildThreatActors(threats: Threat[], now = Date.now()): ThreatAc
   });
 
   return actors.sort((a, b) => ESC_RANK[a.escalation] - ESC_RANK[b.escalation] || RISK_RANK[b.highestRisk] - RISK_RANK[a.highestRisk]);
+}
+
+/** An actor warrants a protective case once it's actively escalating or running harassment. */
+export function isCaseWorthy(a: ThreatActor): boolean {
+  return a.escalation === "active" || (a.harassment && a.escalation === "rising");
+}
+
+const PROTECTIVE_STEPS =
+  "Preserve evidence (Evidence Vault), file platform takedowns, brief close protection, and assess a law-enforcement referral.";
+
+/** Build a protective-case title for an actor (stable for dedup). */
+export function actorCaseTitle(a: ThreatActor): string {
+  return `Threat actor: ${a.label}`;
+}
+
+/**
+ * Protective cases to open from escalating/harassment actors, de-duplicated
+ * within the batch and against existing open case titles.
+ */
+export function actorCasesToOpen(actors: ThreatActor[], existingOpenTitles: Iterable<string> = []): NewCaseFields[] {
+  const seen = new Set<string>(existingOpenTitles);
+  const out: NewCaseFields[] = [];
+  for (const a of actors) {
+    if (!isCaseWorthy(a)) continue;
+    const title = actorCaseTitle(a);
+    if (seen.has(title)) continue;
+    seen.add(title);
+    out.push({
+      type: "executive_protection",
+      title,
+      summary: `${a.escalation === "active" ? "Active" : "Rising"} ${a.label.toLowerCase()} targeting the principal: ${a.threatCount} threat(s) (${a.kinds.join(", ")})${a.harassment ? ", harassment campaign" : ""}. Protective steps: ${PROTECTIVE_STEPS}`,
+      riskLevel: a.highestRisk,
+      assignedAgent: "executive",
+    });
+  }
+  return out;
+}
+
+/** Open executive-protection cases (the autonomous loop's output), worst first. */
+export function openExecutiveCases(cases: Case[]): Case[] {
+  return cases
+    .filter((c) => c.type === "executive_protection" && c.status !== "resolved")
+    .sort((a, b) => RISK_RANK[b.riskLevel] - RISK_RANK[a.riskLevel] || b.createdAt.localeCompare(a.createdAt));
 }
 
 export interface ThreatActorSummary {
