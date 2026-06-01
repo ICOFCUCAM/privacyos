@@ -74,6 +74,8 @@ export interface ScheduledRunSummary {
   impersonationSignals: number;
   /** Active dark-web signals monitored this cycle. */
   darkWebSignals: number;
+  /** Live (chainable) attack paths detected this cycle. */
+  attackPathsLive: number;
   mentionsCollected: number;
   domainRisksFound: number;
   ranAt: string;

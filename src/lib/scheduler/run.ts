@@ -25,6 +25,7 @@ import { buildThreatActors, actorCasesToOpen } from "@/lib/executive/os/threat-a
 import { doxxingReport, takedownPlan, summarizeTakedowns, TAKEDOWN_LABEL } from "@/lib/executive/os/doxxing";
 import { impersonationReport } from "@/lib/executive/os/impersonation";
 import { darkWebReport } from "@/lib/executive/os/darkweb";
+import { analyzeAttackSurface } from "@/lib/executive/os/attack-paths";
 import { investigationTimeline } from "@/lib/intelligence/threat-intel";
 import { collectReputation, type MentionSource } from "@/lib/reputation/collect";
 import { scanDomain } from "@/lib/domains/scan";
@@ -64,6 +65,7 @@ export async function runScheduledCycle(
   let doxxingTakedownsRouted = 0;
   let impersonationSignals = 0;
   let darkWebSignals = 0;
+  let attackPathsLive = 0;
   let mentionsCollected = 0;
   let domainRisksFound = 0;
 
@@ -246,7 +248,23 @@ export async function runScheduledCycle(
       darkWebSignals += darkweb.active;
     }
 
-    // 6e. Auto-file broker opt-outs for newly-discovered broker/public-record
+    // 6e. Attack-path analysis. Model how the footprint chains into real-world
+    // harm and surface the highest-leverage fix (the chokepoint) so the cycle
+    // autonomously prioritizes the single removal that collapses the most paths.
+    const surface = analyzeAttackSurface({ exposures, threats });
+    if (surface.chokepoint) {
+      await store.recordActions(fp.userId, fp.subject.id, [
+        {
+          agent: "executive",
+          kind: "analyze",
+          summary: `${surface.enabledPaths} live attack path(s). Highest-leverage fix: ${surface.chokepoint.action} — collapses ${surface.chokepoint.breaks}.`,
+          status: "completed",
+        },
+      ]);
+      attackPathsLive += surface.enabledPaths;
+    }
+
+    // 6f. Auto-file broker opt-outs for newly-discovered broker/public-record
     // exposures — the Privacy Agent files them so the removal pipeline populates
     // itself from real discoveries (no manual step required).
     try {
@@ -374,6 +392,7 @@ export async function runScheduledCycle(
     doxxingTakedownsRouted,
     impersonationSignals,
     darkWebSignals,
+    attackPathsLive,
     mentionsCollected,
     domainRisksFound,
     ranAt: new Date().toISOString(),

@@ -248,8 +248,12 @@ describe("runScheduledCycle", () => {
       id: "phys", name: "Physical",
       async scan({ subject }) {
         const base = { subjectId: subject.id, source: "social_media" as const, detectedAt: new Date().toISOString(), acknowledged: false, riskLevel: "critical" as const };
+        const ts = new Date().toISOString();
         return {
-          exposures: [],
+          exposures: [
+            { id: `ea-${subject.id}`, subjectId: subject.id, category: "address", source: "forum", sourceName: "PasteSite", snippet: "123 Main St", riskLevel: "critical", riskScore: 40, status: "discovered", discoveredAt: ts, lastSeenAt: ts },
+            { id: `ep-${subject.id}`, subjectId: subject.id, category: "phone", source: "forum", sourceName: "PasteSite", snippet: "+1 555", riskLevel: "high", riskScore: 30, status: "discovered", discoveredAt: ts, lastSeenAt: ts },
+          ],
           threats: [
             { id: `d-${subject.id}`, kind: "doxxing", title: "Home address doxxed", detail: "address posted", ...base },
             { id: `l-${subject.id}`, kind: "location_exposure", title: "Live location leaked", detail: "geotag", ...base },
@@ -279,6 +283,9 @@ describe("runScheduledCycle", () => {
     // the impersonation threat was tracked by the impersonation sweep
     expect(summary.impersonationSignals).toBeGreaterThan(0);
     expect(store.actions.flat().some((a) => a.kind === "monitor" && /impersonation\/deepfake signal/.test(a.summary))).toBe(true);
+    // attack-path analysis surfaced the highest-leverage fix
+    expect(summary.attackPathsLive).toBeGreaterThan(0);
+    expect(store.actions.flat().some((a) => a.agent === "executive" && /Highest-leverage fix/.test(a.summary))).toBe(true);
   });
 
   it("auto-files broker opt-outs for discovered broker exposures", async () => {
