@@ -93,6 +93,38 @@ export const STEP_CATALOG: Record<StepType, { label: string; category: BlockCate
   webhook: { label: "Webhook", category: "integration", description: "Call an external system" },
 };
 
+/**
+ * Action catalog — the concrete operations agents perform (Layer 7). Each maps
+ * to a base block type (+ the owning agent for agent-run actions), so dropping
+ * an action adds a real, valid block whose label preserves the action's identity.
+ */
+export interface ActionBlock {
+  id: string;
+  label: string;
+  type: StepType;
+  agent?: AgentKind;
+}
+
+export const ACTION_CATALOG: ActionBlock[] = [
+  { id: "create-case", label: "Create Case", type: "case" },
+  { id: "generate-report", label: "Generate Report", type: "report" },
+  { id: "generate-legal-notice", label: "Generate Legal Notice", type: "agent", agent: "legal" },
+  { id: "broker-removal", label: "Launch Broker Removal", type: "takedown" },
+  { id: "deep-scan", label: "Launch Deep Scan", type: "agent", agent: "discovery" },
+  { id: "reputation-scan", label: "Launch Reputation Scan", type: "agent", agent: "reputation" },
+  { id: "create-incident", label: "Create Incident", type: "agent", agent: "incident" },
+  { id: "assign-investigator", label: "Assign Investigator", type: "agent", agent: "incident" },
+  { id: "send-notification", label: "Send Notification", type: "notify" },
+  { id: "escalate-severity", label: "Escalate Severity", type: "agent", agent: "incident" },
+  { id: "close-case", label: "Close Case", type: "case" },
+  { id: "archive-evidence", label: "Archive Evidence", type: "agent", agent: "compliance" },
+];
+
+/** Build a fresh step from an action-catalog entry. */
+export function actionToStep(a: ActionBlock): WorkflowStepDef {
+  return { id: newStepId(), type: a.type, label: a.label, ...(a.agent ? { agent: a.agent } : {}) };
+}
+
 export const TRIGGER_CATALOG: Record<TriggerKind, { label: string; category: TriggerCategory }> = {
   threat_detected: { label: "New Threat", category: "event" },
   incident_raised: { label: "New Incident", category: "event" },

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   addStep, describeTrigger, describeStep, emptyWorkflow, flowPreview, moveStep, removeStep, reorderStep,
   validateWorkflow, simulateRun, STEP_CATALOG, TRIGGER_CATALOG, TRIGGER_CATEGORIES,
+  ACTION_CATALOG, actionToStep,
   type WorkflowDefinition, type WorkflowStepDef,
 } from "./workflow-builder";
 
@@ -100,6 +101,21 @@ describe("expanded blocks", () => {
   it("STEP_CATALOG covers every step type with a category", () => {
     for (const meta of Object.values(STEP_CATALOG)) {
       expect(["action", "logic", "human", "integration"]).toContain(meta.category);
+    }
+  });
+
+  it("ACTION_CATALOG covers the Layer-7 actions; each adds a valid block", () => {
+    const labels = ACTION_CATALOG.map((a) => a.label);
+    for (const want of [
+      "Create Case", "Generate Report", "Generate Legal Notice", "Launch Broker Removal",
+      "Launch Deep Scan", "Launch Reputation Scan", "Create Incident", "Assign Investigator",
+      "Send Notification", "Escalate Severity", "Close Case", "Archive Evidence",
+    ]) {
+      expect(labels, want).toContain(want);
+    }
+    for (const a of ACTION_CATALOG) {
+      const def = wf({ steps: [actionToStep(a)] });
+      expect(validateWorkflow(def).valid, a.label).toBe(true); // agent actions carry their agent
     }
   });
 

@@ -15,7 +15,8 @@ import type { AgentKind, RiskLevel } from "@/lib/types";
 import {
   addStep, describeTrigger, emptyWorkflow, moveStep, reorderStep, newStepId,
   removeStep, validateWorkflow, simulateRun, describeStep,
-  TRIGGER_CATALOG, TRIGGER_CATEGORIES, RISK_QUALIFIED_TRIGGERS,
+  TRIGGER_CATALOG, TRIGGER_CATEGORIES, RISK_QUALIFIED_TRIGGERS, ACTION_CATALOG, actionToStep,
+  type ActionBlock,
   type StepType, type TriggerKind, type WorkflowDefinition, type WorkflowStepDef,
   type ConditionField, type ConditionOp, type SampleEvent, type StepOutcome,
 } from "@/lib/agents/workflow-builder";
@@ -71,17 +72,21 @@ export function WorkflowBuilder({
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
   const [dragAgent, setDragAgent] = useState<AgentKind | null>(null);
+  const [dragAction, setDragAction] = useState<ActionBlock | null>(null);
 
   function addAgent(kind: AgentKind) {
     setDraft((d) => addStep(d, { id: newStepId(), type: "agent", agent: kind, label: AGENT_LABEL[kind] }));
   }
+  function addAction(a: ActionBlock) {
+    setDraft((d) => addStep(d, actionToStep(a)));
+  }
+  function clearDrag() { setDragIndex(null); setDragAgent(null); setDragAction(null); setOverIndex(null); }
 
   function onDrop(to: number) {
     if (dragAgent) addAgent(dragAgent);
+    else if (dragAction) addAction(dragAction);
     else if (dragIndex !== null && dragIndex !== to) setDraft((d) => reorderStep(d, dragIndex, to));
-    setDragIndex(null);
-    setDragAgent(null);
-    setOverIndex(null);
+    clearDrag();
   }
 
   // Dry-run sample event
@@ -334,7 +339,7 @@ export function WorkflowBuilder({
                 key={a}
                 type="button"
                 draggable
-                onDragStart={() => { setDragAgent(a); setDragIndex(null); }}
+                onDragStart={() => { setDragAgent(a); setDragIndex(null); setDragAction(null); }}
                 onDragEnd={() => setDragAgent(null)}
                 onClick={() => addAgent(a)}
                 className="flex cursor-grab items-center gap-2 rounded-lg border border-border bg-bg-elevated/60 px-2.5 py-2 text-left text-xs text-slate-300 transition hover:border-brand/40 hover:text-white active:cursor-grabbing"
@@ -347,14 +352,41 @@ export function WorkflowBuilder({
           </div>
         </div>
 
-        {/* Steps list — drag to reorder, or drop an agent to add */}
+        {/* Available Actions — what agents do (Layer 7) */}
+        <div className="mt-4">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Available Actions · {ACTION_CATALOG.length} <span className="font-normal text-slate-500">· click or drag into the workflow</span>
+          </p>
+          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-4">
+            {ACTION_CATALOG.map((a) => {
+              const Icon = STEP_META[a.type].icon;
+              return (
+                <button
+                  key={a.id}
+                  type="button"
+                  draggable
+                  onDragStart={() => { setDragAction(a); setDragIndex(null); setDragAgent(null); }}
+                  onDragEnd={() => setDragAction(null)}
+                  onClick={() => addAction(a)}
+                  className="flex cursor-grab items-center gap-2 rounded-lg border border-border bg-bg-elevated/60 px-2.5 py-2 text-left text-xs text-slate-300 transition hover:border-brand/40 hover:text-white active:cursor-grabbing"
+                  title="Click or drag into the workflow"
+                >
+                  <Icon className="h-3.5 w-3.5 shrink-0 text-brand-fg" />
+                  <span className="min-w-0 truncate font-medium">{a.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Steps list — drag to reorder, or drop an agent/action to add */}
         <div
           className="mt-4"
-          onDragOver={(e) => { if (dragAgent) e.preventDefault(); }}
-          onDrop={() => { if (dragAgent) { addAgent(dragAgent); setDragAgent(null); } }}
+          onDragOver={(e) => { if (dragAgent || dragAction) e.preventDefault(); }}
+          onDrop={() => { if (dragAgent) { addAgent(dragAgent); } else if (dragAction) { addAction(dragAction); } clearDrag(); }}
         >
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-            Blocks · {draft.steps.length} <span className="font-normal text-slate-500">· drag to reorder · drop an agent to add</span>
+            Blocks · {draft.steps.length} <span className="font-normal text-slate-500">· drag to reorder · drop an agent/action to add</span>
           </p>
           {draft.steps.length === 0 ? (
             <p className="rounded-lg border border-dashed border-border bg-bg-subtle/30 px-3 py-4 text-center text-xs text-slate-500">
