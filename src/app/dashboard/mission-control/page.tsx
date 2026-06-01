@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Card, PageHeader, SectionTitle } from "@/components/ui";
+import { LiveRefresh } from "@/components/live-refresh";
 import { getDataSource } from "@/lib/data";
 import { exposureToFinding, runPlaybooks, threatToFinding } from "@/lib/agents/playbooks";
 import { buildWorkflows, workflowMetrics } from "@/lib/agents/workflows";
@@ -133,10 +134,13 @@ export default async function MissionControlPage() {
         title="Mission Control"
         subtitle="The single operating picture — fleet, workflows, cases and threats in one command view, with the queue of what needs a human right now."
         actions={
-          <span className={cn("inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold ring-1", P.bg, P.text, P.ring)}>
-            <span className={cn("h-2 w-2 rounded-full", P.dot)} />
-            {titleCase(posture.level)}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className={cn("inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold ring-1", P.bg, P.text, P.ring)}>
+              <span className={cn("h-2 w-2 rounded-full", P.dot)} />
+              {titleCase(posture.level)}
+            </span>
+            <LiveRefresh intervalMs={30_000} />
+          </div>
         }
       />
 
