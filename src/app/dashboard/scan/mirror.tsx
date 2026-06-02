@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect } from "react";
 import Link from "next/link";
 import {
   ShieldCheck, Search, Loader2, AlertTriangle, ArrowRight, Database, Skull, Globe,
-  Fingerprint, UserX, CheckCircle2, Sparkles, Eye, ScanLine,
+  Fingerprint, UserX, CheckCircle2, Sparkles, Eye, ScanLine, Banknote,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Card } from "@/components/ui";
@@ -14,7 +14,7 @@ import { AUTONOMY_MODES, AUTONOMY_META, type AutonomyMode } from "@/lib/home/aut
 import { runScaryMirrorAction, startProtectionAction, trackActivationAction } from "./actions";
 
 const CATEGORY_ICON: Record<MirrorCategory, LucideIcon> = {
-  brokers: Database, breaches: AlertTriangle, darkweb: Skull, reputation: Globe, identity: Fingerprint, social: UserX,
+  brokers: Database, breaches: AlertTriangle, darkweb: Skull, reputation: Globe, identity: Fingerprint, social: UserX, financial: Banknote,
 };
 
 const SEVERITY_CLS: Record<RiskTone, string> = {

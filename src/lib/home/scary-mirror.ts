@@ -18,7 +18,7 @@ import { computeRiskScore } from "@/lib/scoring/risk-score";
 const RISK_RANK: Record<RiskLevel, number> = { low: 0, medium: 1, high: 2, critical: 3 };
 const RANK_RISK: RiskLevel[] = ["low", "medium", "high", "critical"];
 
-export type MirrorCategory = "brokers" | "breaches" | "darkweb" | "reputation" | "identity" | "social";
+export type MirrorCategory = "brokers" | "breaches" | "darkweb" | "reputation" | "identity" | "social" | "financial";
 
 export interface MirrorFinding {
   category: MirrorCategory;
@@ -67,9 +67,10 @@ const CATEGORY_META: Record<MirrorCategory, CategoryMeta> = {
   brokers: { label: "Data brokers selling your info", fixLabel: "File opt-out & removal requests", pack: "remove-data-brokers", order: 0 },
   breaches: { label: "Accounts caught in breaches", fixLabel: "Secure & rotate exposed accounts", pack: "breach-response", order: 1 },
   darkweb: { label: "Dark-web exposure", fixLabel: "Monitor the dark web & alert you", pack: "dark-web-watch", order: 2 },
-  identity: { label: "Exposed personal identifiers", fixLabel: "Suppress personal data & pursue takedowns", pack: "remove-data-brokers", order: 3 },
-  reputation: { label: "Search & news results", fixLabel: "Suppress negatives, promote the truth", pack: "reputation-recovery", order: 4 },
-  social: { label: "Impersonation & fake media", fixLabel: "Take down impersonations & fake media", pack: "protect-my-ceo", order: 5 },
+  financial: { label: "Exposed financial & payment data", fixLabel: "Secure accounts, lock payments & freeze credit", pack: "breach-response", order: 3 },
+  identity: { label: "Exposed personal identifiers", fixLabel: "Suppress personal data & pursue takedowns", pack: "remove-data-brokers", order: 4 },
+  reputation: { label: "Search & news results", fixLabel: "Suppress negatives, promote the truth", pack: "reputation-recovery", order: 5 },
+  social: { label: "Impersonation & fake media", fixLabel: "Take down impersonations & fake media", pack: "protect-my-ceo", order: 6 },
 };
 
 const SOURCE_CATEGORY: Record<ExposureSource, MirrorCategory> = {
@@ -113,7 +114,11 @@ export function buildScaryMirror(input: ScaryMirrorInput): ScaryMirrorReport {
     buckets.set(cat, b);
   };
 
-  for (const e of input.exposures) push(SOURCE_CATEGORY[e.source], e.sourceName, e.riskLevel);
+  for (const e of input.exposures) {
+    // Financial/credential PII is its own first-class reveal category.
+    const cat = e.category === "financial" || e.category === "credential" ? "financial" : SOURCE_CATEGORY[e.source];
+    push(cat, e.sourceName, e.riskLevel);
+  }
   for (const t of input.threats) {
     if (t.acknowledged) continue;
     push(THREATKIND_CATEGORY[t.kind], t.title, t.riskLevel);

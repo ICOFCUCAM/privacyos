@@ -49,6 +49,21 @@ describe("The Scary Mirror (activation engine)", () => {
     expect(brokers.samples).toContain("Spokeo");
   });
 
+  it("surfaces financial/credential exposure as its own activation category", () => {
+    const r = buildScaryMirror({
+      name: "Jordan",
+      exposures: [
+        { ...exposure("data_broker", "BankLeak", "critical"), category: "financial" },
+        { ...exposure("breach_db", "CredStore", "high"), category: "credential" },
+      ],
+      threats: [],
+    });
+    const fin = r.findings.find((f) => f.category === "financial");
+    expect(fin).toBeDefined();
+    expect(fin!.count).toBe(2);
+    expect(r.fixPlan.some((s) => s.pack === "breach-response")).toBe(true);
+  });
+
   it("excludes acknowledged threats", () => {
     const r = buildScaryMirror(input());
     const social = r.findings.find((f) => f.category === "social")!;
