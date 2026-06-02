@@ -51,6 +51,13 @@ describe("entitlements", () => {
     expect(entitlementsFor({ planId: "biz-growth", status: "active" }).features.business).toBe(true);
   });
 
+  it("personal Plus/Premium/Family get reputation monitoring (no promise/gate gap)", () => {
+    expect(entitlementsFor({ planId: "plus", status: "active" }).features.reputation).toBe(true);
+    expect(entitlementsFor({ planId: "premium", status: "active" }).features.reputation).toBe(true);
+    expect(entitlementsFor({ planId: "family", status: "active" }).features.reputation).toBe(true);
+    expect(entitlementsFor({ planId: "starter", status: "active" }).features.reputation).toBe(false);
+  });
+
   it("bundles the AI agent with higher personal tiers and the add-on", () => {
     expect(entitlementsFor({ planId: "plus", status: "active" }).features.ai_agent).toBe(true);
     expect(entitlementsFor({ planId: "starter", status: "active" }).features.ai_agent).toBe(false);

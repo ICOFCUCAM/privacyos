@@ -132,7 +132,10 @@ export function entitlementsFor(sub: Subscription | null): Entitlements {
     category: cat,
     entitled: true,
     features: {
-      reputation: cat === "reputation",
+      // Full ReputationOS for the reputation category; personal Plus/Premium/
+      // Family also advertise "Reputation Monitoring", so they're entitled too
+      // (previously a promise/gate contradiction — sold but locked out).
+      reputation: cat === "reputation" || (cat === "personal" && ["plus", "premium", "family"].includes(sub.planId)),
       executive: cat === "executive",
       business: cat === "business",
       // Family/deep-web are personal-tier perks (Premium & Family).
