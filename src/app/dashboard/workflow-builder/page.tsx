@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Workflow, CheckCircle2, LayoutTemplate, History, TrendingUp, Store, Sparkles, Network } from "lucide-react";
+import { Workflow, CheckCircle2, LayoutTemplate, History, TrendingUp, Store, Sparkles, Network, Plug } from "lucide-react";
 import { PageHeader } from "@/components/ui";
 import { listWorkflowDefinitions } from "@/lib/agents/workflow-store";
 import { ALL_AGENT_KINDS } from "@/lib/billing/entitlements";
@@ -33,6 +33,12 @@ export default async function WorkflowBuilderPage({
               className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-bg-elevated px-3 py-2 text-xs font-medium text-slate-300 hover:text-white"
             >
               <Network className="h-3.5 w-3.5" /> Collaboration
+            </Link>
+            <Link
+              href="/dashboard/workflow-builder/integrations"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-bg-elevated px-3 py-2 text-xs font-medium text-slate-300 hover:text-white"
+            >
+              <Plug className="h-3.5 w-3.5" /> Integrations
             </Link>
             <Link
               href="/dashboard/workflow-builder/marketplace"

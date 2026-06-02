@@ -165,7 +165,26 @@ being produced (a broken handoff → `coherent: false`).
 surface renders the handoff graph and the growing shared context, and installs
 the collaboration into the builder.
 
-## 11. File map
+## 11. Enterprise Integrations
+
+**Surface:** `/dashboard/workflow-builder/integrations`
+**Engine:** `workflow-integrations.ts`
+
+Enterprise quality means the builder is wired into every subsystem. The
+integration map declares, for each of the ten subsystems — **Cases, Threat
+Feed, Incidents, Reports, ReputationOS, Executive Protection, Family
+Protection, Compliance, Mission Control** and **all 13 agents** — the concrete
+wires: inbound trigger kinds it fires, outbound `ACTION_CATALOG` blocks that act
+on it, the agents that serve it, the dashboard route, and a direction
+(inbound / outbound / bidirectional).
+
+`verifyIntegration` checks every wire resolves to a real `TriggerKind`,
+`ACTION_CATALOG` id and `AgentKind`; `integrationCoverage` rolls them up (all
+valid, triggers/actions/agents covered); `agentRoster` lists all 13 agents and
+the subsystems each serves. The surface renders the integration matrix (with
+inbound/outbound wires per subsystem) and the full agent roster.
+
+## 12. File map
 
 ```
 src/lib/agents/workflow-builder.ts        model, ops, validation, simulateRun, executeWorkflow
@@ -182,6 +201,8 @@ src/lib/agents/workflow-generator.ts      Layer 14 — NL → workflow (rules + 
 src/lib/agents/workflow-generator.test.ts unit tests
 src/lib/agents/agent-collaboration.ts     Layer 15 — multi-agent handoff engine
 src/lib/agents/agent-collaboration.test.ts unit tests
+src/lib/agents/workflow-integrations.ts   enterprise wiring map (10 subsystems + 13 agents)
+src/lib/agents/workflow-integrations.test.ts unit tests
 src/components/workflow-flow.tsx          flow-graph canvas
 src/app/dashboard/workflow-builder/       page.tsx + builder.tsx + actions.ts
 src/app/dashboard/workflow-builder/history/page.tsx       History view
@@ -189,9 +210,10 @@ src/app/dashboard/workflow-builder/analytics/page.tsx     Analytics (ROI) view
 src/app/dashboard/workflow-builder/marketplace/           Marketplace view + install action
 src/app/dashboard/workflow-builder/generate/              AI Generator (page + client + actions)
 src/app/dashboard/workflow-builder/collaboration/         Agent Collaboration (page + client + actions)
+src/app/dashboard/workflow-builder/integrations/page.tsx  Enterprise integration matrix
 ```
 
-## 12. Not yet built
+## 13. Not yet built
 
 - A **drag-and-drop** node canvas (today the canvas renders the ordered model;
   reordering is via move-up/down controls and drag-reorder of the step list).
