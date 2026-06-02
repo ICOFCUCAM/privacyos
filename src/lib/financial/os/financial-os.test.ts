@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { financialOverview, type FinancialInput } from "./financial-os";
+import { financialOverview, financialRecommendations, financialCaseToOpen, type FinancialInput } from "./financial-os";
 import type { Exposure, Threat } from "@/lib/types";
 import type { CredentialLeak } from "@/lib/suite-types";
 
@@ -66,5 +66,37 @@ describe("financial exposure OS", () => {
     expect(r.overall).toBeGreaterThanOrEqual(50);
     expect(r.caseWorthy).toBe(true);
     expect(r.findings.some((f) => f.kind === "darkweb")).toBe(true);
+  });
+});
+
+describe("financial → platform pipeline mappers", () => {
+  const risky = input({
+    credentialLeaks: [
+      leak("checking@bank.com", { riskLevel: "critical" }),
+      leak("paypal-wallet", { riskLevel: "critical" }),
+    ],
+    exposures: [exposure({ category: "financial", riskLevel: "critical", snippet: "bank account number" })],
+    threats: [threat({ kind: "dark_web_mention", riskLevel: "critical", title: "Card data for sale" })],
+  });
+
+  it("projects recommendations into the platform shape, owned by Security", () => {
+    const recs = financialRecommendations(financialOverview(risky), "s1");
+    expect(recs.length).toBeGreaterThan(0);
+    for (const r of recs) {
+      expect(r.agent).toBe("security");
+      expect(r.subjectId).toBe("s1");
+      expect(r.impact).toBeGreaterThan(0);
+      expect(["low", "medium", "high", "critical"]).toContain(r.riskLevel);
+    }
+  });
+
+  it("opens a breach_response case when case-worthy, escalating critical to incident", () => {
+    const c = financialCaseToOpen(financialOverview(risky));
+    expect(c).not.toBeNull();
+    expect(c!.type).toBe("breach_response");
+    expect(c!.assignedAgent).toBe("incident"); // critical → incident response
+    expect(c!.riskLevel).toBe("critical");
+    // a clean subject opens no case
+    expect(financialCaseToOpen(financialOverview(input()))).toBeNull();
   });
 });

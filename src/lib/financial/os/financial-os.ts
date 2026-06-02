@@ -16,8 +16,9 @@
  *  - darkWebFinancial: financial data trading on dark-web / underground sources
  */
 
-import type { Exposure, Threat, RiskLevel } from "@/lib/types";
+import type { Exposure, Threat, RiskLevel, Recommendation } from "@/lib/types";
 import type { CredentialLeak } from "@/lib/suite-types";
+import type { NewCaseFields } from "@/lib/agents/recommendation-routing";
 import { riskBandIndex } from "@/lib/scoring/bands";
 
 export type FinancialBand = "low" | "elevated" | "high" | "critical";
@@ -137,5 +138,44 @@ export function financialOverview(input: FinancialInput): FinancialRisk {
   return {
     overall, identityTheft, accountTakeover, paymentExposure, darkWebFinancial,
     band, exposedAccounts, caseWorthy, findings, recommendations,
+  };
+}
+
+const IMPACT: Record<RiskLevel, number> = { low: 6, medium: 12, high: 20, critical: 28 };
+
+/**
+ * Project the engine's recommendations into the platform's `Recommendation`
+ * shape so they flow through the existing pipeline — AI Recommendations,
+ * Protection Home's "needs you" queue, and the autonomy thresholds — owned by
+ * the Security Agent. Pure: lets Financial Exposure reuse the whole rec/case
+ * machinery with no new surface.
+ */
+export function financialRecommendations(risk: FinancialRisk, subjectId: string): Recommendation[] {
+  return risk.recommendations.map((r, i) => ({
+    id: `fin-${subjectId}-${i}`,
+    subjectId,
+    agent: "security",
+    title: r.title,
+    rationale: r.rationale,
+    riskLevel: r.riskLevel,
+    impact: IMPACT[r.riskLevel],
+    actionLabel: r.actionLabel,
+  }));
+}
+
+/**
+ * A case to open when financial exposure is material — reuses the existing case
+ * model (breach_response type). Critical money-account fraud is routed to the
+ * Incident Response Agent; otherwise the Security Agent owns remediation.
+ */
+export function financialCaseToOpen(risk: FinancialRisk): NewCaseFields | null {
+  if (!risk.caseWorthy) return null;
+  const critical = risk.overall >= 75 || risk.accountTakeover >= 60;
+  return {
+    type: "breach_response",
+    title: "Financial exposure detected",
+    summary: `${risk.exposedAccounts} exposed money account(s); financial risk ${risk.overall}/100 (${risk.band}).`,
+    riskLevel: critical ? "critical" : "high",
+    assignedAgent: critical ? "incident" : "security",
   };
 }

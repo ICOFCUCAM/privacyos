@@ -7,6 +7,8 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { Card } from "@/components/ui";
 import { getDataSource } from "@/lib/data";
+import { getModuleData } from "@/lib/data/modules";
+import { financialOverview, financialRecommendations } from "@/lib/financial/os/financial-os";
 import { runPlaybooks, exposureToFinding, threatToFinding } from "@/lib/agents/playbooks";
 import { buildWorkflows } from "@/lib/agents/workflows";
 import {
@@ -58,11 +60,21 @@ export default async function ProtectionHomePage({
   ]);
   const workflows = buildWorkflows(runs);
 
+  // Fold Financial Exposure into the autonomous view (when entitled): its
+  // recommendations flow through the same "needs you" queue + autonomy
+  // thresholds as everything else, so the customer just sees one more outcome.
+  let recommendations = data.recommendations;
+  if (entitlements.features.financial) {
+    const { credentialLeaks } = await getModuleData();
+    const fin = financialOverview({ exposures: data.exposures, credentialLeaks, threats: data.threats });
+    recommendations = [...recommendations, ...financialRecommendations(fin, data.subject.id)];
+  }
+
   const home = buildProtectionHome({
     riskScore: data.riskScore,
     exposures: { length: data.exposures.length },
     threats: data.threats,
-    recommendations: data.recommendations,
+    recommendations,
     removals,
     workflows,
     mode,
