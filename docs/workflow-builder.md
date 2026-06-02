@@ -90,7 +90,21 @@ agents engaged). The demo history is generated deterministically by running the
 template catalog against representative events (`demoWorkflowHistory`); the
 store reads `workflow_runs` when live and falls back to the demo set.
 
-## 7. File map
+## 7. Analytics (Layer 12)
+
+**Surface:** `/dashboard/workflow-builder/analytics`
+**Engine:** `workflow-analytics.ts`
+
+The ROI view over the stored history. `workflowAnalytics(entries)` derives six
+metrics from the run records plus a transparent per-step value model
+(`MANUAL_MINUTES`): **Time Saved** (analyst hours automated away), **Cases
+Automated**, **Actions Automated**, **Success Rate**, **Agent Utilization**
+(share of the fleet engaged, with a per-agent breakdown) and **Risk Reduction**
+(risk-score points removed — template impact for successful runs). It also
+surfaces a headline labour-cost-avoided figure (`ANALYST_HOURLY_USD`). Every
+number reconciles with the history it summarizes.
+
+## 8. File map
 
 ```
 src/lib/agents/workflow-builder.ts        model, ops, validation, simulateRun, executeWorkflow
@@ -99,12 +113,15 @@ src/lib/agents/workflow-store.ts          definition persistence (workflow_defin
 src/lib/agents/workflow-history.ts        Layer 11 — history projection + demo generation
 src/lib/agents/workflow-history-store.ts  history persistence (workflow_runs) + demo fallback
 src/lib/agents/workflow-history.test.ts   unit tests
+src/lib/agents/workflow-analytics.ts      Layer 12 — ROI analytics over the history
+src/lib/agents/workflow-analytics.test.ts unit tests
 src/components/workflow-flow.tsx          flow-graph canvas
 src/app/dashboard/workflow-builder/       page.tsx + builder.tsx + actions.ts
-src/app/dashboard/workflow-builder/history/page.tsx   History view
+src/app/dashboard/workflow-builder/history/page.tsx     History view
+src/app/dashboard/workflow-builder/analytics/page.tsx   Analytics (ROI) view
 ```
 
-## 8. Not yet built
+## 9. Not yet built
 
 - A **drag-and-drop** node canvas (today the canvas renders the ordered model;
   reordering is via move-up/down controls and drag-reorder of the step list).
