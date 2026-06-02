@@ -33,6 +33,8 @@ export interface Workflow {
   casesOpened: number;
   /** Actions auto-executed in this run. */
   actionsExecuted: number;
+  /** The finding that triggered this workflow — lets the customer resolve it. */
+  source?: { id: string; kind: "threat" | "exposure"; label: string };
 }
 
 const ESCALATION_KINDS = new Set(["escalate"]);
@@ -63,6 +65,11 @@ export function workflowFromRun(run: PlaybookRun, index: number): Workflow {
     durationMin: Math.max(1, Math.round(stepsDone * 0.9)),
     casesOpened: Math.max(1, Math.round(totalSteps / 2)),
     actionsExecuted: stepsDone,
+    source: {
+      id: run.finding.id,
+      kind: run.finding.threatKind ? "threat" : "exposure",
+      label: run.finding.title,
+    },
   };
 }
 

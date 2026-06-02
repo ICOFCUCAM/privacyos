@@ -39,6 +39,13 @@ describe("workflowFromRun", () => {
     expect(w.status).toBe("awaiting_approval");
   });
 
+  it("carries the triggering finding so the customer can resolve it", () => {
+    const w = workflowFromRun(run({ finding: { id: "f9", title: "Spokeo", riskLevel: "high" } }), 0);
+    expect(w.source).toEqual({ id: "f9", kind: "exposure", label: "Spokeo" });
+    const t = workflowFromRun(run({ finding: { id: "t9", title: "Impersonation", riskLevel: "high", threatKind: "impersonation" } }), 0);
+    expect(t.source).toEqual({ id: "t9", kind: "threat", label: "Impersonation" });
+  });
+
   it("collects distinct agents across steps", () => {
     const w = workflowFromRun(run({
       steps: [step({ agent: "discovery" }), step({ agent: "privacy" }), step({ agent: "privacy" })],

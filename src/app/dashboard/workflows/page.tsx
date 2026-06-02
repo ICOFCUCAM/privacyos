@@ -142,7 +142,7 @@ export default async function WorkflowsPage() {
                     </div>
                     <span className="shrink-0 text-[11px] text-slate-500">{w.stepsDone}/{w.totalSteps} steps automated</span>
                     {w.blocked && (
-                      <Link href="/dashboard/recommendations" className="shrink-0 rounded-md bg-risk-medium/15 px-2 py-0.5 text-[11px] font-semibold text-risk-medium ring-1 ring-risk-medium/30 hover:bg-risk-medium/25">
+                      <Link href={w.source?.kind === "threat" ? "/dashboard/threats" : "/dashboard/recommendations"} className="shrink-0 rounded-md bg-risk-medium/15 px-2 py-0.5 text-[11px] font-semibold text-risk-medium ring-1 ring-risk-medium/30 hover:bg-risk-medium/25">
                         Review
                       </Link>
                     )}

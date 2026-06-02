@@ -35,6 +35,11 @@ export interface NeedItem {
   why: string;
   riskLevel: RiskLevel;
   actionLabel: string;
+  /** What approving this item actually resolves — drives the inline action so
+   *  the customer never lands on an empty page. */
+  resolve: { kind: "recommendation" | "threat"; id: string };
+  /** A reachable surface to view the underlying detail. */
+  href: string;
 }
 
 export interface FoundSummary {
@@ -141,15 +146,21 @@ function buildDoing(input: ProtectionHomeInput): ProtectionAction[] {
 function buildNeedsYou(input: ProtectionHomeInput, mode: AutonomyMode, limit = 4): { items: NeedItem[]; autoHandled: number } {
   const items: NeedItem[] = [];
 
-  // Workflows already gated for approval always need the human.
+  // Workflows gated for approval need the human — but only surface the ones we
+  // can actually resolve for them: a threat-triggered protection step (the
+  // customer approves; we mark the threat handled and the fleet proceeds).
+  // Exposure-driven steps (broker opt-outs) are the autonomous baseline and
+  // never block the customer, so they stay out of this queue.
   for (const w of input.workflows) {
-    if (w.status === "awaiting_approval" || w.status === "escalated") {
+    if ((w.status === "awaiting_approval" || w.status === "escalated") && w.source?.kind === "threat") {
       items.push({
         id: `wf-${w.id}`,
         title: `Approve: ${w.name}`,
         why: "A protection step needs your sign-off before it runs.",
         riskLevel: w.status === "escalated" ? "high" : "medium",
-        actionLabel: "Review",
+        actionLabel: "Approve & proceed",
+        resolve: { kind: "threat", id: w.source.id },
+        href: "/dashboard/threats",
       });
     }
   }
@@ -165,6 +176,8 @@ function buildNeedsYou(input: ProtectionHomeInput, mode: AutonomyMode, limit = 4
       why: r.rationale,
       riskLevel: r.riskLevel,
       actionLabel: r.actionLabel,
+      resolve: { kind: "recommendation", id: r.id },
+      href: "/dashboard/recommendations",
     });
   }
 

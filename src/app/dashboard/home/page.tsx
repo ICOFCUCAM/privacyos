@@ -19,6 +19,7 @@ import { tierLens } from "@/lib/home/tiers";
 import { PROVISIONED_COOKIE } from "@/lib/onboarding/auto-provision";
 import { findListing } from "@/lib/agents/workflow-marketplace";
 import { dismissProvisionedAction } from "./actions";
+import { resolveNeedAction } from "@/app/dashboard/actions";
 import { getEntitlements } from "@/lib/billing/subscription";
 import type { RiskLevel } from "@/lib/types";
 import { cn } from "@/lib/ui";
@@ -57,9 +58,11 @@ export default async function ProtectionHomePage({
   const live = ds.live;
 
   const mode = coerceMode(store.get(AUTONOMY_COOKIE)?.value);
+  // Only unacknowledged threats drive the approval queue — so when the customer
+  // approves one, acknowledging it actually clears the item from "needs you".
   const runs = runPlaybooks([
     ...data.exposures.map(exposureToFinding),
-    ...data.threats.map(threatToFinding),
+    ...data.threats.filter((t) => !t.acknowledged).map(threatToFinding),
   ]);
   const workflows = buildWorkflows(runs);
 
@@ -203,12 +206,18 @@ export default async function ProtectionHomePage({
               <li key={n.id} className="flex items-center gap-3 rounded-xl border border-border bg-bg-subtle/40 p-3">
                 <span className={cn("rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ring-1", RISK_CLS[n.riskLevel])}>{n.riskLevel}</span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-white">{n.title}</p>
+                  <Link href={n.href} className="block truncate text-sm font-medium text-white hover:text-brand-fg">{n.title}</Link>
                   <p className="truncate text-[11px] text-slate-500">{n.why}</p>
                 </div>
-                <Link href="/dashboard/recommendations" className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand/90">
-                  {n.actionLabel} <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
+                {/* Resolve inline — the action happens where it's shown, not on a
+                    separate operator page. */}
+                <form action={resolveNeedAction} className="shrink-0">
+                  <input type="hidden" name="kind" value={n.resolve.kind} />
+                  <input type="hidden" name="id" value={n.resolve.id} />
+                  <button type="submit" className="inline-flex items-center gap-1 rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand/90">
+                    {n.actionLabel} <ArrowRight className="h-3.5 w-3.5" />
+                  </button>
+                </form>
               </li>
             ))}
           </ul>

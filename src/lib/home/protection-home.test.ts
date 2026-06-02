@@ -25,7 +25,8 @@ const removal = (status: RemovalRequest["status"]): RemovalRequest => ({
 const wf = (over: Partial<Workflow> = {}): Workflow => ({
   id: Math.random().toString(36).slice(2), name: "Breach response", owner: "security", trigger: "x",
   status: "running", stepsDone: 2, totalSteps: 3, agents: ["security"], blocked: false,
-  durationMin: 5, casesOpened: 1, actionsExecuted: 2, ...over,
+  durationMin: 5, casesOpened: 1, actionsExecuted: 2,
+  source: { id: "th-1", kind: "threat", label: "Impersonation" }, ...over,
 });
 
 const base = (over: Partial<ProtectionHomeInput> = {}): ProtectionHomeInput => ({
@@ -80,6 +81,29 @@ describe("Protection Home (autonomous view model)", () => {
     // highest risk first
     expect(h.needsYou[0].riskLevel).toBe("critical");
     expect(h.needsYou.some((n) => /Approve: Critical escalation/.test(n.title))).toBe(true);
+  });
+
+  it("gives every queue item a real resolution + reachable surface (no dead links)", () => {
+    const h = buildProtectionHome(base({
+      workflows: [wf({ status: "escalated", name: "Deepfake Takedown", source: { id: "th-9", kind: "threat", label: "Impersonation" } })],
+      recommendations: [rec({ riskLevel: "critical", id: "rec-9", title: "Suppress address" })],
+      mode: "advisor",
+    }));
+    const workflowItem = h.needsYou.find((n) => n.title === "Approve: Deepfake Takedown")!;
+    expect(workflowItem.resolve).toEqual({ kind: "threat", id: "th-9" });
+    expect(workflowItem.href).toBe("/dashboard/threats");
+    const recItem = h.needsYou.find((n) => n.title === "Suppress address")!;
+    expect(recItem.resolve).toEqual({ kind: "recommendation", id: "rec-9" });
+    expect(recItem.href).toBe("/dashboard/recommendations");
+  });
+
+  it("excludes exposure-driven approvals — broker opt-outs are the autonomous baseline, not a customer decision", () => {
+    const h = buildProtectionHome(base({
+      workflows: [wf({ status: "awaiting_approval", name: "Data-Broker Removal", source: { id: "ex-1", kind: "exposure", label: "Spokeo" } })],
+      recommendations: [],
+      mode: "autopilot",
+    }));
+    expect(h.needsYou.some((n) => /Data-Broker Removal/.test(n.title))).toBe(false);
   });
 
   it("summarizes the exposure mirror", () => {
