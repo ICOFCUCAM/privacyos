@@ -1,11 +1,23 @@
 import { Bell, CheckCheck } from "lucide-react";
 import { buttonClasses, Card, PageHeader, RiskBadge, Pill, StatCard } from "@/components/ui";
 import { getModuleData } from "@/lib/data/modules";
+import { getDataSource } from "@/lib/data";
+import { getEntitlements } from "@/lib/billing/subscription";
+import { financialOverview, financialNotification } from "@/lib/financial/os/financial-os";
 import { timeAgo, titleCase } from "@/lib/ui";
 import { markAllReadAction } from "./actions";
 
 export default async function NotificationsPage() {
-  const { notifications } = await getModuleData();
+  const mod = await getModuleData();
+  let notifications = mod.notifications;
+
+  // Surface a dedicated alert when financial exposure is critical (entitled only).
+  const ent = await getEntitlements();
+  if (ent.features.financial) {
+    const { exposures, threats } = await (await getDataSource()).getDataset();
+    const finAlert = financialNotification(financialOverview({ exposures, credentialLeaks: mod.credentialLeaks, threats }));
+    if (finAlert) notifications = [finAlert, ...notifications];
+  }
   const unread = notifications.filter((n) => !n.read);
 
   return (

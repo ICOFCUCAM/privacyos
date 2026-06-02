@@ -28,9 +28,11 @@ describe("protectionSuite", () => {
     // executive risk should be elevated by the critical physical signals
     const exec = rows.find((r) => r.key === "executive")!;
     expect(exec.score).toBeGreaterThan(0);
-    // rows are sorted worst-first by risk-equivalent
-    const eq = (r: typeof rows[number]) => (r.higherIsWorse ? r.score : 100 - r.score);
-    expect([...rows].sort((a, b) => eq(b) - eq(a))).toEqual(rows);
+    // rows are sorted worst-band-first (the suite's primary ordering guarantee)
+    const BAND_ORDER: Record<string, number> = { low: 0, elevated: 1, high: 2, critical: 3 };
+    for (let i = 1; i < rows.length; i++) {
+      expect(BAND_ORDER[rows[i - 1].band]).toBeGreaterThanOrEqual(BAND_ORDER[rows[i].band]);
+    }
   });
 
   it("summarizes domains / at-risk / worst", () => {

@@ -179,3 +179,22 @@ export function financialCaseToOpen(risk: FinancialRisk): NewCaseFields | null {
     assignedAgent: critical ? "incident" : "security",
   };
 }
+
+/**
+ * A dedicated notification when financial exposure turns critical — surfaced in
+ * the notification feed (and the bell) so a newly-detected money-account threat
+ * reaches the customer immediately. Returns null below the critical threshold.
+ * Pure: the surfaces just prepend it when the customer is entitled.
+ */
+export function financialNotification(risk: FinancialRisk, now: number = Date.now()): import("@/lib/suite-types").Notification | null {
+  if (risk.overall < 75) return null;
+  return {
+    id: "fin-critical",
+    kind: "alert",
+    title: "Critical financial exposure detected",
+    body: `Financial exposure is ${risk.overall}/100 (${risk.band}) across ${risk.exposedAccounts} money account(s). We're securing accounts and opening a protection case.`,
+    riskLevel: "critical",
+    read: false,
+    createdAt: new Date(now).toISOString(),
+  };
+}

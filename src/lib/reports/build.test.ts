@@ -15,8 +15,8 @@ describe("buildReportContext — executive", () => {
     // the headline stat row includes live attack paths
     expect(ctx.stats.map((s) => s.label)).toContain("Live attack paths");
 
-    // five named indices + four residence checks
-    expect(ctx.sections.find((s) => s.heading === "Executive risk indices")!.rows).toHaveLength(5);
+    // six named indices (incl. Financial exposure) + residence checks
+    expect(ctx.sections.find((s) => s.heading === "Executive risk indices")!.rows).toHaveLength(6);
     expect(ctx.sections.find((s) => s.heading === "Residence protection")!.rows).toHaveLength(4);
 
     // the headline stat is the Executive Risk Score

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { financialOverview, financialRecommendations, financialCaseToOpen, type FinancialInput } from "./financial-os";
+import { financialOverview, financialRecommendations, financialCaseToOpen, financialNotification, type FinancialInput } from "./financial-os";
 import type { Exposure, Threat } from "@/lib/types";
 import type { CredentialLeak } from "@/lib/suite-types";
 
@@ -98,5 +98,22 @@ describe("financial → platform pipeline mappers", () => {
     expect(c!.riskLevel).toBe("critical");
     // a clean subject opens no case
     expect(financialCaseToOpen(financialOverview(input()))).toBeNull();
+  });
+});
+
+describe("financialNotification", () => {
+  it("emits a critical alert only when exposure is critical", () => {
+    const critical = financialOverview(input({
+      credentialLeaks: [leak("a@bank.com", { riskLevel: "critical" }), leak("b-wallet", { riskLevel: "critical" })],
+      exposures: [exposure({ category: "financial", riskLevel: "critical", snippet: "bank account number" })],
+      threats: [threat({ kind: "dark_web_mention", riskLevel: "critical" })],
+    }));
+    const n = financialNotification(critical, Date.parse("2026-02-01T00:00:00Z"));
+    expect(n).not.toBeNull();
+    expect(n!.kind).toBe("alert");
+    expect(n!.riskLevel).toBe("critical");
+    expect(n!.read).toBe(false);
+    // below critical → no notification
+    expect(financialNotification(financialOverview(input()))).toBeNull();
   });
 });

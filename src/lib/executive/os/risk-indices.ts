@@ -10,6 +10,7 @@
 import type { Exposure, RiskLevel, Threat } from "@/lib/types";
 import type { CredentialLeak, FamilyMember, TravelAlert } from "@/lib/suite-types";
 import { riskBandIndex } from "@/lib/scoring/bands";
+import { financialOverview } from "@/lib/financial/os/financial-os";
 
 const RISK_WEIGHT: Record<RiskLevel, number> = { low: 8, medium: 18, high: 32, critical: 48 };
 const RISK_RANK: Record<RiskLevel, number> = { low: 0, medium: 1, high: 2, critical: 3 };
@@ -24,6 +25,7 @@ export interface ExecutiveRiskIndices {
   physical: number;
   digital: number;
   travel: number;
+  financial: number;
   band: RiskBand;
 }
 
@@ -78,10 +80,13 @@ export function executiveRiskIndices(input: RiskInput): ExecutiveRiskIndices {
   // Travel — upcoming/active itinerary risk.
   const travel = clamp(input.travel.reduce((s, t) => s + RISK_WEIGHT[t.riskLevel] * 1.2, 0));
 
-  // Composite — physical & family weigh most for a principal.
-  const overall = clamp(physical * 0.28 + family * 0.22 + digital * 0.2 + personal * 0.18 + travel * 0.12);
+  // Financial exposure as an executive sub-index (reuses the Financial OS engine).
+  const financial = financialOverview({ exposures: input.exposures, credentialLeaks: input.credentialLeaks ?? [], threats: input.threats }).overall;
 
-  return { overall, personal, family, physical, digital, travel, band: bandFor(overall) };
+  // Composite — physical & family weigh most for a principal.
+  const overall = clamp(physical * 0.24 + family * 0.19 + digital * 0.17 + personal * 0.15 + travel * 0.10 + financial * 0.15);
+
+  return { overall, personal, family, physical, digital, travel, financial, band: bandFor(overall) };
 }
 
 export interface RiskIndexMeta {
@@ -95,6 +100,7 @@ export const RISK_INDEX_META: RiskIndexMeta[] = [
   { key: "physical", label: "Physical security" },
   { key: "digital", label: "Digital security" },
   { key: "travel", label: "Travel security" },
+  { key: "financial", label: "Financial exposure" },
 ];
 
 export type RecPriority = "critical" | "high" | "standard";

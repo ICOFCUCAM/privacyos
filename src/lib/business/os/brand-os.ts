@@ -11,6 +11,7 @@
 import type { RiskLevel } from "@/lib/types";
 import type { CredentialLeak, DomainRisk, EmployeeExposure, ThirdPartyRisk } from "@/lib/suite-types";
 import { riskBandIndex } from "@/lib/scoring/bands";
+import { financialOverview } from "@/lib/financial/os/financial-os";
 
 const RISK_WEIGHT: Record<RiskLevel, number> = { low: 8, medium: 18, high: 32, critical: 48 };
 const RISK_RANK: Record<RiskLevel, number> = { low: 0, medium: 1, high: 2, critical: 3 };
@@ -38,6 +39,7 @@ export interface BrandRiskIndices {
   workforce: number;
   supplyChain: number;
   credential: number;
+  financial: number;
   band: RiskBand;
 }
 
@@ -51,6 +53,7 @@ export const BRAND_INDEX_META: BrandIndexMeta[] = [
   { key: "workforce", label: "Workforce" },
   { key: "supplyChain", label: "Supply chain" },
   { key: "credential", label: "Credentials" },
+  { key: "financial", label: "Financial exposure" },
 ];
 
 export function brandRiskIndices(input: BrandRiskInput): BrandRiskIndices {
@@ -58,8 +61,10 @@ export function brandRiskIndices(input: BrandRiskInput): BrandRiskIndices {
   const workforce = clamp(input.employeeExposures.reduce((s, e) => s + RISK_WEIGHT[e.riskLevel], 0));
   const supplyChain = clamp(input.thirdPartyRisks.reduce((s, v) => s + RISK_WEIGHT[v.riskLevel], 0));
   const credential = clamp(input.credentialLeaks.reduce((s, l) => s + RISK_WEIGHT[l.riskLevel] * 0.9, 0));
-  const overall = clamp(domain * 0.3 + workforce * 0.3 + supplyChain * 0.2 + credential * 0.2);
-  return { overall, domain, workforce, supplyChain, credential, band: brandBand(overall) };
+  // Financial exposure across the org's leaked money-bearing accounts (reuses the Financial OS engine).
+  const financial = financialOverview({ exposures: [], credentialLeaks: input.credentialLeaks, threats: [] }).overall;
+  const overall = clamp(domain * 0.27 + workforce * 0.27 + supplyChain * 0.18 + credential * 0.15 + financial * 0.13);
+  return { overall, domain, workforce, supplyChain, credential, financial, band: brandBand(overall) };
 }
 
 /* ── Brand impersonation (lookalike / phishing domains) ──────────────────── */
