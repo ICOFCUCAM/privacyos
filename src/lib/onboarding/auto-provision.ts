@@ -10,6 +10,9 @@
 
 import type { Entitlements } from "@/lib/billing/entitlements";
 
+/** Cookie carrying the just-provisioned pack ids, shown once on Protection Home. */
+export const PROVISIONED_COOKIE = "po_provisioned";
+
 /**
  * The protection packs to auto-install for a set of entitlements. Everyone
  * entitled gets broker removal; paid plans add baseline monitoring; each

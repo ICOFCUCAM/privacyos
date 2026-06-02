@@ -16,6 +16,9 @@ import {
 } from "@/lib/home/protection-home";
 import { coerceMode, AUTONOMY_COOKIE, AUTONOMY_META } from "@/lib/home/autonomy";
 import { tierLens } from "@/lib/home/tiers";
+import { PROVISIONED_COOKIE } from "@/lib/onboarding/auto-provision";
+import { findListing } from "@/lib/agents/workflow-marketplace";
+import { dismissProvisionedAction } from "./actions";
 import { getEntitlements } from "@/lib/billing/subscription";
 import type { RiskLevel } from "@/lib/types";
 import { cn } from "@/lib/ui";
@@ -85,6 +88,11 @@ export default async function ProtectionHomePage({
   const justActivated = params.activated !== undefined;
   const activatedPacks = Number(params.activated) || 0;
 
+  // One-time "Protection activated" confirmation from onboarding auto-provisioning.
+  const provisioned = (store.get(PROVISIONED_COOKIE)?.value ?? "")
+    .split(",").map((id) => id.trim()).filter(Boolean)
+    .map((id) => findListing(id)?.name).filter((n): n is string => !!n);
+
   return (
     <div className="mx-auto max-w-3xl space-y-4 py-2">
       {justActivated && (
@@ -92,6 +100,30 @@ export default async function ProtectionHomePage({
           <CheckCircle2 className="h-4 w-4 shrink-0" />
           Protection activated — {AUTONOMY_META[home.mode].label} mode on{activatedPacks > 0 ? `, ${activatedPacks} protection pack${activatedPacks === 1 ? "" : "s"} installed` : ""}. We&rsquo;re on it.
         </div>
+      )}
+
+      {provisioned.length > 0 && (
+        <Card className="border-risk-low/30 bg-risk-low/[0.06] p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-2.5">
+              <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-risk-low/15 text-risk-low"><ShieldCheck className="h-4 w-4" /></span>
+              <div>
+                <p className="text-sm font-semibold text-white">Your protection is active</p>
+                <p className="text-[11px] text-slate-400">We set up and switched on your plan&rsquo;s protections automatically — nothing for you to configure.</p>
+              </div>
+            </div>
+            <form action={dismissProvisionedAction}>
+              <button type="submit" className="rounded-md px-2 py-1 text-[11px] font-medium text-slate-400 ring-1 ring-border hover:text-white">Got it</button>
+            </form>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {provisioned.map((p) => (
+              <span key={p} className="inline-flex items-center gap-1 rounded-full bg-bg-subtle/60 px-2 py-0.5 text-[11px] text-slate-300 ring-1 ring-border">
+                <CheckCircle2 className="h-3 w-3 text-risk-low" /> {p}
+              </span>
+            ))}
+          </div>
+        </Card>
       )}
 
       {/* ① Status */}

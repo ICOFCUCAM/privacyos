@@ -7,8 +7,9 @@ import { getDataSource } from "@/lib/data";
 import { mapSubject } from "@/lib/data/mappers";
 import { runDiscovery } from "@/lib/discovery/pipeline";
 import { recordAudit } from "@/lib/audit/audit";
+import { cookies } from "next/headers";
 import { getEntitlements } from "@/lib/billing/subscription";
-import { protectionsForEntitlements } from "@/lib/onboarding/auto-provision";
+import { protectionsForEntitlements, PROVISIONED_COOKIE } from "@/lib/onboarding/auto-provision";
 import { findListing, installListing } from "@/lib/agents/workflow-marketplace";
 import { saveWorkflowAction } from "@/app/dashboard/workflow-builder/actions";
 
@@ -91,6 +92,10 @@ export async function createSubject(
       for (const def of installListing(listing)) {
         await saveWorkflowAction({ ...def, enabled: true });
       }
+    }
+    if (seen.size > 0) {
+      // Surface the provisioning outcome once on Protection Home.
+      (await cookies()).set(PROVISIONED_COOKIE, [...seen].join(","), { path: "/", maxAge: 60 * 60 * 24, sameSite: "lax" });
     }
   } catch {
     /* best-effort — never block onboarding on provisioning */
