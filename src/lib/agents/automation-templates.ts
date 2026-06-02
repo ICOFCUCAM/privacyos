@@ -185,6 +185,21 @@ export const AUTOMATION_TEMPLATES: WorkflowTemplate[] = [
       notify("Brief on family exposure & child safety"),
     ],
   },
+  {
+    id: "critical-escalation",
+    name: "Critical Escalation",
+    description: "The escalation engine: a critical threat opens a case, assigns the Incident Response Agent, notifies the executive, and produces a board report — end to end.",
+    category: "Executive",
+    recommended: true,
+    trigger: { kind: "threat_detected", minRisk: "critical" },
+    impact: 40,
+    steps: [
+      openCase("Open Case"),
+      agent("incident", "Assign Incident Agent"),
+      notify("Notify Executive"),
+      report("Create Board Report"),
+    ],
+  },
 
   /* ── Business ──────────────────────────────────────────────────────────── */
   {

@@ -39,6 +39,15 @@ describe("automation templates", () => {
     expect(findTemplate("nope")).toBeUndefined();
   });
 
+  it("Layer-9 escalation engine: Critical Threat → Case → Incident → Executive → Board Report", () => {
+    const t = findTemplate("critical-escalation")!;
+    expect(t).toBeDefined();
+    expect(t.trigger).toMatchObject({ kind: "threat_detected", minRisk: "critical" });
+    expect(t.steps.map((s) => s.label)).toEqual(["Open Case", "Assign Incident Agent", "Notify Executive", "Create Board Report"]);
+    expect(t.steps.map((s) => s.type)).toEqual(["case", "agent", "notify", "report"]);
+    expect(validateWorkflow(templateToDefinition(t)).valid).toBe(true);
+  });
+
   it("covers the Layer-2 library: 5 categories, 11 workflows", () => {
     expect(new Set(AUTOMATION_TEMPLATES.map((t) => t.category))).toEqual(new Set(["Security", "Privacy", "Reputation", "Executive", "Business"]));
     for (const id of [
