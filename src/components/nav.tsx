@@ -9,7 +9,7 @@ import {
   Trash2, ScrollText, Settings, Lock, Users2, TrendingUp, Workflow, BadgeCheck, GitBranch, Blocks,
   LayoutTemplate, Gauge, FileLock2,
   Search, Newspaper, LifeBuoy, Share2, Rocket,
-  Home, UserX, Crosshair, LayoutGrid, VenetianMask, EyeOff, Target, Fingerprint,
+  Home, UserX, Crosshair, LayoutGrid, VenetianMask, EyeOff, Target, Fingerprint, ShieldCheck,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/ui";
@@ -22,6 +22,7 @@ export const navGroups: NavGroup[] = [
   {
     group: "",
     items: [
+      { href: "/dashboard/home", label: "Protection", icon: ShieldCheck },
       { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
       { href: "/dashboard/suite", label: "Protection Suite", icon: LayoutGrid },
       { href: "/dashboard/mission-control", label: "Mission Control", icon: Gauge },
