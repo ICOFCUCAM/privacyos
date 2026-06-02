@@ -34,7 +34,12 @@ export const metadata: Metadata = {
     "Plans for individuals, families, professionals, public figures, executives and enterprises. Save 20% with annual billing.",
 };
 
-export default function PricingPage() {
+export default async function PricingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ plan?: string }>;
+}) {
+  const { plan: recommendedPlanId } = await searchParams;
   return (
     <main className="bg-grid min-h-screen">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
@@ -62,7 +67,7 @@ export default function PricingPage() {
       </div>
 
       <section className="mx-auto max-w-6xl px-6 pb-16">
-        <PricingTable />
+        <PricingTable recommendedPlanId={recommendedPlanId} />
       </section>
 
       <section className="mx-auto max-w-6xl px-6 pb-16">

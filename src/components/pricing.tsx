@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Check } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Check, Sparkles } from "lucide-react";
 import {
   annualMonthly,
   annualTotal,
@@ -23,10 +23,29 @@ function priceLabel(plan: Plan, annual: boolean, currency: Currency) {
   return { big, sub };
 }
 
-function PlanCard({ plan, annual, currency }: { plan: Plan; annual: boolean; currency: Currency }) {
+function PlanCard({
+  plan,
+  annual,
+  currency,
+  highlighted = false,
+}: {
+  plan: Plan;
+  annual: boolean;
+  currency: Currency;
+  highlighted?: boolean;
+}) {
   const { big, sub } = priceLabel(plan, annual, currency);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // When the visitor arrives from their free scan (/pricing?plan=…), bring the
+  // recommended plan into view so the conversion path is obvious.
+  useEffect(() => {
+    if (highlighted) {
+      ref.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [highlighted]);
 
   async function choose() {
     if (plan.monthly === 0) {
@@ -60,15 +79,26 @@ function PlanCard({ plan, annual, currency }: { plan: Plan; annual: boolean; cur
   }
   return (
     <div
+      ref={ref}
       className={cn(
-        "flex flex-col rounded-2xl border p-6",
-        plan.featured ? "border-brand/50 bg-brand/5 ring-1 ring-brand/30" : "border-border bg-bg-elevated/60",
+        "flex flex-col rounded-2xl border p-6 transition",
+        highlighted
+          ? "border-brand bg-brand/10 ring-2 ring-brand"
+          : plan.featured
+            ? "border-brand/50 bg-brand/5 ring-1 ring-brand/30"
+            : "border-border bg-bg-elevated/60",
       )}
     >
-      {plan.featured && (
-        <span className="mb-3 inline-flex w-fit rounded-full bg-brand px-2.5 py-0.5 text-[11px] font-semibold text-white">
-          Most popular
+      {highlighted ? (
+        <span className="mb-3 inline-flex w-fit items-center gap-1 rounded-full bg-brand px-2.5 py-0.5 text-[11px] font-semibold text-white">
+          <Sparkles className="h-3 w-3" /> Recommended from your scan
         </span>
+      ) : (
+        plan.featured && (
+          <span className="mb-3 inline-flex w-fit rounded-full bg-brand px-2.5 py-0.5 text-[11px] font-semibold text-white">
+            Most popular
+          </span>
+        )
       )}
       <h3 className="text-lg font-semibold text-white">{plan.name}</h3>
       <p className="mt-1 min-h-[2.5rem] text-sm text-slate-400">{plan.tagline}</p>
@@ -105,7 +135,7 @@ function PlanCard({ plan, annual, currency }: { plan: Plan; annual: boolean; cur
   );
 }
 
-export function PricingTable() {
+export function PricingTable({ recommendedPlanId }: { recommendedPlanId?: string }) {
   const [annual, setAnnual] = useState(true);
   const [currencyCode, setCurrencyCode] = useState(DEFAULT_CURRENCY);
   const currency = resolveCurrency(currencyCode);
@@ -167,7 +197,13 @@ export function PricingTable() {
               )}
             >
               {plans.map((p) => (
-                <PlanCard key={p.id} plan={p} annual={annual} currency={currency} />
+                <PlanCard
+                  key={p.id}
+                  plan={p}
+                  annual={annual}
+                  currency={currency}
+                  highlighted={p.id === recommendedPlanId}
+                />
               ))}
             </div>
           </section>
