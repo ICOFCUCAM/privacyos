@@ -48,6 +48,24 @@ const onlyIf = (label: string, condition: NonNullable<WorkflowStepDef["condition
 export const AUTOMATION_TEMPLATES: WorkflowTemplate[] = [
   /* ── Security ──────────────────────────────────────────────────────────── */
   {
+    id: "financial-exposure-response",
+    name: "Financial Exposure Response",
+    description: "Detected financial exposure triggers correlation, account-securing, a financial-protection case, fraud escalation and a remediation report.",
+    category: "Security",
+    recommended: true,
+    trigger: { kind: "threat_detected", minRisk: "high" },
+    impact: 34,
+    steps: [
+      agent("threat_intel", "Correlate financial exposure with identity & dark-web findings"),
+      agent("security", "Secure money-bearing accounts & rotate credentials"),
+      onlyIf("Only if active fraud / critical", { field: "risk", op: "gte", value: "critical" }, "continue"),
+      agent("incident", "Escalate active fraud for response"),
+      notify("Alert on financial exposure"),
+      openCase("Open a financial-protection case"),
+      report("Log financial remediation & recovery"),
+    ],
+  },
+  {
     id: "credential-leak-response",
     name: "Credential Leak Response",
     description: "A leaked credential triggers correlation, forced rotation + session revocation, a breach-response case and a user alert.",

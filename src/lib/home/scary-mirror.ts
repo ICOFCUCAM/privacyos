@@ -67,7 +67,7 @@ const CATEGORY_META: Record<MirrorCategory, CategoryMeta> = {
   brokers: { label: "Data brokers selling your info", fixLabel: "File opt-out & removal requests", pack: "remove-data-brokers", order: 0 },
   breaches: { label: "Accounts caught in breaches", fixLabel: "Secure & rotate exposed accounts", pack: "breach-response", order: 1 },
   darkweb: { label: "Dark-web exposure", fixLabel: "Monitor the dark web & alert you", pack: "dark-web-watch", order: 2 },
-  financial: { label: "Exposed financial & payment data", fixLabel: "Secure accounts, lock payments & freeze credit", pack: "breach-response", order: 3 },
+  financial: { label: "Exposed financial & payment data", fixLabel: "Secure accounts, lock payments & freeze credit", pack: "financial-protection", order: 3 },
   identity: { label: "Exposed personal identifiers", fixLabel: "Suppress personal data & pursue takedowns", pack: "remove-data-brokers", order: 4 },
   reputation: { label: "Search & news results", fixLabel: "Suppress negatives, promote the truth", pack: "reputation-recovery", order: 5 },
   social: { label: "Impersonation & fake media", fixLabel: "Take down impersonations & fake media", pack: "protect-my-ceo", order: 6 },

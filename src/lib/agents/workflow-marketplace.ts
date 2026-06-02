@@ -62,6 +62,17 @@ export const MARKETPLACE_LISTINGS: MarketplaceListing[] = [
     rating: 4.8,
   },
   {
+    id: "financial-protection",
+    name: "Financial Exposure Protection",
+    tagline: "Catch financial exposure and shut it down — automatically.",
+    description: "Correlates financial exposure with your identity and dark-web findings, secures money-bearing accounts, escalates active fraud to incident response, and opens a tracked case through to recovery.",
+    category: "Security",
+    templateIds: ["financial-exposure-response", "credential-leak-response"],
+    featured: true,
+    installs: 2640,
+    rating: 4.9,
+  },
+  {
     id: "breach-response",
     name: "Breach Response",
     tagline: "From leaked credential to closed case, automatically.",

@@ -61,7 +61,7 @@ describe("The Scary Mirror (activation engine)", () => {
     const fin = r.findings.find((f) => f.category === "financial");
     expect(fin).toBeDefined();
     expect(fin!.count).toBe(2);
-    expect(r.fixPlan.some((s) => s.pack === "breach-response")).toBe(true);
+    expect(r.fixPlan.some((s) => s.pack === "financial-protection")).toBe(true);
   });
 
   it("excludes acknowledged threats", () => {
