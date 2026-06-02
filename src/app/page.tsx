@@ -18,9 +18,11 @@ import {
   EcosystemSection,
   EnterpriseSection,
   OutcomesBand,
+  PersonaBand,
 } from "@/components/landing-sections";
 import { MoatBand } from "@/components/landing-visuals";
 import { SecurityArchitecture } from "@/components/security-architecture";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { buttonClasses } from "@/components/ui";
 
 const modules = [
@@ -55,6 +57,7 @@ export default function LandingPage() {
           >
             Pricing
           </Link>
+          <LanguageSwitcher compact />
           <Link href="/dashboard" className={buttonClasses("primary", "md")}>
             Open Dashboard
           </Link>
@@ -63,21 +66,26 @@ export default function LandingPage() {
 
       <Hero />
 
-      <TrustStrip />
-
-      {/* The moat dominates: autonomous agents + Digital Risk OS, with a visual */}
-      <MoatBand />
-
+      {/* ── Outcomes first ───────────────────────────────────────────────── */}
       <OutcomesBand />
 
-      {/* Platform — paired with the exposure-intelligence visual */}
-      <EcosystemSection />
+      {/* Who it's for, in their words — outcomes before machinery */}
+      <PersonaBand />
 
-      <AgentsSection />
+      {/* ── Proof ────────────────────────────────────────────────────────── */}
+      <TrustStrip />
+      <MoatBand />
+
+      {/* ── Platform ─────────────────────────────────────────────────────── */}
+      <EcosystemSection />
 
       {/* Always-on — paired with the live operations-stream visual */}
       <ActivitySection />
 
+      {/* ── How it works (autonomous protection) ─────────────────────────── */}
+      <AgentsSection />
+
+      {/* ── Enterprise & architecture (deepest — for the few who want it) ── */}
       <EnterpriseSection />
 
       <SecurityArchitecture />
