@@ -152,7 +152,7 @@ export default async function ProtectionHomePage() {
           <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
             <Eye className="h-3.5 w-3.5 text-brand" /> What we found
           </p>
-          <Link href="/dashboard/exposures" className="text-[11px] font-medium text-brand-fg hover:underline">See everything</Link>
+          <Link href="/dashboard/scan" className="text-[11px] font-medium text-brand-fg hover:underline">Re-scan my exposure →</Link>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <Stat label="Exposures" value={home.found.exposures} tone="text-white" />

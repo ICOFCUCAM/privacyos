@@ -75,5 +75,6 @@ export async function createSubject(
   }
 
   revalidatePath("/dashboard");
-  redirect("/dashboard");
+  // Land new users straight in the activation moment — the exposure scan.
+  redirect("/dashboard/scan");
 }
