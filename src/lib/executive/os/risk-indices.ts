@@ -9,6 +9,7 @@
 
 import type { Exposure, RiskLevel, Threat } from "@/lib/types";
 import type { CredentialLeak, FamilyMember, TravelAlert } from "@/lib/suite-types";
+import { riskBandIndex } from "@/lib/scoring/bands";
 
 const RISK_WEIGHT: Record<RiskLevel, number> = { low: 8, medium: 18, high: 32, critical: 48 };
 const RISK_RANK: Record<RiskLevel, number> = { low: 0, medium: 1, high: 2, critical: 3 };
@@ -46,11 +47,10 @@ function activeThreats(threats: Threat[]): Threat[] {
   return threats.filter((t) => !t.acknowledged);
 }
 
+const RISK_BANDS: RiskBand[] = ["low", "elevated", "high", "critical"];
+
 export function bandFor(score: number): RiskBand {
-  if (score >= 75) return "critical";
-  if (score >= 50) return "high";
-  if (score >= 25) return "elevated";
-  return "low";
+  return RISK_BANDS[riskBandIndex(score)];
 }
 
 export function executiveRiskIndices(input: RiskInput): ExecutiveRiskIndices {
