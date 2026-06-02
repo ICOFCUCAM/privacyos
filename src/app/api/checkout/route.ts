@@ -29,8 +29,9 @@ export async function POST(req: Request) {
   }
 
   let planId = "";
+  let annual = false;
   try {
-    ({ planId } = await req.json());
+    ({ planId, annual = false } = await req.json());
   } catch {
     /* no body */
   }
@@ -40,7 +41,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "This plan is sales-assisted; contact sales." }, { status: 400 });
   }
 
-  const priceId = stripePriceId(plan.id);
+  const priceId = stripePriceId(plan.id, Boolean(annual));
   if (!priceId) {
     return NextResponse.json(
       { error: `No Stripe price mapped for ${plan.id} (set STRIPE_PRICE_${plan.id.toUpperCase().replace(/-/g, "_")}).` },
@@ -60,7 +61,8 @@ export async function POST(req: Request) {
     const url = await createCheckoutSession({
       priceId,
       planId: plan.id,
-      successUrl: `${base}/dashboard?checkout=success`,
+      annual: Boolean(annual),
+      successUrl: `${base}/dashboard/home?checkout=success`,
       cancelUrl: `${base}/pricing?checkout=cancelled`,
       customerEmail: user.email ?? undefined,
       clientReferenceId: user.id,

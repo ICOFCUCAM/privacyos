@@ -18,4 +18,17 @@ describe("stripe helpers", () => {
     expect(stripePriceId("rep-creator")).toBe("price_creator");
     expect(stripePriceId("unmapped")).toBeUndefined();
   });
+
+  it("prefers the annual price when requested, else falls back to monthly", () => {
+    vi.stubEnv("STRIPE_PRICE_PLUS", "price_plus_monthly");
+    vi.stubEnv("STRIPE_PRICE_PLUS_ANNUAL", "price_plus_annual");
+    vi.stubEnv("STRIPE_PRICE_PREMIUM", "price_premium_monthly"); // no annual configured
+
+    expect(stripePriceId("plus", true)).toBe("price_plus_annual");
+    expect(stripePriceId("plus", false)).toBe("price_plus_monthly");
+    // annual requested but unconfigured → falls back to the monthly price
+    expect(stripePriceId("premium", true)).toBe("price_premium_monthly");
+    // still undefined when the plan is unmapped entirely
+    expect(stripePriceId("unmapped", true)).toBeUndefined();
+  });
 });

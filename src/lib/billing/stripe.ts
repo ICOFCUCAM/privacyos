@@ -13,11 +13,18 @@ export function isStripeConfigured(): boolean {
 
 /**
  * Maps a PrivacyOS plan id to its Stripe Price id via env, e.g.
- * STRIPE_PRICE_PLUS, STRIPE_PRICE_REP_CREATOR. Returns undefined if unmapped.
+ * STRIPE_PRICE_PLUS, STRIPE_PRICE_REP_CREATOR. When `annual` is requested it
+ * prefers the `_ANNUAL` variant (e.g. STRIPE_PRICE_PLUS_ANNUAL) and falls back
+ * to the monthly price when no annual price is configured. Returns undefined
+ * only when the plan is unmapped entirely.
  */
-export function stripePriceId(planId: string): string | undefined {
-  const key = `STRIPE_PRICE_${planId.toUpperCase().replace(/-/g, "_")}`;
-  return process.env[key];
+export function stripePriceId(planId: string, annual = false): string | undefined {
+  const base = `STRIPE_PRICE_${planId.toUpperCase().replace(/-/g, "_")}`;
+  if (annual) {
+    const annualPrice = process.env[`${base}_ANNUAL`];
+    if (annualPrice) return annualPrice;
+  }
+  return process.env[base];
 }
 
 async function stripePost(path: string, form: Record<string, string>): Promise<Record<string, unknown>> {
@@ -54,6 +61,7 @@ export async function createCheckoutSession(opts: {
     success_url: opts.successUrl,
     cancel_url: opts.cancelUrl,
     "metadata[plan_id]": opts.planId,
+    "metadata[cadence]": opts.annual ? "annual" : "monthly",
     "subscription_data[metadata][plan_id]": opts.planId,
     allow_promotion_codes: "true",
   };
