@@ -81,6 +81,26 @@ export async function signUp(_prev: AuthState, formData: FormData): Promise<Auth
   return { message: "Check your email to confirm your account, then sign in." };
 }
 
+/** Send a password-reset email. Always reports success (don't reveal whether an
+ *  account exists). The link returns to the app's auth callback. */
+export async function requestPasswordReset(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  if (!isSupabaseConfigured()) {
+    return { error: "Auth is not configured. Explore the demo dashboard instead." };
+  }
+  const email = String(formData.get("email") ?? "").trim();
+  if (!email) return { error: "Enter your email to receive a reset link." };
+
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) return { error: "Auth is not configured." };
+
+  const origin = await siteOrigin();
+  // Ignore the result so we never disclose whether the email is registered.
+  await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${origin}/auth/callback?next=/dashboard/home`,
+  });
+  return { message: "If that email has an account, a reset link is on its way." };
+}
+
 /** Sign the user out and return to the landing page. */
 export async function signOut(): Promise<void> {
   const supabase = await getSupabaseServerClient();

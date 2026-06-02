@@ -7,8 +7,11 @@ import {
   signUp,
   signInWithGoogle,
   signInWithMicrosoft,
+  requestPasswordReset,
   type AuthState,
 } from "@/app/auth/actions";
+
+type Mode = "signin" | "signup" | "reset";
 
 export function LoginForm({
   next,
@@ -19,9 +22,10 @@ export function LoginForm({
   configured: boolean;
   oauthError?: string;
 }) {
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
-  const action = mode === "signin" ? signIn : signUp;
+  const [mode, setMode] = useState<Mode>("signin");
+  const action = mode === "signin" ? signIn : mode === "signup" ? signUp : requestPasswordReset;
   const [state, formAction, pending] = useActionState<AuthState, FormData>(action, {});
+  const submitLabel = pending ? "Please wait…" : mode === "signin" ? "Sign in" : mode === "signup" ? "Create account" : "Send reset link";
 
   return (
     <div className="space-y-4">
@@ -79,18 +83,35 @@ export function LoginForm({
           />
         </div>
 
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-slate-400">Password</label>
-          <input
-            name="password"
-            type="password"
-            required
-            minLength={8}
-            autoComplete={mode === "signin" ? "current-password" : "new-password"}
-            className="w-full rounded-lg border border-border bg-bg-subtle px-3 py-2 text-sm text-white outline-none focus:border-brand"
-            placeholder="••••••••"
-          />
-        </div>
+        {mode !== "reset" && (
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium text-slate-400">Password</label>
+              {mode === "signin" && (
+                <button
+                  type="button"
+                  onClick={() => setMode("reset")}
+                  className="text-xs font-medium text-brand-fg hover:underline"
+                >
+                  Forgot password?
+                </button>
+              )}
+            </div>
+            <input
+              name="password"
+              type="password"
+              required
+              minLength={8}
+              autoComplete={mode === "signin" ? "current-password" : "new-password"}
+              className="w-full rounded-lg border border-border bg-bg-subtle px-3 py-2 text-sm text-white outline-none focus:border-brand"
+              placeholder="••••••••"
+            />
+          </div>
+        )}
+
+        {mode === "reset" && (
+          <p className="text-xs text-slate-500">Enter your email and we&apos;ll send a link to reset your password.</p>
+        )}
 
         {state.error && <p className="text-xs text-risk-critical">{state.error}</p>}
         {state.message && <p className="text-xs text-risk-low">{state.message}</p>}
@@ -100,18 +121,25 @@ export function LoginForm({
           disabled={pending}
           className="w-full rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand/90 disabled:opacity-60"
         >
-          {pending ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}
+          {submitLabel}
         </button>
 
         <p className="text-center text-xs text-slate-500">
-          {mode === "signin" ? "No account yet?" : "Already have an account?"}{" "}
-          <button
-            type="button"
-            onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-            className="font-medium text-brand-fg hover:underline"
-          >
-            {mode === "signin" ? "Create one" : "Sign in"}
-          </button>
+          {mode === "reset" ? (
+            <>Remembered it?{" "}
+              <button type="button" onClick={() => setMode("signin")} className="font-medium text-brand-fg hover:underline">Back to sign in</button>
+            </>
+          ) : (
+            <>{mode === "signin" ? "No account yet?" : "Already have an account?"}{" "}
+              <button
+                type="button"
+                onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+                className="font-medium text-brand-fg hover:underline"
+              >
+                {mode === "signin" ? "Create one" : "Sign in"}
+              </button>
+            </>
+          )}
         </p>
       </form>
     </div>
