@@ -14,12 +14,13 @@ import { cn, titleCase } from "@/lib/ui";
 import type { AgentKind, RiskLevel } from "@/lib/types";
 import {
   addStep, describeTrigger, emptyWorkflow, moveStep, reorderStep, newStepId,
-  removeStep, validateWorkflow, simulateRun, describeStep,
+  removeStep, validateWorkflow, simulateRun, executeWorkflow, describeStep,
   TRIGGER_CATALOG, TRIGGER_CATEGORIES, RISK_QUALIFIED_TRIGGERS, ACTION_CATALOG, actionToStep,
   APPROVAL_CATALOG, approvalToStep,
   type ActionBlock, type ApproverRole,
   type StepType, type TriggerKind, type WorkflowDefinition, type WorkflowStepDef,
   type ConditionField, type ConditionOp, type SampleEvent, type StepOutcome,
+  type WorkflowRun, type RunStatus,
 } from "@/lib/agents/workflow-builder";
 import { AGENT_LABEL } from "@/lib/billing/entitlements";
 import { deleteWorkflowAction, saveWorkflowAction, toggleWorkflowAction } from "./actions";
@@ -44,7 +45,25 @@ const OUTCOME_CLS: Record<StepOutcome, string> = {
   stopped: "text-risk-high ring-risk-high/30",
 };
 
+const RUN_STATUS_CLS: Record<RunStatus, string> = {
+  success: "text-risk-low ring-risk-low/30",
+  paused: "text-risk-medium ring-risk-medium/30",
+  stopped: "text-risk-high ring-risk-high/30",
+  failed: "text-risk-high ring-risk-high/30",
+};
+
 const RISKS: RiskLevel[] = ["low", "medium", "high", "critical"];
+
+function fmtTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+
+function fmtDuration(sec: number): string {
+  if (sec < 60) return `${sec}s`;
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return s ? `${m}m ${s}s` : `${m}m`;
+}
 
 export function WorkflowBuilder({
   initial,
@@ -103,6 +122,9 @@ export function WorkflowBuilder({
   const [simKind, setSimKind] = useState("doxxing");
   const [simScore, setSimScore] = useState(85);
   const [simSource, setSimSource] = useState("dark_web");
+
+  // Layer-10: last stored execution run
+  const [lastRun, setLastRun] = useState<WorkflowRun | null>(null);
 
   const validation = validateWorkflow(draft);
   const isEditing = draft.id !== "draft";
@@ -503,9 +525,89 @@ export function WorkflowBuilder({
                 </li>
               ))}
             </ol>
-            <p className="mt-2 text-[10px] text-slate-500">
-              {simulation.reached} of {draft.steps.length} block(s) would execute{simulation.stoppedAt != null ? ` · stops at block ${simulation.stoppedAt + 1}` : ""}.
-            </p>
+            <div className="mt-3 flex items-center justify-between gap-2">
+              <p className="text-[10px] text-slate-500">
+                {simulation.reached} of {draft.steps.length} block(s) would execute{simulation.stoppedAt != null ? ` · stops at block ${simulation.stoppedAt + 1}` : ""}.
+              </p>
+              <button
+                onClick={() => setLastRun(executeWorkflow(draft, sampleEvent))}
+                className="flex items-center gap-1.5 rounded-lg bg-brand/15 px-2.5 py-1 text-[11px] font-semibold text-brand ring-1 ring-brand/30 hover:bg-brand/25"
+              >
+                <Play className="h-3 w-3" /> Run workflow
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Layer-10: execution run record */}
+        {lastRun && (
+          <div className="mt-4 rounded-xl border border-border bg-bg-subtle/30 p-3">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                <Play className="h-3 w-3 text-brand" /> Run {lastRun.id}
+              </p>
+              <span className={cn("rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ring-1", RUN_STATUS_CLS[lastRun.status])}>
+                {lastRun.status}
+              </span>
+            </div>
+
+            {/* Start / End / Duration */}
+            <div className="grid grid-cols-3 gap-2 text-[11px]">
+              <div className="rounded-lg bg-bg-subtle/50 p-2">
+                <p className="text-[9px] uppercase tracking-wide text-slate-500">Start time</p>
+                <p className="font-mono text-slate-200">{fmtTime(lastRun.startedAt)}</p>
+              </div>
+              <div className="rounded-lg bg-bg-subtle/50 p-2">
+                <p className="text-[9px] uppercase tracking-wide text-slate-500">End time</p>
+                <p className="font-mono text-slate-200">{fmtTime(lastRun.endedAt)}</p>
+              </div>
+              <div className="rounded-lg bg-bg-subtle/50 p-2">
+                <p className="text-[9px] uppercase tracking-wide text-slate-500">Duration</p>
+                <p className="font-mono text-slate-200">{fmtDuration(lastRun.durationSec)}</p>
+              </div>
+            </div>
+
+            {/* Agent Activity */}
+            {lastRun.agentActivity.length > 0 && (
+              <div className="mt-3">
+                <p className="mb-1 text-[9px] uppercase tracking-wide text-slate-500">Agent activity</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {lastRun.agentActivity.map((a) => (
+                    <span key={a.agent} className="flex items-center gap-1 rounded-full bg-bg-subtle/60 px-2 py-0.5 text-[10px] text-slate-300 ring-1 ring-border">
+                      <Bot className="h-3 w-3 text-brand" /> {AGENT_LABEL[a.agent]} · {a.actions}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Outputs */}
+            {lastRun.outputs.length > 0 && (
+              <div className="mt-3">
+                <p className="mb-1 text-[9px] uppercase tracking-wide text-slate-500">Outputs</p>
+                <ul className="space-y-0.5">
+                  {lastRun.outputs.map((o, i) => (
+                    <li key={i} className="flex items-start gap-1.5 text-[11px] text-slate-300">
+                      <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-risk-low" /> {o}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Errors */}
+            {lastRun.errors.length > 0 && (
+              <div className="mt-3">
+                <p className="mb-1 text-[9px] uppercase tracking-wide text-risk-high">Errors</p>
+                <ul className="space-y-0.5">
+                  {lastRun.errors.map((e, i) => (
+                    <li key={i} className="flex items-start gap-1.5 text-[11px] text-risk-high">
+                      <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" /> {e}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         )}
 

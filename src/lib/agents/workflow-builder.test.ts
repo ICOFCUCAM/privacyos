@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   addStep, describeTrigger, describeStep, emptyWorkflow, flowPreview, moveStep, removeStep, reorderStep,
-  validateWorkflow, simulateRun, STEP_CATALOG, TRIGGER_CATALOG, TRIGGER_CATEGORIES,
+  validateWorkflow, simulateRun, executeWorkflow, STEP_CATALOG, TRIGGER_CATALOG, TRIGGER_CATEGORIES,
   ACTION_CATALOG, actionToStep, APPROVAL_CATALOG, approvalToStep,
   type WorkflowDefinition, type WorkflowStepDef,
 } from "./workflow-builder";
@@ -203,6 +203,66 @@ describe("simulateRun (dry-run)", () => {
     const r = simulateRun(def, { source: "social_media" });
     expect(r.steps[0].outcome).toBe("run");
     expect(r.steps[1].outcome).toBe("run");
+  });
+});
+
+describe("executeWorkflow (Layer-10 execution engine)", () => {
+  const T0 = Date.parse("2026-01-01T00:00:00.000Z");
+
+  it("runs an end-to-end workflow and stores the six spec fields", () => {
+    const def = wf({ name: "Breach response", steps: [
+      step({ id: "a", type: "agent", agent: "threat_intel", label: "Correlate sources" }),
+      step({ id: "s", type: "agent", agent: "security", label: "Rotate credentials" }),
+      step({ id: "k", type: "case", agent: undefined, label: "Open breach case" }),
+      step({ id: "r", type: "report", agent: undefined, label: "File incident record" }),
+    ] });
+    const run = executeWorkflow(def, { risk: "critical" }, T0);
+
+    expect(run.status).toBe("success");
+    // Start Time / End Time / Duration
+    expect(run.startedAt).toBe("2026-01-01T00:00:00.000Z");
+    expect(run.durationSec).toBe(90 + 90 + 30 + 45);
+    expect(Date.parse(run.endedAt) - Date.parse(run.startedAt)).toBe(run.durationSec * 1000);
+    // Agent Activity
+    expect(run.agentActivity).toEqual([
+      { agent: "threat_intel", actions: 1 },
+      { agent: "security", actions: 1 },
+    ]);
+    // Outputs (one per step that ran)
+    expect(run.outputs).toHaveLength(4);
+    expect(run.outputs.some((o) => /Case opened: Open breach case/.test(o))).toBe(true);
+    // Errors
+    expect(run.errors).toHaveLength(0);
+    expect(run.id).toMatch(/^run-/);
+  });
+
+  it("pauses at a human-approval gate", () => {
+    const def = wf({ steps: [
+      approvalToStep("legal"),
+      step({ id: "x", type: "agent", agent: "security", label: "Proceed" }),
+    ] });
+    const run = executeWorkflow(def, { risk: "high" }, T0);
+    expect(run.status).toBe("paused");
+    // the step after the gate never ran
+    expect(run.steps.find((s) => s.label === "Proceed")?.outcome).toBe("skipped");
+    expect(run.agentActivity).toHaveLength(0);
+  });
+
+  it("stops on a failed stop-condition", () => {
+    const def = wf({ steps: [
+      step({ id: "c", type: "condition", agent: undefined, label: "If critical", condition: { field: "risk", op: "gte", value: "critical" }, onFalse: "stop" }),
+      step({ id: "a", type: "agent", agent: "security", label: "Rotate" }),
+    ] });
+    const run = executeWorkflow(def, { risk: "medium" }, T0);
+    expect(run.status).toBe("stopped");
+    expect(run.outputs).toHaveLength(0);
+  });
+
+  it("fails when an agent block has no agent", () => {
+    const def = wf({ steps: [step({ id: "a", type: "agent", agent: undefined, label: "Mystery step" })] });
+    const run = executeWorkflow(def, { risk: "high" }, T0);
+    expect(run.status).toBe("failed");
+    expect(run.errors[0]).toMatch(/no agent assigned/);
   });
 });
 

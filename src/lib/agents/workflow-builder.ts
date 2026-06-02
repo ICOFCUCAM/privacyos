@@ -391,6 +391,160 @@ export function simulateRun(def: WorkflowDefinition, event: SampleEvent): Simula
   return { steps, reached, stoppedAt };
 }
 
+/* ── Execution engine (Layer 10) ─────────────────────────────────────────── */
+
+/**
+ * The terminal state of a run:
+ *  - success: every reached step ran to completion
+ *  - paused:  halted at a human-approval gate, awaiting a decision
+ *  - stopped: a condition's onFalse=stop short-circuited the run
+ *  - failed:  a step errored (e.g. an agent block with no agent assigned)
+ */
+export type RunStatus = "success" | "paused" | "stopped" | "failed";
+
+export interface WorkflowRunStep {
+  label: string;
+  type: StepType;
+  agent?: AgentKind;
+  outcome: StepOutcome;
+  /** Modelled execution time for this step, in seconds. */
+  durationSec: number;
+  output: string;
+  error?: string;
+}
+
+/** Per-agent tally of the work an agent did in a run. */
+export interface AgentActivity {
+  agent: AgentKind;
+  actions: number;
+}
+
+/** A stored record of one workflow execution — the Layer-10 deliverable. */
+export interface WorkflowRun {
+  id: string;
+  workflowId: string;
+  workflowName: string;
+  /** Start Time (ISO). */
+  startedAt: string;
+  /** End Time (ISO). */
+  endedAt: string;
+  /** Duration in seconds (End − Start). */
+  durationSec: number;
+  status: RunStatus;
+  steps: WorkflowRunStep[];
+  /** Agent Activity — which agents acted, and how often. */
+  agentActivity: AgentActivity[];
+  /** Outputs produced by the steps that ran. */
+  outputs: string[];
+  /** Errors encountered during the run. */
+  errors: string[];
+}
+
+/** Modelled per-step execution cost (seconds) — deterministic for demo runs. */
+const STEP_DURATION: Record<StepType, number> = {
+  agent: 90, case: 30, takedown: 60, report: 45, notify: 5,
+  webhook: 10, condition: 1, decision: 0, wait: 0,
+};
+
+/** Human-readable output line for a completed step. */
+function stepOutput(s: WorkflowStepDef): string {
+  switch (s.type) {
+    case "agent": return `${s.agent ? agentOutputLabel(s.agent) : "Agent"} completed: ${s.label}`;
+    case "case": return `Case opened: ${s.label}`;
+    case "takedown": return `Takedown filed: ${s.label}`;
+    case "report": return `Report generated: ${s.label}`;
+    case "notify": return `Notification sent: ${s.label}`;
+    case "webhook": return `Webhook called${s.url ? ` (${s.url})` : ""}: ${s.label}`;
+    case "decision": return `Approval ${s.approver ? `(${APPROVER_LABEL[s.approver]})` : ""}: ${s.label}`;
+    default: return s.label;
+  }
+}
+
+function agentOutputLabel(a: AgentKind): string {
+  // Title-case the agent kind for a readable output line without importing UI labels.
+  return a.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") + " Agent";
+}
+
+/**
+ * Execute a workflow definition against a triggering event and produce a stored
+ * run record. Unlike `simulateRun` (a preview), this is the engine that "runs"
+ * the workflow and captures the six fields the spec calls for: Start Time, End
+ * Time, Duration, Agent Activity, Outputs and Errors.
+ *
+ * Pure and deterministic: `now` is injectable so runs are reproducible in tests
+ * and demo mode. Execution walks the blocks in order, halting at the first
+ * human-approval gate (paused), a stop-on-false condition (stopped), or an
+ * invalid step such as an agent block with no agent (failed).
+ */
+export function executeWorkflow(
+  def: WorkflowDefinition,
+  event: SampleEvent = {},
+  now: number = Date.now(),
+): WorkflowRun {
+  const sim = simulateRun(def, event);
+  const steps: WorkflowRunStep[] = [];
+  const outputs: string[] = [];
+  const errors: string[] = [];
+  const activity = new Map<AgentKind, number>();
+
+  let durationSec = 0;
+  let status: RunStatus = "success";
+  let halted = false;
+
+  for (const s of sim.steps) {
+    const { step, outcome } = s;
+
+    // Once halted (pause/stop/fail), the rest of the workflow is recorded as skipped.
+    if (halted || outcome === "skipped") {
+      steps.push({ label: step.label, type: step.type, agent: step.agent, outcome: "skipped", durationSec: 0, output: "" });
+      continue;
+    }
+
+    // An agent block that ran but carries no agent is an execution error.
+    if (step.type === "agent" && !step.agent) {
+      const error = `Step "${step.label || "Agent action"}" has no agent assigned`;
+      steps.push({ label: step.label, type: step.type, outcome: "stopped", durationSec: 0, output: "", error });
+      errors.push(error);
+      status = "failed";
+      halted = true;
+      continue;
+    }
+
+    const dur = STEP_DURATION[step.type];
+    durationSec += dur;
+
+    if (outcome === "run" && step.type === "agent" && step.agent) {
+      activity.set(step.agent, (activity.get(step.agent) ?? 0) + 1);
+    }
+
+    const output = outcome === "run" ? stepOutput(step) : "";
+    if (output) outputs.push(output);
+
+    steps.push({ label: step.label, type: step.type, agent: step.agent, outcome, durationSec: dur, output });
+
+    if (outcome === "paused") { status = "paused"; halted = true; }
+    if (outcome === "stopped") { status = "stopped"; halted = true; }
+  }
+
+  const startedAt = new Date(now).toISOString();
+  const endedAt = new Date(now + durationSec * 1000).toISOString();
+  const agentActivity: AgentActivity[] = [...activity.entries()].map(([agent, actions]) => ({ agent, actions }));
+
+  return {
+    id: `run-${now.toString(36)}`,
+    workflowId: def.id,
+    workflowName: def.name || "Untitled workflow",
+    startedAt,
+    endedAt,
+    durationSec,
+    status,
+    steps,
+    agentActivity,
+    outputs,
+    errors,
+  };
+}
+
 /** A starter definition for a fresh builder session. */
 export function emptyWorkflow(id = "draft"): WorkflowDefinition {
   return {
