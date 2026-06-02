@@ -47,19 +47,28 @@ source }` event, evaluates conditions, and returns each block's outcome —
 `run | paused | waited | skipped | stopped` — plus how many would execute and
 where it stops. This powers the "test the playbook before enabling" panel.
 
-## 4. Surface
+## 4. Surface — the three-panel designer
 
-`/dashboard/workflow-builder` (`builder.tsx`, client):
-- **Trigger + block palette** (all 7 triggers, 9 blocks) with per-block config
-  (condition predicate + on-false, wait delay, webhook URL, agent).
-- **Flow canvas** (`components/workflow-flow.tsx`) — a vertical flow-designer
-  view (trigger → nodes → terminal; condition branches drawn) that is **tinted
-  live by the dry-run outcome**.
-- **Test run** panel — edit the sample event and watch each block's outcome.
-- **Validation + save/enable**, plus an editable list of saved workflows.
+`/dashboard/workflow-builder` (`builder.tsx`, client) is the visual
+drag-and-drop designer, laid out like Power Automate / XSOAR:
 
-Saved definitions are persisted per-user and surface in Mission Control
-(Workflows panel) and the workflow metrics.
+- **Left — Toolbox:** blocks grouped into **Triggers**, **Agents** (all 13),
+  **Actions** (`ACTION_CATALOG`), **Logic** (If / Approval / Wait / Alert /
+  Takedown / Webhook) and **Approvals**. Every block is **draggable onto the
+  canvas** or click-to-add. Trigger blocks set the workflow's trigger.
+- **Center — Canvas:** the flow top-to-bottom — a trigger node then the ordered
+  blocks, each **click-to-select**, **drag-to-reorder**, with a live dry-run
+  outcome chip. A **condition** block renders its **YES → continue / NO →
+  stop|continue** branches inline. Dropping a toolbox block here adds it.
+- **Right — Configuration:** binds to the selected node. For the trigger:
+  kind + risk/threshold/cadence qualifiers. For a block: its label plus
+  type-specific config — **assigned agent**, **condition** (field/op/value +
+  on-false), **approver**, **wait delay**, **webhook URL** — and remove.
+
+Below the designer: a **Test run** panel (edit the sample event, watch each
+block's outcome, **Run workflow** → the Layer-10 execution record), validation,
+and the editable list of **saved workflows**. Saved definitions persist
+per-user and surface in Mission Control (Workflows panel) and the metrics.
 
 ## 5. Execution engine (Layer 10)
 
