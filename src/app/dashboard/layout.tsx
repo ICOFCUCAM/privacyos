@@ -35,6 +35,12 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex min-h-screen">
+      <a
+        href="#content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-brand focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white"
+      >
+        Skip to content
+      </a>
       <Sidebar subjectName={subject?.displayName} live={ds.live} lockedFeatures={lockedFeatures} />
       <div className="flex min-w-0 flex-1 flex-col">
         <MobileNav subjectName={subject?.displayName} live={ds.live} lockedFeatures={lockedFeatures} />
