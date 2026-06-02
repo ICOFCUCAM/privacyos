@@ -5,6 +5,7 @@ import { recordAudit } from "@/lib/audit/audit";
 import { getDataSource } from "@/lib/data";
 import { buildScaryMirror } from "@/lib/home/scary-mirror";
 import { freeAssessment, type FreeAssessment } from "@/lib/home/free-assessment";
+import { classifyProtection, type ProtectionRecommendation } from "@/lib/home/protection-profile";
 
 const FREE_SCAN_COOKIE = "po_free_scan";
 
@@ -12,6 +13,8 @@ export interface FreeScanResult {
   /** True when the visitor has already used their one free scan → upgrade to rescan. */
   locked: boolean;
   assessment?: FreeAssessment;
+  /** Silent profiling → the single most appropriate plan + remaining-risk math. */
+  recommendation?: ProtectionRecommendation;
 }
 
 /**
@@ -29,6 +32,7 @@ export async function runFreeAssessmentAction(name: string): Promise<FreeScanRes
   const { exposures, threats } = await (await getDataSource()).getDataset();
   const report = buildScaryMirror({ name: displayName, exposures, threats });
   const assessment = freeAssessment(report);
+  const recommendation = classifyProtection(report);
 
   // One scan only — lock further scans behind an upgrade for a year.
   store.set(FREE_SCAN_COOKIE, "1", { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
@@ -38,5 +42,5 @@ export async function runFreeAssessmentAction(name: string): Promise<FreeScanRes
     metadata: { exposures: assessment.totalExposures, protectionScore: assessment.protectionScore },
   });
 
-  return { locked: false, assessment };
+  return { locked: false, assessment, recommendation };
 }

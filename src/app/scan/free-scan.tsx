@@ -9,6 +9,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import type { MirrorCategory } from "@/lib/home/scary-mirror";
 import type { FreeAssessment } from "@/lib/home/free-assessment";
+import type { ProtectionRecommendation } from "@/lib/home/protection-profile";
 import { runFreeAssessmentAction } from "./actions";
 
 const CATEGORY_ICON: Record<MirrorCategory, LucideIcon> = {
@@ -24,16 +25,16 @@ export function FreeScan({ defaultName = "" }: { defaultName?: string }) {
   const [phase, setPhase] = useState<Phase>("intro");
   const [name, setName] = useState(defaultName);
   const [assessment, setAssessment] = useState<FreeAssessment | null>(null);
+  const [recommendation, setRecommendation] = useState<ProtectionRecommendation | null>(null);
   const [pending, start] = useTransition();
 
   function run() {
-    const n = name.trim();
-    if (!n && phase === "intro") { /* allow empty → "you" */ }
     setPhase("scanning");
     start(async () => {
       const res = await runFreeAssessmentAction(name);
       if (res.locked || !res.assessment) { setPhase("locked"); return; }
       setAssessment(res.assessment);
+      setRecommendation(res.recommendation ?? null);
       setPhase("reveal");
     });
   }
@@ -108,6 +109,39 @@ export function FreeScan({ defaultName = "" }: { defaultName?: string }) {
           <p className="mt-1 text-xs uppercase tracking-wide text-slate-500">Protection Score</p>
         </div>
       </div>
+
+      {/* Remaining-risk trigger — found / removing / remaining */}
+      {recommendation && (
+        <div className="grid grid-cols-3 gap-px overflow-hidden rounded-2xl border border-border bg-border text-center">
+          <div className="bg-bg-elevated/70 px-3 py-4">
+            <p className="text-2xl font-bold text-white">{recommendation.found}</p>
+            <p className="mt-0.5 text-[11px] uppercase tracking-wide text-slate-500">Found</p>
+          </div>
+          <div className="bg-bg-elevated/70 px-3 py-4">
+            <p className="text-2xl font-bold text-risk-low">{recommendation.removing}</p>
+            <p className="mt-0.5 text-[11px] uppercase tracking-wide text-slate-500">Removing free</p>
+          </div>
+          <div className="bg-bg-elevated/70 px-3 py-4">
+            <p className="text-2xl font-bold text-risk-high">{recommendation.remaining}</p>
+            <p className="mt-0.5 text-[11px] uppercase tracking-wide text-slate-500">Still at risk</p>
+          </div>
+        </div>
+      )}
+
+      {/* Recommended package — silent profiling → the right plan, not all plans */}
+      {recommendation && recommendation.remaining > 0 && (
+        <div className="rounded-2xl border border-brand/40 bg-brand/10 p-5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-brand-fg">Recommended for you</p>
+          <p className="mt-1 text-lg font-bold text-white">{recommendation.planName}</p>
+          <p className="mt-1 text-sm text-slate-400">
+            Based on your scan, {recommendation.planName} is the best fit to handle the remaining
+            {" "}{recommendation.remaining} exposure{recommendation.remaining === 1 ? "" : "s"} — and keep watching, removing and defending automatically.
+          </p>
+          <Link href={`/pricing?plan=${recommendation.planId}`} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand px-5 py-3 text-sm font-semibold text-white hover:bg-brand/90">
+            <ShieldCheck className="h-4 w-4" /> Protect me with {recommendation.planName} <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      )}
 
       {/* Free value — builds trust */}
       <div className="rounded-2xl border border-risk-low/30 bg-risk-low/10 p-5">
