@@ -61,21 +61,54 @@ where it stops. This powers the "test the playbook before enabling" panel.
 Saved definitions are persisted per-user and surface in Mission Control
 (Workflows panel) and the workflow metrics.
 
-## 5. File map
+## 5. Execution engine (Layer 10)
+
+`executeWorkflow(def, event, now?)` is the engine that **runs** a definition and
+stores a `WorkflowRun` record — distinct from `simulateRun` (a preview). It
+walks the blocks in order and resolves a terminal `RunStatus`:
+
+- **success** — every reached block ran
+- **paused** — halted at the first human-approval gate
+- **stopped** — a stop-on-false condition short-circuited the run
+- **failed** — an invalid block (e.g. an agent step with no agent)
+
+The record captures the six spec fields: **Start Time** (`startedAt`), **End
+Time** (`endedAt`), **Duration** (`durationSec`, from a per-type cost model),
+**Agent Activity** (per-agent action tallies), **Outputs** (one line per block
+that ran) and **Errors**. `now` is injectable, so runs are deterministic. The
+builder surfaces a **Run workflow** button and a run-record panel.
+
+## 6. History (Layer 11)
+
+**Surface:** `/dashboard/workflow-builder/history`
+**Engine:** `workflow-history.ts` · **Store:** `workflow-history-store.ts`
+
+Every execution is stored. The History view lists each run as a card —
+`Workflow #<seq>`, **Started**, **Completed**, **Agents** (display names) and
+**Outcome** — plus a stats strip (executions, success rate, awaiting approval,
+agents engaged). The demo history is generated deterministically by running the
+template catalog against representative events (`demoWorkflowHistory`); the
+store reads `workflow_runs` when live and falls back to the demo set.
+
+## 7. File map
 
 ```
-src/lib/agents/workflow-builder.ts        model, ops, validation, simulateRun
-src/lib/agents/workflow-builder.test.ts   unit tests (22)
-src/lib/agents/workflow-store.ts          persistence (workflow_definitions)
+src/lib/agents/workflow-builder.ts        model, ops, validation, simulateRun, executeWorkflow
+src/lib/agents/workflow-builder.test.ts   unit tests
+src/lib/agents/workflow-store.ts          definition persistence (workflow_definitions)
+src/lib/agents/workflow-history.ts        Layer 11 — history projection + demo generation
+src/lib/agents/workflow-history-store.ts  history persistence (workflow_runs) + demo fallback
+src/lib/agents/workflow-history.test.ts   unit tests
 src/components/workflow-flow.tsx          flow-graph canvas
 src/app/dashboard/workflow-builder/       page.tsx + builder.tsx + actions.ts
+src/app/dashboard/workflow-builder/history/page.tsx   History view
 ```
 
-## 6. Not yet built
+## 8. Not yet built
 
 - A **drag-and-drop** node canvas (today the canvas renders the ordered model;
-  reordering is via move-up/down controls).
+  reordering is via move-up/down controls and drag-reorder of the step list).
 - True multi-branch fan-out (the condition primitive gates/continues a single
   ordered path rather than forking two independent sub-flows).
-- A live **execution engine** wired to triggers (definitions persist and are
-  simulated; autonomous execution rides the existing playbook machinery).
+- Persisting builder-initiated runs to `workflow_runs` (the store reads the
+  table when present; the demo history is generated from the template catalog).

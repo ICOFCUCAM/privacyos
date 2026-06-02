@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Workflow, CheckCircle2, LayoutTemplate } from "lucide-react";
+import { Workflow, CheckCircle2, LayoutTemplate, History } from "lucide-react";
 import { PageHeader } from "@/components/ui";
 import { listWorkflowDefinitions } from "@/lib/agents/workflow-store";
 import { ALL_AGENT_KINDS } from "@/lib/billing/entitlements";
@@ -21,12 +21,20 @@ export default async function WorkflowBuilderPage({
         title="Workflow Builder"
         subtitle="Author your own automations — compose a trigger and an ordered chain of agent actions, gates and reports, then enable it to run on matching events."
         actions={
-          <Link
-            href="/dashboard/automation-templates"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-bg-elevated px-3 py-2 text-xs font-medium text-slate-300 hover:text-white"
-          >
-            <LayoutTemplate className="h-3.5 w-3.5" /> Start from a template
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/dashboard/workflow-builder/history"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-bg-elevated px-3 py-2 text-xs font-medium text-slate-300 hover:text-white"
+            >
+              <History className="h-3.5 w-3.5" /> History
+            </Link>
+            <Link
+              href="/dashboard/automation-templates"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-bg-elevated px-3 py-2 text-xs font-medium text-slate-300 hover:text-white"
+            >
+              <LayoutTemplate className="h-3.5 w-3.5" /> Start from a template
+            </Link>
+          </div>
         }
       />
       {params.from === "template" && (
