@@ -20,6 +20,7 @@ import { PROVISIONED_COOKIE } from "@/lib/onboarding/auto-provision";
 import { findListing } from "@/lib/agents/workflow-marketplace";
 import { dismissProvisionedAction } from "./actions";
 import { resolveNeedAction } from "@/app/dashboard/actions";
+import { AutoProtect } from "@/components/auto-protect";
 import { getEntitlements } from "@/lib/billing/subscription";
 import { canRescan } from "@/lib/billing/entitlements";
 import type { RiskLevel } from "@/lib/types";
@@ -97,8 +98,12 @@ export default async function ProtectionHomePage({
     .split(",").map((id) => id.trim()).filter(Boolean)
     .map((id) => findListing(id)?.name).filter((n): n is string => !!n);
 
+  // Autopilot/hybrid + paid: run the fleet's autonomous pass on load and log it.
+  const autoActive = canRescan(entitlements) && home.mode !== "advisor";
+
   return (
     <div className="mx-auto max-w-3xl space-y-4 py-2">
+      {autoActive && <AutoProtect />}
       {justActivated && (
         <div className="flex items-center gap-2 rounded-xl border border-risk-low/30 bg-risk-low/10 px-3.5 py-2.5 text-sm text-risk-low">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
