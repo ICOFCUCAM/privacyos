@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getDataSource } from "@/lib/data";
 import { runDiscovery } from "@/lib/discovery/pipeline";
+import { getEntitlements } from "@/lib/billing/subscription";
+import { canRescan } from "@/lib/billing/entitlements";
 
 /**
  * POST /api/discover — runs the discovery pipeline for the current user's
@@ -14,6 +16,16 @@ import { runDiscovery } from "@/lib/discovery/pipeline";
  */
 export async function POST() {
   const ds = await getDataSource();
+
+  // Continuous scanning is a paid capability. The free tier gets its single
+  // onboarding scan; rescans convert to a plan. (Demo stays fully explorable.)
+  if (ds.live && !canRescan(await getEntitlements())) {
+    return NextResponse.json(
+      { error: "Continuous scanning is a paid feature — upgrade to keep watching.", upgrade: true },
+      { status: 402 },
+    );
+  }
+
   const data = await ds.getDataset();
 
   const finding = await runDiscovery({

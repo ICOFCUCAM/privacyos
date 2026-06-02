@@ -22,11 +22,13 @@ export function Sidebar({
   live,
   lockedFeatures = [],
   isOperator = false,
+  planLabel,
 }: {
   subjectName?: string;
   live?: boolean;
   lockedFeatures?: Feature[];
   isOperator?: boolean;
+  planLabel?: string;
 }) {
   const name = subjectName ?? "Demo Subject";
   return (
@@ -45,7 +47,7 @@ export function Sidebar({
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-white">{name}</p>
-            <p className="truncate text-xs text-slate-500">{live ? "Executive plan" : "Demo mode"}</p>
+            <p className="truncate text-xs text-slate-500">{live ? (planLabel ?? "Free plan") : "Demo mode"}</p>
           </div>
           {live && (
             <form action={signOut}>

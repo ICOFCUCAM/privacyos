@@ -15,11 +15,13 @@ export function MobileNav({
   live,
   lockedFeatures = [],
   isOperator = false,
+  planLabel,
 }: {
   subjectName?: string;
   live?: boolean;
   lockedFeatures?: Feature[];
   isOperator?: boolean;
+  planLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
@@ -93,7 +95,7 @@ export function MobileNav({
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-white">{subjectName ?? "Demo Subject"}</p>
-              <p className="truncate text-xs text-slate-500">{live ? "Executive plan" : "Demo mode"}</p>
+              <p className="truncate text-xs text-slate-500">{live ? (planLabel ?? "Free plan") : "Demo mode"}</p>
             </div>
             {live && (
               <form action={signOut}>

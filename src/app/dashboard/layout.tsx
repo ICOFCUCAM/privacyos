@@ -10,7 +10,7 @@ import { getModuleData } from "@/lib/data/modules";
 import { getEntitlements } from "@/lib/billing/subscription";
 import { isOperator } from "@/lib/billing/entitlements";
 import { GATED_SUITES, requiredFeature, isOperatorRoute } from "@/lib/billing/gating";
-import { CATEGORY_META } from "@/lib/billing/plans";
+import { CATEGORY_META, PLANS } from "@/lib/billing/plans";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { getT } from "@/lib/i18n/server";
 
@@ -35,6 +35,12 @@ export default async function DashboardLayout({
   const locked = needed !== null && !entitlements.features[needed];
   const gatedSuite = needed ? GATED_SUITES.find((s) => s.feature === needed) : undefined;
   const lockedFeatures = GATED_SUITES.filter((s) => !entitlements.features[s.feature]).map((s) => s.feature);
+  // The viewer's actual plan, for the sidebar footer (no more hardcoded tier).
+  const planLabel = entitlements.planId === "admin"
+    ? "Admin"
+    : entitlements.planId === "free"
+      ? "Free plan"
+      : (PLANS.find((p) => p.id === entitlements.planId)?.name ?? "Free plan");
 
   const { notifications } = await getModuleData();
   const unread = notifications.filter((n) => !n.read).length;
@@ -48,9 +54,9 @@ export default async function DashboardLayout({
       >
         Skip to content
       </a>
-      <Sidebar subjectName={subject?.displayName} live={ds.live} lockedFeatures={lockedFeatures} isOperator={operator} />
+      <Sidebar subjectName={subject?.displayName} live={ds.live} lockedFeatures={lockedFeatures} isOperator={operator} planLabel={planLabel} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <MobileNav subjectName={subject?.displayName} live={ds.live} lockedFeatures={lockedFeatures} isOperator={operator} />
+        <MobileNav subjectName={subject?.displayName} live={ds.live} lockedFeatures={lockedFeatures} isOperator={operator} planLabel={planLabel} />
         <header className="hidden items-center justify-between border-b border-border px-6 py-3 lg:flex">
           <p className="text-sm text-slate-400">
             {(() => {

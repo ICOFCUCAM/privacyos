@@ -5,6 +5,8 @@ import { ScanButton } from "@/components/scan-button";
 import { getDataSource } from "@/lib/data";
 import { clusterExposures } from "@/lib/discovery/entity-resolution";
 import { fileRemovalAction } from "@/app/dashboard/removals/actions";
+import { getEntitlements } from "@/lib/billing/subscription";
+import { canRescan } from "@/lib/billing/entitlements";
 import { cn, timeAgo, titleCase } from "@/lib/ui";
 import type { RiskLevel } from "@/lib/types";
 
@@ -15,6 +17,7 @@ export const metadata = { title: "Exposures" };
 
 export default async function ExposuresPage() {
   const { exposures } = await (await getDataSource()).getDataset();
+  const rescanAllowed = canRescan(await getEntitlements());
   // Entity resolution: one row per real-world entity, with merged source counts.
   const clusters = clusterExposures(exposures).sort((a, b) => b.representative.riskScore - a.representative.riskScore);
 
@@ -36,7 +39,7 @@ export default async function ExposuresPage() {
         subtitle={`${clusters.length} unique exposure${clusters.length === 1 ? "" : "s"}${
           exposures.length !== clusters.length ? ` resolved from ${exposures.length} raw signals` : ""
         } — classified by risk and remediation status.`}
-        actions={<ScanButton />}
+        actions={<ScanButton canRescan={rescanAllowed} />}
       />
 
       {/* Visual summary */}

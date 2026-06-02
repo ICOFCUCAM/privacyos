@@ -10,6 +10,7 @@ import { getSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/se
 import {
   ADMIN_ENTITLEMENTS,
   DEMO_ENTITLEMENTS,
+  FREE_ENTITLEMENTS,
   entitlementsFor,
   isAdminEmail,
   type Entitlements,
@@ -62,5 +63,8 @@ export async function getEntitlements(): Promise<Entitlements> {
     return DEMO_ENTITLEMENTS;
   }
   const sub = await getSubscription();
-  return entitlementsFor(sub);
+  const ent = entitlementsFor(sub);
+  // Signed in but no active paid plan (or canceled) → the real free tier
+  // (one scan + 10 removals, read-only), never zero access.
+  return ent.entitled ? ent : FREE_ENTITLEMENTS;
 }

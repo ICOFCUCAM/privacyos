@@ -61,6 +61,30 @@ const NONE: Entitlements = {
   familySeats: 0,
 };
 
+/**
+ * Free tier — what a signed-up user gets WITHOUT paying: their one onboarding
+ * discovery scan, up to 10 broker removals, and read-only monitoring of what
+ * was found. No rescans, no continuous monitoring, no suites — those are the
+ * upgrade. Entitled (so onboarding provisions broker removal) but planId "free"
+ * (so continuous protection stays gated).
+ */
+export const FREE_ENTITLEMENTS: Entitlements = {
+  planId: "free",
+  category: "personal",
+  entitled: true,
+  features: {
+    reputation: false, executive: false, business: false, family: false,
+    ai_agent: false, deep_web: false, priority_support: false, financial: false, automation: false,
+  },
+  brokerRemovalLimit: 10,
+  familySeats: 0,
+};
+
+/** Continuous protection — rescans + ongoing monitoring — is a paid capability. */
+export function canRescan(ent: Entitlements): boolean {
+  return ent.entitled && ent.planId !== "free";
+}
+
 /** Per-plan broker-removal allowances (personal tiers). */
 const BROKER_LIMITS: Record<string, number> = {
   free: 10,

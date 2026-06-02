@@ -21,6 +21,7 @@ import { findListing } from "@/lib/agents/workflow-marketplace";
 import { dismissProvisionedAction } from "./actions";
 import { resolveNeedAction } from "@/app/dashboard/actions";
 import { getEntitlements } from "@/lib/billing/subscription";
+import { canRescan } from "@/lib/billing/entitlements";
 import type { RiskLevel } from "@/lib/types";
 import { cn } from "@/lib/ui";
 
@@ -230,7 +231,11 @@ export default async function ProtectionHomePage({
           <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
             <Eye className="h-3.5 w-3.5 text-brand" /> What we found
           </p>
-          <Link href="/dashboard/scan" className="text-[11px] font-medium text-brand-fg hover:underline">Re-scan my exposure →</Link>
+          {canRescan(entitlements) ? (
+            <Link href="/dashboard/scan" className="text-[11px] font-medium text-brand-fg hover:underline">Re-scan my exposure →</Link>
+          ) : (
+            <Link href="/pricing?plan=plus" className="text-[11px] font-medium text-brand-fg hover:underline">Upgrade to re-scan →</Link>
+          )}
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <Stat label="Exposures" value={home.found.exposures} tone="text-white" />
@@ -249,6 +254,20 @@ export default async function ProtectionHomePage({
         <p className="px-1 text-center text-[11px] text-slate-600">
           Demo data — figures are illustrative. Connect your accounts to run live monitoring and removals.
         </p>
+      )}
+
+      {/* Free tier — continuous protection is the upgrade */}
+      {entitlements.planId === "free" && (
+        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-brand/30 bg-brand/10 p-4">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand/20 text-brand"><ShieldCheck className="h-5 w-5" /></span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-white">You&rsquo;re on the Free plan</p>
+            <p className="text-[11px] text-slate-400">Your scan and broker removals are active — but continuous monitoring and re-scans are paused. Subscribe to keep watching, removing and defending automatically.</p>
+          </div>
+          <Link href="/pricing?plan=plus" className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand/90">
+            Subscribe to keep protecting <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
       )}
 
       {/* Tier lens — depth appropriate to the customer's plan */}

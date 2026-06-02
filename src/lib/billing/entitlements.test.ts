@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  ADMIN_ENTITLEMENTS, availableAgents, DEMO_ENTITLEMENTS, entitlementsFor, isAdminEmail, isEntitled, isOperator,
+  ADMIN_ENTITLEMENTS, availableAgents, canRescan, DEMO_ENTITLEMENTS, entitlementsFor,
+  FREE_ENTITLEMENTS, isAdminEmail, isEntitled, isOperator,
 } from "./entitlements";
 
 describe("isAdminEmail", () => {
@@ -14,6 +15,23 @@ describe("isAdminEmail", () => {
     expect(isAdminEmail("someone@else.com", env)).toBe(false);
     expect(isAdminEmail(null, env)).toBe(false);
     expect(isAdminEmail("tchamer@aol.com", {})).toBe(false); // no allowlist set
+  });
+});
+
+describe("free tier", () => {
+  it("grants the one-scan tier: 10 removals, no suites, entitled but planId 'free'", () => {
+    expect(FREE_ENTITLEMENTS.planId).toBe("free");
+    expect(FREE_ENTITLEMENTS.entitled).toBe(true); // so onboarding provisions broker removal
+    expect(FREE_ENTITLEMENTS.brokerRemovalLimit).toBe(10);
+    expect(Object.values(FREE_ENTITLEMENTS.features).some(Boolean)).toBe(false); // no suites
+  });
+
+  it("gates continuous scanning behind a paid plan", () => {
+    expect(canRescan(FREE_ENTITLEMENTS)).toBe(false);            // free → blocked
+    expect(canRescan(entitlementsFor(null))).toBe(false);        // unsubscribed → blocked
+    expect(canRescan(entitlementsFor({ planId: "plus", status: "active" }))).toBe(true);
+    expect(canRescan(DEMO_ENTITLEMENTS)).toBe(true);             // demo stays explorable
+    expect(canRescan(ADMIN_ENTITLEMENTS)).toBe(true);
   });
 });
 
