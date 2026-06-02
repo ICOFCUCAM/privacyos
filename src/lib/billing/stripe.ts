@@ -53,6 +53,9 @@ export async function createCheckoutSession(opts: {
   customerEmail?: string;
   clientReferenceId?: string;
   annual?: boolean;
+  /** Presentment currency (ISO lower-case); requires the Price to carry a
+   *  matching `currency_options` entry. Omit for the Price's base currency. */
+  currency?: string;
 }): Promise<string> {
   const form: Record<string, string> = {
     mode: "subscription",
@@ -65,6 +68,7 @@ export async function createCheckoutSession(opts: {
     "subscription_data[metadata][plan_id]": opts.planId,
     allow_promotion_codes: "true",
   };
+  if (opts.currency) form.currency = opts.currency.toLowerCase();
   if (opts.customerEmail) form.customer_email = opts.customerEmail;
   if (opts.clientReferenceId) form.client_reference_id = opts.clientReferenceId;
 

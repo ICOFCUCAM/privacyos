@@ -7,6 +7,7 @@ import {
   isStripeConfigured,
   stripePriceId,
 } from "@/lib/billing/stripe";
+import { isSupportedCurrency } from "@/lib/billing/currencies";
 
 /**
  * POST /api/checkout — start a Stripe Checkout session for a plan.
@@ -30,8 +31,9 @@ export async function POST(req: Request) {
 
   let planId = "";
   let annual = false;
+  let currency = "";
   try {
-    ({ planId, annual = false } = await req.json());
+    ({ planId, annual = false, currency = "" } = await req.json());
   } catch {
     /* no body */
   }
@@ -62,6 +64,8 @@ export async function POST(req: Request) {
       priceId,
       planId: plan.id,
       annual: Boolean(annual),
+      // Only forward a presentment currency we support; else use the Price's base.
+      currency: isSupportedCurrency(currency) ? currency : undefined,
       successUrl: `${base}/dashboard/home?checkout=success`,
       cancelUrl: `${base}/pricing?checkout=cancelled`,
       customerEmail: user.email ?? undefined,

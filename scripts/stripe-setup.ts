@@ -15,6 +15,7 @@
  */
 
 import { PLANS, ANNUAL_DISCOUNT } from "../src/lib/billing/plans.ts";
+import { CURRENCIES, toStripeAmount } from "../src/lib/billing/currencies.ts";
 
 const KEY = process.env.STRIPE_SECRET_KEY;
 const WANT_ANNUAL = process.argv.includes("--annual");
@@ -57,26 +58,36 @@ async function ensureProduct(planId: string, name: string): Promise<string> {
   return created.id;
 }
 
-/** Find a recurring Price by lookup_key, or create it. Returns the price id. */
+/**
+ * Find a recurring Price by lookup_key, or create it with a USD base plus
+ * `currency_options` for every other presentment currency. Returns the price id.
+ */
 async function ensurePrice(opts: {
   product: string;
   planId: string;
   lookupKey: string;
-  amountCents: number;
+  usdDollars: number;
   interval: "month" | "year";
   nickname: string;
 }): Promise<string> {
   const found = await stripe("GET", `prices?lookup_keys[]=${encodeURIComponent(opts.lookupKey)}&limit=1`);
   if ((found.data as any[]).length > 0) return (found.data as any[])[0].id;
-  const created = await stripe("POST", "prices", {
+
+  const form: Record<string, string> = {
     product: opts.product,
     currency: "usd",
-    unit_amount: String(opts.amountCents),
+    unit_amount: String(Math.round(opts.usdDollars * 100)),
     "recurring[interval]": opts.interval,
     lookup_key: opts.lookupKey,
     nickname: opts.nickname,
     "metadata[plan_id]": opts.planId,
-  });
+  };
+  // Multi-currency: present the same plan in every supported currency.
+  for (const c of CURRENCIES) {
+    if (c.code === "usd") continue;
+    form[`currency_options[${c.code}][unit_amount]`] = String(toStripeAmount(opts.usdDollars, c));
+  }
+  const created = await stripe("POST", "prices", form);
   return created.id;
 }
 
@@ -92,16 +103,16 @@ async function main() {
 
     const monthlyPrice = await ensurePrice({
       product, planId: plan.id, lookupKey: plan.id,
-      amountCents: Math.round(monthly * 100), interval: "month",
+      usdDollars: monthly, interval: "month",
       nickname: `${plan.name} — monthly`,
     });
     lines.push(`${ENV_KEY(plan.id)}=${monthlyPrice}`);
 
     if (WANT_ANNUAL) {
-      const annualCents = Math.round(monthly * 12 * (1 - ANNUAL_DISCOUNT) * 100);
+      const annualUsd = monthly * 12 * (1 - ANNUAL_DISCOUNT);
       const annualPrice = await ensurePrice({
         product, planId: plan.id, lookupKey: `${plan.id}-annual`,
-        amountCents: annualCents, interval: "year",
+        usdDollars: annualUsd, interval: "year",
         nickname: `${plan.name} — annual (${Math.round(ANNUAL_DISCOUNT * 100)}% off)`,
       });
       lines.push(`${ENV_KEY(plan.id)}_ANNUAL=${annualPrice}`);

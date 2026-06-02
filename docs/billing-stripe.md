@@ -75,6 +75,27 @@ Security: the secret key + webhook secret live only in env. The webhook and
 cron use the service-role client and **fail closed** when their secrets are
 unset. The webhook only provisions plans it recognizes.
 
+## Multi-currency
+
+Customers choose their currency on the pricing page (`src/lib/billing/currencies.ts`
+— 12 presentment currencies: USD, EUR, GBP, CAD, AUD, NOK, SEK, DKK, CHF, JPY,
+SGD, INR). Each Stripe Price is created with **`currency_options`** for all of
+them (by `stripe:setup`), and `/api/checkout` opens the Checkout Session in the
+selected currency, so the customer is charged in their own currency.
+
+- The `rate` table in `currencies.ts` is an approximate USD→local multiplier
+  used to display localized prices and seed the `currency_options` amounts.
+  Replace with bespoke local prices for production-grade pricing if desired.
+- Adding currencies later: extend `CURRENCIES`, then **re-run `stripe:setup`**.
+  Existing Prices are reused by `lookup_key`, so to attach new `currency_options`
+  to an existing plan you create a fresh Price (bump the lookup key) or add the
+  options in the dashboard.
+- France/Europe use **EUR** — the former French Franc (FRF) is obsolete and
+  unsupported by Stripe.
+
+(Note: this is presentment currency only. A separate **language switcher** /
+i18n is a distinct piece of work — the currency layer doesn't depend on it.)
+
 ## Going live
 
 Swap `sk_test_…` → `sk_live_…`, re-run the setup script (remove the live-key

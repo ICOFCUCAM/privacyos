@@ -10,18 +10,21 @@ import {
   plansByCategory,
   type Plan,
 } from "@/lib/billing/plans";
+import {
+  CURRENCIES, DEFAULT_CURRENCY, formatMoney, resolveCurrency, type Currency,
+} from "@/lib/billing/currencies";
 import { cn } from "@/lib/ui";
 
-function priceLabel(plan: Plan, annual: boolean) {
+function priceLabel(plan: Plan, annual: boolean, currency: Currency) {
   if (plan.monthly === null) return { big: "Custom", sub: "Contact sales" };
   const m = annual ? annualMonthly(plan.monthly) : plan.monthly;
-  const big = `$${m % 1 === 0 ? m : m.toFixed(2)}`;
-  const sub = annual ? `/mo · billed $${annualTotal(plan.monthly).toLocaleString()}/yr` : "/month";
+  const big = formatMoney(m, currency);
+  const sub = annual ? `/mo · billed ${formatMoney(annualTotal(plan.monthly), currency)}/yr` : "/month";
   return { big, sub };
 }
 
-function PlanCard({ plan, annual }: { plan: Plan; annual: boolean }) {
-  const { big, sub } = priceLabel(plan, annual);
+function PlanCard({ plan, annual, currency }: { plan: Plan; annual: boolean; currency: Currency }) {
+  const { big, sub } = priceLabel(plan, annual, currency);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -36,7 +39,7 @@ function PlanCard({ plan, annual }: { plan: Plan; annual: boolean }) {
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ planId: plan.id, annual }),
+        body: JSON.stringify({ planId: plan.id, annual, currency: currency.code }),
       });
       const data = await res.json();
       if (res.ok && data.url) {
@@ -99,27 +102,48 @@ function PlanCard({ plan, annual }: { plan: Plan; annual: boolean }) {
 
 export function PricingTable() {
   const [annual, setAnnual] = useState(true);
+  const [currencyCode, setCurrencyCode] = useState(DEFAULT_CURRENCY);
+  const currency = resolveCurrency(currencyCode);
 
   return (
     <div className="space-y-12">
-      {/* Billing toggle */}
-      <div className="flex items-center justify-center gap-3">
-        <span className={cn("text-sm", !annual ? "text-white" : "text-slate-500")}>Monthly</span>
-        <button
-          onClick={() => setAnnual((v) => !v)}
-          className="relative h-6 w-11 rounded-full bg-bg-subtle ring-1 ring-border transition"
-          aria-label="Toggle annual billing"
-        >
-          <span
-            className={cn(
-              "absolute top-0.5 h-5 w-5 rounded-full bg-brand transition-all",
-              annual ? "left-[22px]" : "left-0.5",
-            )}
-          />
-        </button>
-        <span className={cn("text-sm", annual ? "text-white" : "text-slate-500")}>
-          Annual <span className="text-risk-low">save 20%</span>
-        </span>
+      {/* Currency + billing controls */}
+      <div className="flex flex-col items-center gap-4">
+        <label className="flex items-center gap-2 text-sm text-slate-400">
+          <span>Currency</span>
+          <select
+            value={currencyCode}
+            onChange={(e) => setCurrencyCode(e.target.value)}
+            aria-label="Select currency"
+            className="rounded-lg border border-border bg-bg-subtle px-3 py-1.5 text-sm text-white focus:border-brand/50 focus:outline-none"
+          >
+            {CURRENCIES.map((c) => (
+              <option key={c.code} value={c.code}>{c.flag} {c.code.toUpperCase()} — {c.label}</option>
+            ))}
+          </select>
+        </label>
+
+        <div className="flex items-center justify-center gap-3">
+          <span className={cn("text-sm", !annual ? "text-white" : "text-slate-500")}>Monthly</span>
+          <button
+            onClick={() => setAnnual((v) => !v)}
+            className="relative h-6 w-11 rounded-full bg-bg-subtle ring-1 ring-border transition"
+            aria-label="Toggle annual billing"
+          >
+            <span
+              className={cn(
+                "absolute top-0.5 h-5 w-5 rounded-full bg-brand transition-all",
+                annual ? "left-[22px]" : "left-0.5",
+              )}
+            />
+          </button>
+          <span className={cn("text-sm", annual ? "text-white" : "text-slate-500")}>
+            Annual <span className="text-risk-low">save 20%</span>
+          </span>
+        </div>
+        {currency.code !== "usd" && (
+          <p className="text-[11px] text-slate-600">Prices shown in {currency.label} are indicative; you’ll be charged in {currency.code.toUpperCase()} at checkout.</p>
+        )}
       </div>
 
       {CATEGORY_ORDER.map((cat) => {
@@ -138,7 +162,7 @@ export function PricingTable() {
               )}
             >
               {plans.map((p) => (
-                <PlanCard key={p.id} plan={p} annual={annual} />
+                <PlanCard key={p.id} plan={p} annual={annual} currency={currency} />
               ))}
             </div>
           </section>
