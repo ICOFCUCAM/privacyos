@@ -10,6 +10,8 @@ import { getModuleData } from "@/lib/data/modules";
 import { getEntitlements } from "@/lib/billing/subscription";
 import { GATED_SUITES, requiredFeature } from "@/lib/billing/gating";
 import { CATEGORY_META } from "@/lib/billing/plans";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { getT } from "@/lib/i18n/server";
 
 export default async function DashboardLayout({
   children,
@@ -32,6 +34,7 @@ export default async function DashboardLayout({
 
   const { notifications } = await getModuleData();
   const unread = notifications.filter((n) => !n.read).length;
+  const t = await getT();
 
   return (
     <div className="flex min-h-screen">
@@ -46,9 +49,13 @@ export default async function DashboardLayout({
         <MobileNav subjectName={subject?.displayName} live={ds.live} lockedFeatures={lockedFeatures} />
         <header className="hidden items-center justify-between border-b border-border px-6 py-3 lg:flex">
           <p className="text-sm text-slate-400">
-            Protecting <span className="font-medium text-white">{name}</span>
+            {(() => {
+              const [before, after] = t("common.protecting", { name: "\u0000" }).split("\u0000");
+              return (<>{before}<span className="font-medium text-white">{name}</span>{after ?? ""}</>);
+            })()}
           </p>
           <div className="flex items-center gap-3">
+            <LanguageSwitcher compact />
             <Link
               href="/dashboard/notifications"
               aria-label={`Notifications${unread ? ` (${unread} unread)` : ""}`}
@@ -66,7 +73,7 @@ export default async function DashboardLayout({
               title={ds.live ? "Connected to Supabase" : "Running on the built-in demo dataset"}
             >
               <span className={`h-1.5 w-1.5 rounded-full ${ds.live ? "bg-risk-low" : "bg-risk-medium"}`} />
-              {ds.live ? "Live data" : "Demo data"}
+              {ds.live ? t("common.liveData") : t("common.demoData")}
             </span>
           </div>
         </header>
