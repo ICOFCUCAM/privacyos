@@ -121,6 +121,16 @@ export function isAdminEmail(
   return allow.includes(email.trim().toLowerCase());
 }
 
+/**
+ * Operator access: the internal company consoles (the Growth & Revenue book of
+ * business) are for admins only, and remain explorable in pure demo mode where
+ * there are no real tenants. A real, signed-in customer is never an operator —
+ * so company financials never leak into a customer account.
+ */
+export function isOperator(ent: Entitlements): boolean {
+  return ent.planId === "admin" || ent.planId === "demo";
+}
+
 /** Resolve entitlements from a subscription (or null → unsubscribed). */
 export function entitlementsFor(sub: Subscription | null): Entitlements {
   if (!sub || !isEntitled(sub.status)) return NONE;

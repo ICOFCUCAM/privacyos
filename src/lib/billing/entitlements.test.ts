@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  ADMIN_ENTITLEMENTS, availableAgents, DEMO_ENTITLEMENTS, entitlementsFor, isAdminEmail, isEntitled,
+  ADMIN_ENTITLEMENTS, availableAgents, DEMO_ENTITLEMENTS, entitlementsFor, isAdminEmail, isEntitled, isOperator,
 } from "./entitlements";
 
 describe("isAdminEmail", () => {
@@ -14,6 +14,15 @@ describe("isAdminEmail", () => {
     expect(isAdminEmail("someone@else.com", env)).toBe(false);
     expect(isAdminEmail(null, env)).toBe(false);
     expect(isAdminEmail("tchamer@aol.com", {})).toBe(false); // no allowlist set
+  });
+});
+
+describe("isOperator", () => {
+  it("grants operator access to admins and pure demo, never to a real customer", () => {
+    expect(isOperator(ADMIN_ENTITLEMENTS)).toBe(true);
+    expect(isOperator(DEMO_ENTITLEMENTS)).toBe(true);
+    expect(isOperator(entitlementsFor({ planId: "exec-pro", status: "active" }))).toBe(false);
+    expect(isOperator(entitlementsFor(null))).toBe(false);
   });
 });
 

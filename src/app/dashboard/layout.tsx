@@ -8,7 +8,8 @@ import { UpgradeGate } from "@/components/upgrade-gate";
 import { getDataSource } from "@/lib/data";
 import { getModuleData } from "@/lib/data/modules";
 import { getEntitlements } from "@/lib/billing/subscription";
-import { GATED_SUITES, requiredFeature } from "@/lib/billing/gating";
+import { isOperator } from "@/lib/billing/entitlements";
+import { GATED_SUITES, requiredFeature, isOperatorRoute } from "@/lib/billing/gating";
 import { CATEGORY_META } from "@/lib/billing/plans";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { getT } from "@/lib/i18n/server";
@@ -27,6 +28,9 @@ export default async function DashboardLayout({
   // Plan gating: lock suite pages the current plan doesn't include.
   const entitlements = await getEntitlements();
   const pathname = (await headers()).get("x-pathname") ?? "";
+  // Internal operator consoles (company financials) are never for customers.
+  if (isOperatorRoute(pathname) && !isOperator(entitlements)) redirect("/dashboard/home");
+  const operator = isOperator(entitlements);
   const needed = requiredFeature(pathname);
   const locked = needed !== null && !entitlements.features[needed];
   const gatedSuite = needed ? GATED_SUITES.find((s) => s.feature === needed) : undefined;
@@ -44,9 +48,9 @@ export default async function DashboardLayout({
       >
         Skip to content
       </a>
-      <Sidebar subjectName={subject?.displayName} live={ds.live} lockedFeatures={lockedFeatures} />
+      <Sidebar subjectName={subject?.displayName} live={ds.live} lockedFeatures={lockedFeatures} isOperator={operator} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <MobileNav subjectName={subject?.displayName} live={ds.live} lockedFeatures={lockedFeatures} />
+        <MobileNav subjectName={subject?.displayName} live={ds.live} lockedFeatures={lockedFeatures} isOperator={operator} />
         <header className="hidden items-center justify-between border-b border-border px-6 py-3 lg:flex">
           <p className="text-sm text-slate-400">
             {(() => {

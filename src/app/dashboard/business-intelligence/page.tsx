@@ -1,8 +1,11 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   TrendingUp, TrendingDown, DollarSign, Repeat, Users,
   Gauge, Bot, Database, ArrowRight, Crown, Briefcase, Star, Shield, Cpu,
 } from "lucide-react";
+import { getEntitlements } from "@/lib/billing/subscription";
+import { isOperator } from "@/lib/billing/entitlements";
 import { Card, PageHeader, SectionTitle } from "@/components/ui";
 import { AreaChart } from "@/components/viz-advanced";
 import { getBook } from "@/lib/business/book";
@@ -47,6 +50,10 @@ function money(n: number): string {
 }
 
 export default async function BusinessIntelligencePage() {
+  // Authoritative guard: this is the company's own book of business, not the
+  // customer's protection data. Admins (and pure demo) only — never a customer.
+  if (!isOperator(await getEntitlements())) redirect("/dashboard/home");
+
   const { accounts, live } = await getBook();
   const mod = await getModuleData();
   const data = await (await getDataSource()).getDataset();

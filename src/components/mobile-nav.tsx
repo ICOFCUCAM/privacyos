@@ -14,10 +14,12 @@ export function MobileNav({
   subjectName,
   live,
   lockedFeatures = [],
+  isOperator = false,
 }: {
   subjectName?: string;
   live?: boolean;
   lockedFeatures?: Feature[];
+  isOperator?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
@@ -85,7 +87,7 @@ export function MobileNav({
           </button>
         </div>
 
-        <NavList lockedFeatures={lockedFeatures} onNavigate={() => setOpen(false)} />
+        <NavList lockedFeatures={lockedFeatures} isOperator={isOperator} onNavigate={() => setOpen(false)} />
 
         <div className="border-t border-border p-4">
           <div className="flex items-center justify-between gap-3">

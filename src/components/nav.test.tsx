@@ -31,4 +31,16 @@ describe("<NavList> progressive disclosure", () => {
     // the toggle flips its label
     expect(screen.getByText("Hide advanced tools")).toBeTruthy();
   });
+
+  it("never shows the internal Growth & Revenue console to a non-operator, even under Advanced", () => {
+    render(<NavList />);
+    fireEvent.click(screen.getByText("Advanced tools"));
+    expect(screen.queryByText("Growth & Revenue")).toBeNull();
+  });
+
+  it("shows the Growth & Revenue console only to operators", () => {
+    render(<NavList isOperator />);
+    fireEvent.click(screen.getByText("Advanced tools"));
+    expect(screen.getByText("Growth & Revenue")).toBeTruthy();
+  });
 });

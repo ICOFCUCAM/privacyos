@@ -21,10 +21,12 @@ export function Sidebar({
   subjectName,
   live,
   lockedFeatures = [],
+  isOperator = false,
 }: {
   subjectName?: string;
   live?: boolean;
   lockedFeatures?: Feature[];
+  isOperator?: boolean;
 }) {
   const name = subjectName ?? "Demo Subject";
   return (
@@ -34,7 +36,7 @@ export function Sidebar({
         <span className="text-lg font-bold text-white">PrivacyOS</span>
       </Link>
 
-      <NavList lockedFeatures={lockedFeatures} />
+      <NavList lockedFeatures={lockedFeatures} isOperator={isOperator} />
 
       <div className="border-t border-border p-4">
         <div className="flex items-center gap-3">

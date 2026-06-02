@@ -50,3 +50,15 @@ export function requiredFeature(path: string): Feature | null {
   }
   return null;
 }
+
+/**
+ * Operator-only route prefixes — internal company surfaces (the SaaS Growth &
+ * Revenue console with MRR/ARR/NRR/churn across the whole book of business).
+ * These are NOT customer protection data and must never be reachable by a
+ * customer account, even by typing the URL. Gated on operator/admin access.
+ */
+export const OPERATOR_PREFIXES = ["/dashboard/business-intelligence"];
+
+export function isOperatorRoute(path: string): boolean {
+  return OPERATOR_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`));
+}

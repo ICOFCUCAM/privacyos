@@ -18,7 +18,7 @@ import { cn } from "@/lib/ui";
 import type { Feature } from "@/lib/billing/entitlements";
 
 export type NavItem = { href: string; label: string; icon: LucideIcon };
-export type NavGroup = { group: string; items: NavItem[]; feature?: Feature };
+export type NavGroup = { group: string; items: NavItem[]; feature?: Feature; operator?: boolean };
 
 export const navGroups: NavGroup[] = [
   {
@@ -113,6 +113,7 @@ export const navGroups: NavGroup[] = [
   },
   {
     group: "Operator",
+    operator: true,
     items: [
       { href: "/dashboard/business-intelligence", label: "Growth & Revenue", icon: TrendingUp },
     ],
@@ -141,9 +142,12 @@ const ADVANCED_PREF_KEY = "po_advanced";
 /** The grouped nav list, shared by the desktop sidebar and the mobile drawer. */
 export function NavList({
   lockedFeatures = [],
+  isOperator = false,
   onNavigate,
 }: {
   lockedFeatures?: Feature[];
+  /** Operator/admin: reveals internal company consoles (e.g. Growth & Revenue). */
+  isOperator?: boolean;
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
@@ -174,6 +178,7 @@ export function NavList({
   // In consumer view, show only the ~6 surfaces (and never a locked/upsell item);
   // in advanced view, show everything (locked items become upsells).
   const groups = navGroups
+    .filter((g) => !g.operator || isOperator) // internal consoles: operators only
     .map((g) => ({
       ...g,
       items: advanced ? g.items : g.items.filter((it) => CONSUMER_SURFACES.has(it.href) && !isLocked(g.feature)),

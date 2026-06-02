@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { requiredFeature } from "./gating";
+import { requiredFeature, isOperatorRoute } from "./gating";
 
 describe("route gating map", () => {
   it("maps suite routes to their required feature", () => {
@@ -26,5 +26,13 @@ describe("route gating map", () => {
   it("matches nested paths but not unrelated prefixes", () => {
     expect(requiredFeature("/dashboard/business/anything")).toBe("business");
     expect(requiredFeature("/dashboard/businessother")).toBeNull();
+  });
+
+  it("flags the internal company console as operator-only (and nothing else)", () => {
+    expect(isOperatorRoute("/dashboard/business-intelligence")).toBe(true);
+    expect(isOperatorRoute("/dashboard/business-intelligence/anything")).toBe(true);
+    // the customer's own BusinessOS suite is NOT the operator console
+    expect(isOperatorRoute("/dashboard/business")).toBe(false);
+    expect(isOperatorRoute("/dashboard/home")).toBe(false);
   });
 });
