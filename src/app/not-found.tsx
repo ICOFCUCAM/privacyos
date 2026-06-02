@@ -19,8 +19,8 @@ export default function NotFound() {
         <Link href="/" className={buttonClasses("primary", "md", "px-5 py-2.5")}>
           Back home
         </Link>
-        <Link href="/dashboard" className={buttonClasses("secondary", "md", "px-5 py-2.5")}>
-          Open dashboard <ArrowRight className="h-4 w-4" />
+        <Link href="/dashboard/home" className={buttonClasses("secondary", "md", "px-5 py-2.5")}>
+          Open protection <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
     </main>
