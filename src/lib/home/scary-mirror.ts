@@ -13,10 +13,10 @@
  */
 
 import type { Exposure, Threat, RiskLevel, ExposureSource, ThreatKind } from "@/lib/types";
+import { computeRiskScore } from "@/lib/scoring/risk-score";
 
 const RISK_RANK: Record<RiskLevel, number> = { low: 0, medium: 1, high: 2, critical: 3 };
 const RANK_RISK: RiskLevel[] = ["low", "medium", "high", "critical"];
-const SEVERITY_WEIGHT: Record<RiskLevel, number> = { low: 2, medium: 5, high: 9, critical: 14 };
 
 export type MirrorCategory = "brokers" | "breaches" | "darkweb" | "reputation" | "identity" | "social";
 
@@ -120,20 +120,23 @@ export function buildScaryMirror(input: ScaryMirrorInput): ScaryMirrorReport {
   }
 
   const findings: MirrorFinding[] = [];
-  let weight = 0;
   for (const [cat, b] of buckets) {
     if (b.items.length === 0) continue;
     const severity = b.items.reduce<RiskLevel>((mx, it) => (RISK_RANK[it.risk] > RISK_RANK[mx] ? it.risk : mx), "low");
     const samples = [...new Set(b.items.map((it) => it.name))].slice(0, 3);
     const meta = CATEGORY_META[cat];
     findings.push({ category: cat, label: meta.label, count: b.items.length, severity, samples, fixLabel: meta.fixLabel, pack: meta.pack });
-    for (const it of b.items) weight += SEVERITY_WEIGHT[it.risk];
   }
 
   findings.sort((a, b) => RISK_RANK[b.severity] - RISK_RANK[a.severity] || b.count - a.count || CATEGORY_META[a.category].order - CATEGORY_META[b.category].order);
 
   const totalFindings = findings.reduce((s, f) => s + f.count, 0);
-  const exposureScore = totalFindings === 0 ? 0 : Math.max(8, Math.min(96, weight));
+  // Score on the SAME model as Protection Home (exposureScore = the canonical
+  // risk overall), so the activation number and the home number always agree.
+  const activeThreats = input.threats.filter((t) => !t.acknowledged);
+  const exposureScore = totalFindings === 0
+    ? 0
+    : Math.max(0, Math.min(100, computeRiskScore(input.exposures, activeThreats).overall));
   const protectionScore = 100 - exposureScore;
   const sourcesScanned = input.sourcesScanned ?? 64;
   const worst = findings[0] ?? null;
