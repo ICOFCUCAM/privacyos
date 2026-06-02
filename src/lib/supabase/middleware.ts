@@ -37,19 +37,28 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     },
   });
 
+  const path = request.nextUrl.pathname;
+  const isProtected = path.startsWith("/dashboard") || path.startsWith("/onboarding");
+
   let user;
   try {
     const res = await supabase.auth.getUser();
     user = res.data.user;
   } catch (err) {
-    // Auth backend unreachable / misconfigured — don't 500 the whole app. Let
-    // the request through; page-level data access degrades to demo data.
+    // Auth backend unreachable / misconfigured. Fail CLOSED on protected routes —
+    // send the user to /login rather than letting an unauthenticated request
+    // through. Public routes still pass.
     console.error("[privacyos] middleware auth check failed:", err);
+    if (isProtected) {
+      const redirect = request.nextUrl.clone();
+      redirect.pathname = "/login";
+      redirect.searchParams.set("next", path);
+      return NextResponse.redirect(redirect);
+    }
     return response;
   }
 
-  const path = request.nextUrl.pathname;
-  if (!user && (path.startsWith("/dashboard") || path.startsWith("/onboarding"))) {
+  if (!user && isProtected) {
     const redirect = request.nextUrl.clone();
     redirect.pathname = "/login";
     redirect.searchParams.set("next", path);
