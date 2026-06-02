@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { verifyStripeSignature } from "@/lib/billing/webhook";
+import { PLANS } from "@/lib/billing/plans";
+
+const KNOWN_PLAN_IDS = new Set(PLANS.map((p) => p.id));
 
 /**
  * POST /api/stripe/webhook — Stripe event sink.
@@ -38,15 +41,24 @@ export async function POST(req: Request) {
   const obj = event.data?.object ?? {};
   const meta = (obj.metadata as Record<string, string> | undefined) ?? {};
 
+  // The signature proves the payload came from Stripe, not that the embedded
+  // plan_id is one we sell. Never grant an entitlement for an unknown plan.
+  const rawPlan = meta.plan_id;
+  const validPlan = rawPlan && KNOWN_PLAN_IDS.has(rawPlan) ? rawPlan : null;
+  if (rawPlan && !validPlan) {
+    console.error("[privacyos] stripe webhook: ignoring unknown plan_id", rawPlan);
+  }
+
   try {
     switch (event.type) {
       case "checkout.session.completed": {
         const userId = (obj.client_reference_id as string) || meta.user_id;
-        if (userId) {
+        // Only provision when we have both a real user and a plan we actually sell.
+        if (userId && validPlan) {
           await admin.from("subscriptions").upsert(
             {
               user_id: userId,
-              plan_id: meta.plan_id ?? "unknown",
+              plan_id: validPlan,
               status: "active",
               stripe_customer_id: (obj.customer as string) ?? null,
               stripe_subscription_id: (obj.subscription as string) ?? null,
@@ -67,7 +79,7 @@ export async function POST(req: Request) {
           .from("subscriptions")
           .update({
             status,
-            plan_id: meta.plan_id ?? undefined,
+            plan_id: validPlan ?? undefined,
             current_period_end: periodEnd,
             cancel_at_period_end: Boolean(obj.cancel_at_period_end),
           })
