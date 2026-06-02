@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Radar, ShieldAlert, Star, FolderKanban,
@@ -10,6 +11,7 @@ import {
   LayoutTemplate, Gauge, FileLock2,
   Search, Newspaper, LifeBuoy, Share2, Rocket,
   Home, UserX, Crosshair, LayoutGrid, VenetianMask, EyeOff, Target, Fingerprint, ShieldCheck,
+  SlidersHorizontal, ChevronDown,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/ui";
@@ -107,6 +109,24 @@ export const navGroups: NavGroup[] = [
   },
 ];
 
+/**
+ * The ~6 outcome-first surfaces an ordinary customer sees by default. Everything
+ * else is an operator/advanced tool, revealed only via the "Advanced" toggle.
+ */
+const CONSUMER_SURFACES = new Set<string>([
+  "/dashboard/home",         // Protection
+  "/dashboard/assistant",    // AI Assistant
+  "/dashboard/exposures",    // Exposure Inventory
+  "/dashboard/identity",     // Digital Identity
+  "/dashboard/removals",     // Broker Removals
+  "/dashboard/reputation",   // Reputation overview
+  "/dashboard/reports",      // Reports
+  "/dashboard/notifications",
+  "/dashboard/settings",
+]);
+
+const ADVANCED_PREF_KEY = "po_advanced";
+
 /** The grouped nav list, shared by the desktop sidebar and the mobile drawer. */
 export function NavList({
   lockedFeatures = [],
@@ -118,6 +138,19 @@ export function NavList({
   const pathname = usePathname();
   const isLocked = (f?: Feature) => f !== undefined && lockedFeatures.includes(f);
 
+  // Default to the simple consumer view; remember the user's choice locally.
+  const [advanced, setAdvanced] = useState(false);
+  useEffect(() => {
+    try { setAdvanced(localStorage.getItem(ADVANCED_PREF_KEY) === "1"); } catch { /* ignore */ }
+  }, []);
+  function toggleAdvanced() {
+    setAdvanced((v) => {
+      const next = !v;
+      try { localStorage.setItem(ADVANCED_PREF_KEY, next ? "1" : "0"); } catch { /* ignore */ }
+      return next;
+    });
+  }
+
   // Mark only the most specific matching item active, so a parent ("Overview")
   // doesn't light up alongside its nested child ("Growth & Brand").
   const matches = (href: string) =>
@@ -127,9 +160,21 @@ export function NavList({
     .filter(matches)
     .sort((a, b) => b.length - a.length)[0];
 
+  // In consumer view, show only the ~6 surfaces (and never a locked/upsell item);
+  // in advanced view, show everything (locked items become upsells).
+  const groups = navGroups
+    .map((g) => ({
+      ...g,
+      items: advanced ? g.items : g.items.filter((it) => CONSUMER_SURFACES.has(it.href) && !isLocked(g.feature)),
+    }))
+    .filter((g) => g.items.length > 0);
+  const allCount = navGroups.reduce((n, g) => n + g.items.length, 0);
+  const shownCount = groups.reduce((n, g) => n + g.items.length, 0);
+  const hiddenCount = allCount - shownCount;
+
   return (
     <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-2">
-      {navGroups.map((grp, gi) => {
+      {groups.map((grp, gi) => {
         const locked = isLocked(grp.feature);
         return (
           <div key={gi} className="space-y-1">
@@ -166,6 +211,17 @@ export function NavList({
           </div>
         );
       })}
+
+      <button
+        type="button"
+        onClick={toggleAdvanced}
+        className="mt-2 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-slate-500 transition hover:bg-bg-elevated hover:text-slate-300"
+      >
+        <SlidersHorizontal className="h-3.5 w-3.5" />
+        <span className="flex-1 text-left">{advanced ? "Hide advanced tools" : "Advanced tools"}</span>
+        {!advanced && hiddenCount > 0 && <span className="text-[10px] text-slate-600">{hiddenCount}</span>}
+        <ChevronDown className={cn("h-3.5 w-3.5 transition", advanced ? "rotate-180" : "")} />
+      </button>
     </nav>
   );
 }

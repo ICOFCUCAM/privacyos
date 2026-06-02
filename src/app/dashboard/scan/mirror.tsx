@@ -11,7 +11,7 @@ import { Card } from "@/components/ui";
 import { cn } from "@/lib/ui";
 import type { MirrorCategory, RiskTone, ScaryMirrorReport } from "./types";
 import { AUTONOMY_MODES, AUTONOMY_META, type AutonomyMode } from "@/lib/home/autonomy";
-import { runScaryMirrorAction, startProtectionAction } from "./actions";
+import { runScaryMirrorAction, startProtectionAction, trackActivationAction } from "./actions";
 
 const CATEGORY_ICON: Record<MirrorCategory, LucideIcon> = {
   brokers: Database, breaches: AlertTriangle, darkweb: Skull, reputation: Globe, identity: Fingerprint, social: UserX,
@@ -32,6 +32,7 @@ export function ScaryMirror({ defaultName, defaultMode }: { defaultName: string;
   const [report, setReport] = useState<ScaryMirrorReport | null>(null);
   const [logIndex, setLogIndex] = useState(0);
   const [mode, setMode] = useState<AutonomyMode>(defaultMode);
+  const [startedAt, setStartedAt] = useState<number | null>(null);
   const [pending, start] = useTransition();
   const [activating, startActivate] = useTransition();
 
@@ -41,9 +42,22 @@ export function ScaryMirror({ defaultName, defaultMode }: { defaultName: string;
     startActivate(async () => { await startProtectionAction(mode, packs); });
   }
 
+  // Activation analytics: time-to-first-finding (scan → reveal) and consent view.
+  useEffect(() => {
+    if (phase === "reveal" && report && startedAt !== null) {
+      const ttffMs = Date.now() - startedAt;
+      setStartedAt(null);
+      void trackActivationAction("revealed", { ttffMs, findings: report.totalFindings });
+    }
+  }, [phase, report, startedAt]);
+  useEffect(() => {
+    if (phase === "consent") void trackActivationAction("consent_viewed");
+  }, [phase]);
+
   function runScan() {
     const n = name.trim();
     if (!n) return;
+    setStartedAt(Date.now());
     setPhase("scanning");
     setLogIndex(0);
     start(async () => {

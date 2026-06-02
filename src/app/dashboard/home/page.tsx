@@ -13,6 +13,8 @@ import {
   buildProtectionHome, type ProtectionBand, type ProtectionAction,
 } from "@/lib/home/protection-home";
 import { coerceMode, AUTONOMY_COOKIE, AUTONOMY_META } from "@/lib/home/autonomy";
+import { tierLens } from "@/lib/home/tiers";
+import { getEntitlements } from "@/lib/billing/subscription";
 import type { RiskLevel } from "@/lib/types";
 import { cn } from "@/lib/ui";
 
@@ -42,9 +44,11 @@ export default async function ProtectionHomePage({
   searchParams: Promise<{ activated?: string }>;
 }) {
   const ds = await getDataSource();
-  const [data, store, params] = await Promise.all([ds.getDataset(), cookies(), searchParams]);
+  const [data, store, params, entitlements] = await Promise.all([ds.getDataset(), cookies(), searchParams, getEntitlements()]);
   let removals: Awaited<ReturnType<typeof ds.listRemovals>> = [];
   try { removals = await ds.listRemovals(); } catch { removals = []; }
+
+  const lens = tierLens(entitlements.planId);
 
   const mode = coerceMode(store.get(AUTONOMY_COOKIE)?.value);
   const runs = runPlaybooks([
@@ -186,6 +190,16 @@ export default async function ProtectionHomePage({
           </p>
         )}
       </Card>
+
+      {/* Tier lens — depth appropriate to the customer's plan */}
+      <Link href={lens.href} className="flex items-center gap-3 rounded-2xl border border-border bg-bg-subtle/40 p-4 transition hover:border-brand/30">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand/15 text-brand"><ShieldCheck className="h-5 w-5" /></span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-white">{lens.title}</p>
+          <p className="text-[11px] text-slate-400">{lens.subtitle}</p>
+        </div>
+        <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-brand-fg">{lens.cta} <ArrowRight className="h-3.5 w-3.5" /></span>
+      </Link>
 
       {/* Assistant footer — the natural-language front door */}
       <Link

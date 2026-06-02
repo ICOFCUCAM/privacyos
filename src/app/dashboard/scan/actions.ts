@@ -63,3 +63,19 @@ export async function startProtectionAction(mode: AutonomyMode, packs: string[])
 
   redirect(`/dashboard/home?activated=${installed.size}`);
 }
+
+/**
+ * Emit an activation-funnel event (time-to-first-finding, consent conversion).
+ * Fire-and-forget from the scan client; lands in the audit log for rollup via
+ * `activationFunnel`.
+ */
+export async function trackActivationAction(
+  stage: "revealed" | "consent_viewed",
+  props: { ttffMs?: number; findings?: number } = {},
+): Promise<void> {
+  await recordAudit({
+    action: `activation.${stage}`,
+    entity: "subject",
+    metadata: { ...props },
+  });
+}

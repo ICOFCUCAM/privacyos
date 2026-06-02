@@ -89,6 +89,24 @@ as **auto-handled** ("Auto-resolving N recommendations for you"). The mode badge
 links back to the scan to re-choose. The same approval mechanism is the
 Workflow Builder's Layer-8 gates — one engine, surfaced as a consumer choice.
 
+## Progressive disclosure, tier lens & activation analytics
+
+- **Advanced toggle** (`src/components/nav.tsx`): the sidebar defaults to the
+  ~6 **consumer surfaces** (Protection, Assistant, Exposure Inventory, Digital
+  Identity, Broker Removals, Reputation, Reports, Notifications, Settings); every
+  operator/enterprise surface is hidden behind an **"Advanced tools"** toggle
+  (remembered in `localStorage`). One product, an autonomous face by default,
+  the full console one click away.
+- **Tier lens** (`src/lib/home/tiers.ts`): Protection Home reads the
+  subscription and shows a depth-appropriate card — personal → "Protect my
+  family", professional → reputation, executive → command center, business →
+  Mission Control.
+- **Activation analytics** (`src/lib/home/activation-analytics.ts`): the scan
+  flow emits funnel events (`activation.revealed` with **time-to-first-finding**,
+  `activation.consent_viewed`, plus the existing `activation.scan` /
+  `activation.protect`) to the audit log; `activationFunnel(events)` rolls them
+  up into reveal/consent/activation rates + TTFF median/p90.
+
 ## File map
 
 ```
