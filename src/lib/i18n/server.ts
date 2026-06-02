@@ -1,11 +1,16 @@
-import { cookies } from "next/headers";
-import { coerceLocale, LOCALE_COOKIE, type Locale } from "./config";
+import { cookies, headers } from "next/headers";
+import { isLocale, pickFromAcceptLanguage, DEFAULT_LOCALE, LOCALE_COOKIE, type Locale } from "./config";
 import { translate } from "./dictionaries";
 
-/** Read the active locale from the cookie (server components / layouts). */
+/**
+ * Active locale: an explicit cookie choice wins; otherwise honour the browser's
+ * `Accept-Language` header; otherwise the default.
+ */
 export async function getLocale(): Promise<Locale> {
-  const store = await cookies();
-  return coerceLocale(store.get(LOCALE_COOKIE)?.value);
+  const cookie = (await cookies()).get(LOCALE_COOKIE)?.value;
+  if (isLocale(cookie)) return cookie;
+  const accept = (await headers()).get("accept-language");
+  return pickFromAcceptLanguage(accept) ?? DEFAULT_LOCALE;
 }
 
 /** A server-side translator bound to the request's locale. */

@@ -41,3 +41,17 @@ export function coerceLocale(value: string | null | undefined): Locale {
 export function localeMeta(code: Locale): LocaleMeta {
   return LOCALES.find((l) => l.code === code) ?? LOCALES[0];
 }
+
+/**
+ * Pick the best supported locale from an `Accept-Language` header, e.g.
+ * "fr-FR,fr;q=0.9,en;q=0.8" → "fr". Returns null if none match (caller then
+ * uses the default). Relies on the browser's own preference ordering.
+ */
+export function pickFromAcceptLanguage(header: string | null | undefined): Locale | null {
+  if (!header) return null;
+  for (const part of header.split(",")) {
+    const tag = part.trim().split(";")[0].toLowerCase().split("-")[0];
+    if (isLocale(tag)) return tag;
+  }
+  return null;
+}

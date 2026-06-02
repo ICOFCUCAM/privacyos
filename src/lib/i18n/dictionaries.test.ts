@@ -1,6 +1,16 @@
 import { describe, it, expect } from "vitest";
 import { translate, DICTIONARIES } from "./dictionaries";
-import { LOCALES } from "./config";
+import { LOCALES, pickFromAcceptLanguage } from "./config";
+
+describe("pickFromAcceptLanguage", () => {
+  it("picks the first supported language, ignoring region + q-weights", () => {
+    expect(pickFromAcceptLanguage("fr-FR,fr;q=0.9,en;q=0.8")).toBe("fr");
+    expect(pickFromAcceptLanguage("de-AT,de;q=0.9")).toBe("de");
+    expect(pickFromAcceptLanguage("pt-BR,pt;q=0.9,es;q=0.5")).toBe("es"); // skips unsupported pt
+    expect(pickFromAcceptLanguage("zh-CN")).toBeNull(); // unsupported → null (caller defaults)
+    expect(pickFromAcceptLanguage(null)).toBeNull();
+  });
+});
 
 describe("i18n translate", () => {
   it("translates a key per locale", () => {
