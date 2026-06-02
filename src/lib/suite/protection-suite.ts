@@ -16,6 +16,7 @@ import { travelOverview } from "@/lib/travel/os/travel-os";
 import { brandRiskIndices } from "@/lib/business/os/brand-os";
 import { buildAccounts, identityRisk } from "@/lib/identity/os/identity-os";
 import { reputationOverview } from "@/lib/reputation/os/analysis";
+import { riskBandIndex } from "@/lib/scoring/bands";
 
 export type SuiteBand = "low" | "elevated" | "high" | "critical";
 
@@ -44,11 +45,10 @@ export interface SuiteInput {
   subjectEmails: string[];
 }
 
+const SUITE_BANDS: SuiteBand[] = ["low", "elevated", "high", "critical"];
+
 function riskBand(score: number): SuiteBand {
-  if (score >= 75) return "critical";
-  if (score >= 50) return "high";
-  if (score >= 25) return "elevated";
-  return "low";
+  return SUITE_BANDS[riskBandIndex(score)];
 }
 
 /** A health score (higher = better) → its risk band (inverted). */

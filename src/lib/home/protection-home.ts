@@ -17,10 +17,11 @@
 import type { RiskLevel, RemovalRequest, Recommendation, Threat, RiskScore } from "@/lib/types";
 import type { Workflow } from "@/lib/agents/workflows";
 import { needsApproval, type AutonomyMode } from "./autonomy";
+import { protectionBand, type ProtectionBand } from "@/lib/scoring/bands";
+
+export type { ProtectionBand };
 
 const RISK_RANK: Record<RiskLevel, number> = { low: 0, medium: 1, high: 2, critical: 3 };
-
-export type ProtectionBand = "exposed" | "fair" | "protected" | "secure";
 
 export interface ProtectionAction {
   kind: "removal" | "workflow" | "reputation" | "monitoring";
@@ -72,13 +73,6 @@ export interface ProtectionHomeInput {
   workflows: Workflow[];
   /** How hands-on the customer chose to be; defaults to advisor (surface everything). */
   mode?: AutonomyMode;
-}
-
-function bandFor(score: number): ProtectionBand {
-  if (score >= 85) return "secure";
-  if (score >= 70) return "protected";
-  if (score >= 50) return "fair";
-  return "exposed";
 }
 
 const REMOVAL_ACTIVE = new Set(["removal_requested", "in_progress"]);
@@ -199,7 +193,7 @@ function buildFound(input: ProtectionHomeInput): FoundSummary {
 /** Build the full Protection Home view model from current engine state. */
 export function buildProtectionHome(input: ProtectionHomeInput): ProtectionHome {
   const protectionScore = Math.max(0, Math.min(100, Math.round(100 - input.riskScore.overall)));
-  const band = bandFor(protectionScore);
+  const band = protectionBand(protectionScore);
 
   const trend = (input.riskScore.trend ?? []).map((t) => ({
     date: t.date,
