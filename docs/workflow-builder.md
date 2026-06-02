@@ -144,7 +144,28 @@ and saves the result into the builder. For "Protect my CEO from doxxing." it
 produces exactly: Trigger → Discovery Agent → Executive Protection Agent → Risk
 Assessment → Case Creation → Legal Agent → Report.
 
-## 10. File map
+## 10. Agent Collaboration Engine (Layer 15)
+
+**Surface:** `/dashboard/workflow-builder/collaboration`
+**Engine:** `agent-collaboration.ts`
+
+The differentiator: most builders automate *actions* — PrivacyOS automates
+*agents*. A collaboration is a chain of specialist agents that hand off to one
+another, each consuming the shared context the prior agents built and
+contributing its own artifact. The canonical example — **Deepfake Detected →
+Deepfake → Threat Intelligence → Reputation → Legal → Incident Response → Case
+Created → Executive Protection** — is modelled exactly.
+
+`runCollaboration(c)` walks the chain and produces the handoff timeline: per
+agent, what it **consumes** (resolved from upstream), what it **produces**, the
+**shared context** after its turn, and whether any artifact was consumed before
+being produced (a broken handoff → `coherent: false`).
+`collaborationToDefinition(c)` lowers a collaboration into a runnable
+`WorkflowDefinition`, so the same chain executes on the Layer-10 engine. The
+surface renders the handoff graph and the growing shared context, and installs
+the collaboration into the builder.
+
+## 11. File map
 
 ```
 src/lib/agents/workflow-builder.ts        model, ops, validation, simulateRun, executeWorkflow
@@ -159,15 +180,18 @@ src/lib/agents/workflow-marketplace.ts    Layer 13 — installable storefront li
 src/lib/agents/workflow-marketplace.test.ts unit tests
 src/lib/agents/workflow-generator.ts      Layer 14 — NL → workflow (rules + LLM seam)
 src/lib/agents/workflow-generator.test.ts unit tests
+src/lib/agents/agent-collaboration.ts     Layer 15 — multi-agent handoff engine
+src/lib/agents/agent-collaboration.test.ts unit tests
 src/components/workflow-flow.tsx          flow-graph canvas
 src/app/dashboard/workflow-builder/       page.tsx + builder.tsx + actions.ts
 src/app/dashboard/workflow-builder/history/page.tsx       History view
 src/app/dashboard/workflow-builder/analytics/page.tsx     Analytics (ROI) view
 src/app/dashboard/workflow-builder/marketplace/           Marketplace view + install action
 src/app/dashboard/workflow-builder/generate/              AI Generator (page + client + actions)
+src/app/dashboard/workflow-builder/collaboration/         Agent Collaboration (page + client + actions)
 ```
 
-## 11. Not yet built
+## 12. Not yet built
 
 - A **drag-and-drop** node canvas (today the canvas renders the ordered model;
   reordering is via move-up/down controls and drag-reorder of the step list).
