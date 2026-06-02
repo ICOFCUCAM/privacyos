@@ -58,10 +58,36 @@ exposure (the scary number), names the worst, and produces the
 `breach-response`, `dark-web-watch`, `reputation-recovery`, …). Pure and
 unit-tested.
 
-The surface (`mirror.tsx`) runs the three-beat activation: **input → animated
+The surface (`mirror.tsx`) runs the four-beat activation: **input → animated
 scan** (the scan-log reveals line by line) **→ the reveal** (exposure score,
 per-category findings with the scary specifics, then the "we're already fixing
-it" plan) → **Start my protection** → Protection Home.
+it" plan) **→ consent** → Protection Home.
+
+## Closing the loop — consent + auto-kickoff
+
+The reveal's promise ("…and we're already fixing it") is made *true* by the
+consent step. After the reveal, the customer makes **one decision** — the
+autonomy mode (`src/lib/home/autonomy.ts`):
+
+| Mode | Contract | Approval floor |
+|---|---|---|
+| **Autopilot** | "Just protect me — only ask on critical." | critical |
+| **Check with me** (hybrid) | "Handle the routine; run the big calls by me." | high |
+| **I'll decide** (advisor) | "Recommend everything; nothing runs without me." | low |
+
+The mode is **defaulted by subscription tier** (`defaultModeForPlan`) — personal
+→ Autopilot, executive → Hybrid, business → Advisor — and is both a UX setting
+*and the consent that authorizes autonomous action.* On **Activate protection**,
+`startProtectionAction` records the mode (a cookie) and **auto-installs the
+marketplace protection packs the fix plan named** (`installListing` → saved
+`WorkflowDefinition`s), then lands the customer in Protection Home with an
+"activated" banner.
+
+Protection Home reads the mode and applies it: `needsApproval(risk, mode)`
+thresholds the **"what needs you"** queue, and anything below the floor is shown
+as **auto-handled** ("Auto-resolving N recommendations for you"). The mode badge
+links back to the scan to re-choose. The same approval mechanism is the
+Workflow Builder's Layer-8 gates — one engine, surfaced as a consumer choice.
 
 ## File map
 
@@ -70,8 +96,10 @@ src/lib/home/protection-home.ts        Protection Home engine (view-model aggreg
 src/lib/home/protection-home.test.ts   unit tests
 src/lib/home/scary-mirror.ts           Scary Mirror activation engine
 src/lib/home/scary-mirror.test.ts      unit tests
-src/app/dashboard/home/page.tsx        the Protection Home surface
-src/app/dashboard/scan/               the Scary Mirror (page + client + action + types)
+src/lib/home/autonomy.ts               autonomy mode (consent dial) + tier defaults
+src/lib/home/autonomy.test.ts          unit tests
+src/app/dashboard/home/page.tsx        the Protection Home surface (reads the mode)
+src/app/dashboard/scan/               the Scary Mirror + consent (page + client + actions + types)
 src/components/nav.tsx                  "Protection" nav entry (top)
 src/app/onboarding/actions.ts          redirects new users to /dashboard/scan
 ```

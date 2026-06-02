@@ -1,7 +1,8 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import {
   ShieldCheck, Trash2, Workflow as WorkflowIcon, Star, Radar, ArrowUpRight, ArrowDownRight,
-  CheckCircle2, AlertTriangle, MessageSquareHeart, ArrowRight, Search, Eye, Sparkles,
+  CheckCircle2, AlertTriangle, MessageSquareHeart, ArrowRight, Search, Eye, Sparkles, SlidersHorizontal,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Card } from "@/components/ui";
@@ -11,6 +12,7 @@ import { buildWorkflows } from "@/lib/agents/workflows";
 import {
   buildProtectionHome, type ProtectionBand, type ProtectionAction,
 } from "@/lib/home/protection-home";
+import { coerceMode, AUTONOMY_COOKIE, AUTONOMY_META } from "@/lib/home/autonomy";
 import type { RiskLevel } from "@/lib/types";
 import { cn } from "@/lib/ui";
 
@@ -34,12 +36,17 @@ const RISK_CLS: Record<RiskLevel, string> = {
   critical: "text-risk-high ring-risk-high/30",
 };
 
-export default async function ProtectionHomePage() {
+export default async function ProtectionHomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ activated?: string }>;
+}) {
   const ds = await getDataSource();
-  const data = await ds.getDataset();
+  const [data, store, params] = await Promise.all([ds.getDataset(), cookies(), searchParams]);
   let removals: Awaited<ReturnType<typeof ds.listRemovals>> = [];
   try { removals = await ds.listRemovals(); } catch { removals = []; }
 
+  const mode = coerceMode(store.get(AUTONOMY_COOKIE)?.value);
   const runs = runPlaybooks([
     ...data.exposures.map(exposureToFinding),
     ...data.threats.map(threatToFinding),
@@ -53,13 +60,23 @@ export default async function ProtectionHomePage() {
     recommendations: data.recommendations,
     removals,
     workflows,
+    mode,
   });
 
   const band = BAND_META[home.band];
   const name = data.subject.displayName?.split(" ")[0] ?? "there";
+  const justActivated = params.activated !== undefined;
+  const activatedPacks = Number(params.activated) || 0;
 
   return (
     <div className="mx-auto max-w-3xl space-y-4 py-2">
+      {justActivated && (
+        <div className="flex items-center gap-2 rounded-xl border border-risk-low/30 bg-risk-low/10 px-3.5 py-2.5 text-sm text-risk-low">
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          Protection activated — {AUTONOMY_META[home.mode].label} mode on{activatedPacks > 0 ? `, ${activatedPacks} protection pack${activatedPacks === 1 ? "" : "s"} installed` : ""}. We&rsquo;re on it.
+        </div>
+      )}
+
       {/* ① Status */}
       <Card className={cn("p-6 ring-1", band.ring)}>
         <div className="flex flex-wrap items-center gap-5">
@@ -88,6 +105,9 @@ export default async function ProtectionHomePage() {
                   {home.delta > 0 ? "+" : ""}{home.delta} this period
                 </span>
               )}
+              <Link href="/dashboard/scan" title="Change how hands-on you are" className="ml-auto inline-flex items-center gap-1 rounded-full bg-bg-subtle/60 px-2 py-0.5 text-[10px] font-medium text-slate-400 ring-1 ring-border hover:text-white">
+                <SlidersHorizontal className="h-3 w-3" /> {AUTONOMY_META[home.mode].label}
+              </Link>
             </div>
             <p className="mt-1.5 text-lg font-semibold leading-snug text-white">Hi {name} — {home.headline}</p>
           </div>

@@ -16,6 +16,7 @@
 
 import type { RiskLevel, RemovalRequest, Recommendation, Threat, RiskScore } from "@/lib/types";
 import type { Workflow } from "@/lib/agents/workflows";
+import { needsApproval, type AutonomyMode } from "./autonomy";
 
 const RISK_RANK: Record<RiskLevel, number> = { low: 0, medium: 1, high: 2, critical: 3 };
 
@@ -56,6 +57,10 @@ export interface ProtectionHome {
   doing: ProtectionAction[];
   needsYou: NeedItem[];
   found: FoundSummary;
+  /** The active autonomy mode. */
+  mode: AutonomyMode;
+  /** Recommendations auto-handled under the current mode (not surfaced to the user). */
+  autoHandled: number;
 }
 
 export interface ProtectionHomeInput {
@@ -65,6 +70,8 @@ export interface ProtectionHomeInput {
   recommendations: Recommendation[];
   removals: RemovalRequest[];
   workflows: Workflow[];
+  /** How hands-on the customer chose to be; defaults to advisor (surface everything). */
+  mode?: AutonomyMode;
 }
 
 function bandFor(score: number): ProtectionBand {
@@ -132,10 +139,15 @@ function buildDoing(input: ProtectionHomeInput): ProtectionAction[] {
   return out;
 }
 
-/** The only human-in-the-loop queue: blocked workflows + the highest-value recommendations. */
-function buildNeedsYou(input: ProtectionHomeInput, limit = 4): NeedItem[] {
+/**
+ * The only human-in-the-loop queue: blocked workflows + the recommendations the
+ * chosen autonomy mode says the human must still approve. Lower-risk items are
+ * auto-handled (and counted separately). Returns the queue + the auto-handled count.
+ */
+function buildNeedsYou(input: ProtectionHomeInput, mode: AutonomyMode, limit = 4): { items: NeedItem[]; autoHandled: number } {
   const items: NeedItem[] = [];
 
+  // Workflows already gated for approval always need the human.
   for (const w of input.workflows) {
     if (w.status === "awaiting_approval" || w.status === "escalated") {
       items.push({
@@ -148,9 +160,11 @@ function buildNeedsYou(input: ProtectionHomeInput, limit = 4): NeedItem[] {
     }
   }
 
+  let autoHandled = 0;
   const recs = [...input.recommendations]
     .sort((a, b) => RISK_RANK[b.riskLevel] - RISK_RANK[a.riskLevel] || b.impact - a.impact);
   for (const r of recs) {
+    if (!needsApproval(r.riskLevel, mode)) { autoHandled += 1; continue; }
     items.push({
       id: `rec-${r.id}`,
       title: r.title,
@@ -160,9 +174,10 @@ function buildNeedsYou(input: ProtectionHomeInput, limit = 4): NeedItem[] {
     });
   }
 
-  return items
-    .sort((a, b) => RISK_RANK[b.riskLevel] - RISK_RANK[a.riskLevel])
-    .slice(0, limit);
+  return {
+    items: items.sort((a, b) => RISK_RANK[b.riskLevel] - RISK_RANK[a.riskLevel]).slice(0, limit),
+    autoHandled,
+  };
 }
 
 function buildFound(input: ProtectionHomeInput): FoundSummary {
@@ -192,10 +207,21 @@ export function buildProtectionHome(input: ProtectionHomeInput): ProtectionHome 
   }));
   const delta = trend.length > 1 ? trend[trend.length - 1].score - trend[0].score : 0;
 
+  const mode: AutonomyMode = input.mode ?? "advisor";
   const doing = buildDoing(input);
-  const needsYou = buildNeedsYou(input);
+  const { items: needsYou, autoHandled } = buildNeedsYou(input, mode);
   const found = buildFound(input);
+
+  // When the platform is auto-resolving items, say so — it reinforces the autonomy.
+  if (autoHandled > 0) {
+    doing.unshift({
+      kind: "workflow",
+      label: `Auto-resolving ${autoHandled} recommendation${autoHandled === 1 ? "" : "s"} for you`,
+      detail: "Handled automatically under your protection settings",
+    });
+  }
+
   const headline = headlineFor(band, doing.length, found.total);
 
-  return { protectionScore, band, headline, trend, delta, doing, needsYou, found };
+  return { protectionScore, band, headline, trend, delta, doing, needsYou, found, mode, autoHandled };
 }

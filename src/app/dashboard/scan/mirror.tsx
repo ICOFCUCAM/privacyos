@@ -10,7 +10,8 @@ import type { LucideIcon } from "lucide-react";
 import { Card } from "@/components/ui";
 import { cn } from "@/lib/ui";
 import type { MirrorCategory, RiskTone, ScaryMirrorReport } from "./types";
-import { runScaryMirrorAction } from "./actions";
+import { AUTONOMY_MODES, AUTONOMY_META, type AutonomyMode } from "@/lib/home/autonomy";
+import { runScaryMirrorAction, startProtectionAction } from "./actions";
 
 const CATEGORY_ICON: Record<MirrorCategory, LucideIcon> = {
   brokers: Database, breaches: AlertTriangle, darkweb: Skull, reputation: Globe, identity: Fingerprint, social: UserX,
@@ -23,14 +24,22 @@ const SEVERITY_CLS: Record<RiskTone, string> = {
   critical: "text-risk-high ring-risk-high/30 bg-risk-high/10",
 };
 
-type Phase = "intro" | "scanning" | "reveal";
+type Phase = "intro" | "scanning" | "reveal" | "consent";
 
-export function ScaryMirror({ defaultName }: { defaultName: string }) {
+export function ScaryMirror({ defaultName, defaultMode }: { defaultName: string; defaultMode: AutonomyMode }) {
   const [phase, setPhase] = useState<Phase>("intro");
   const [name, setName] = useState(defaultName);
   const [report, setReport] = useState<ScaryMirrorReport | null>(null);
   const [logIndex, setLogIndex] = useState(0);
+  const [mode, setMode] = useState<AutonomyMode>(defaultMode);
   const [pending, start] = useTransition();
+  const [activating, startActivate] = useTransition();
+
+  function activate() {
+    if (!report) return;
+    const packs = [...new Set(report.fixPlan.map((s) => s.pack).filter((p): p is string => !!p))];
+    startActivate(async () => { await startProtectionAction(mode, packs); });
+  }
 
   function runScan() {
     const n = name.trim();
@@ -101,6 +110,55 @@ export function ScaryMirror({ defaultName }: { defaultName: string }) {
     );
   }
 
+  // consent — the one decision: how hands-on do you want to be?
+  if (phase === "consent" && report) {
+    const packCount = new Set(report.fixPlan.map((s) => s.pack).filter(Boolean)).size;
+    return (
+      <div className="mx-auto max-w-lg space-y-4">
+        <Card className="p-6">
+          <div className="flex items-center gap-2.5">
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand/15 text-brand"><ShieldCheck className="h-5 w-5" /></span>
+            <div>
+              <h2 className="text-lg font-bold text-white">How hands-on do you want to be?</h2>
+              <p className="text-xs text-slate-500">You can change this anytime. This is your authority for us to act.</p>
+            </div>
+          </div>
+
+          <div className="mt-5 space-y-2">
+            {AUTONOMY_MODES.map((m) => {
+              const meta = AUTONOMY_META[m];
+              const active = mode === m;
+              return (
+                <button
+                  key={m}
+                  onClick={() => setMode(m)}
+                  className={cn(
+                    "flex w-full items-start gap-3 rounded-xl border p-3 text-left transition",
+                    active ? "border-brand/50 bg-brand/10 ring-1 ring-brand/40" : "border-border bg-bg-subtle/40 hover:border-brand/30",
+                  )}
+                >
+                  <span className={cn("mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border", active ? "border-brand bg-brand text-white" : "border-border")}>
+                    {active && <CheckCircle2 className="h-3.5 w-3.5" />}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-white">{meta.label}{m === defaultMode && <span className="ml-1.5 text-[10px] font-normal text-brand-fg">recommended for you</span>}</p>
+                    <p className="text-[12px] text-slate-400">{meta.tagline}</p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <button onClick={activate} disabled={activating} className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-brand px-4 py-3 text-sm font-semibold text-white hover:bg-brand/90 disabled:opacity-60">
+            {activating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {activating ? "Activating…" : `Activate protection${packCount > 0 ? ` · ${packCount} pack${packCount === 1 ? "" : "s"}` : ""}`}
+          </button>
+          <p className="mt-2 text-center text-[11px] text-slate-600">We&rsquo;ll start working immediately and only interrupt you per your choice above.</p>
+        </Card>
+      </div>
+    );
+  }
+
   // reveal
   if (!report) return null;
   const sev = report.worst?.severity ?? "low";
@@ -158,9 +216,9 @@ export function ScaryMirror({ defaultName }: { defaultName: string }) {
             </li>
           ))}
         </ul>
-        <Link href="/dashboard/home" className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-brand px-4 py-3 text-sm font-semibold text-white hover:bg-brand/90">
+        <button onClick={() => setPhase("consent")} className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-brand px-4 py-3 text-sm font-semibold text-white hover:bg-brand/90">
           <ShieldCheck className="h-4 w-4" /> Start my protection <ArrowRight className="h-4 w-4" />
-        </Link>
+        </button>
       </Card>
     </div>
   );

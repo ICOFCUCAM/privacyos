@@ -96,6 +96,26 @@ describe("Protection Home (autonomous view model)", () => {
     expect(h.found.topConcern).toBe("Leaked SSN"); // worst active threat
   });
 
+  it("autonomy mode filters the human queue and counts what's auto-handled", () => {
+    const recs = [
+      rec({ riskLevel: "low", title: "Low" }),
+      rec({ riskLevel: "medium", title: "Medium" }),
+      rec({ riskLevel: "high", title: "High" }),
+      rec({ riskLevel: "critical", title: "Critical" }),
+    ];
+    // Autopilot: only the critical reaches the user; the rest are auto-handled.
+    const auto = buildProtectionHome(base({ recommendations: recs, workflows: [], mode: "autopilot" }));
+    expect(auto.mode).toBe("autopilot");
+    expect(auto.needsYou.map((n) => n.title)).toEqual(["Critical"]);
+    expect(auto.autoHandled).toBe(3);
+    expect(auto.doing[0].label).toMatch(/Auto-resolving 3 recommendations/);
+
+    // Advisor: everything reaches the user; nothing auto-handled.
+    const advisor = buildProtectionHome(base({ recommendations: recs, workflows: [], mode: "advisor" }));
+    expect(advisor.autoHandled).toBe(0);
+    expect(advisor.needsYou.length).toBe(4);
+  });
+
   it("derives a protection trend (higher = better) and delta", () => {
     const h = buildProtectionHome(base({
       riskScore: riskScore(30, [
