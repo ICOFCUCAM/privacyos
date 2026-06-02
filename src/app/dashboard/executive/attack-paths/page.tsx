@@ -1,8 +1,9 @@
+import Link from "next/link";
 import { Target, Crosshair, ShieldCheck, Zap, ArrowRight, SlidersHorizontal } from "lucide-react";
 import { Card, PageHeader, SectionTitle } from "@/components/ui";
 import { getDataSource } from "@/lib/data";
 import { getModuleData } from "@/lib/data/modules";
-import { analyzeAttackSurface, simulateRemovals, type AttackPath } from "@/lib/executive/os/attack-paths";
+import { analyzeAttackSurface, simulateRemovals, remediationHref, type AttackPath } from "@/lib/executive/os/attack-paths";
 import { cn } from "@/lib/ui";
 import { ExecutiveTabs } from "../tabs";
 
@@ -56,6 +57,12 @@ export default async function AttackPathsPage() {
               <span className="text-2xl font-bold text-risk-high">−{surface.chokepoint.scoreReduction}</span>
               <span className="text-[10px] uppercase text-slate-500">path risk</span>
             </div>
+          </div>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <Link href={remediationHref(surface.chokepoint.signal)} className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand/90">
+              Apply this fix <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+            <span className="text-[11px] text-slate-500">In Autopilot we work this for you and log it — you only sign off on critical calls.</span>
           </div>
         </Card>
       ) : (

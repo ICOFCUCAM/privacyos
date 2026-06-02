@@ -123,6 +123,21 @@ export interface Chokepoint {
   scoreReduction: number;
 }
 
+/** Signals remediated by broker opt-outs (vs. threat/IR investigation). */
+const REMOVAL_SIGNALS = new Set<Signal>([
+  "address", "phone", "family", "email", "username", "photo", "financial", "employer", "breach",
+]);
+
+/**
+ * Where to act on a signal — turning an attack-path finding into a one-click
+ * fix instead of dead analysis. Broker-removable signals go to Broker Removals;
+ * credential/dark-web/doxxing/impersonation/location go to the Threat feed where
+ * they're investigated and worked.
+ */
+export function remediationHref(signal: Signal): string {
+  return REMOVAL_SIGNALS.has(signal) ? "/dashboard/removals" : "/dashboard/threats";
+}
+
 export interface AttackInput {
   exposures: Exposure[];
   threats: Threat[];

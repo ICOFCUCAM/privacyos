@@ -1,6 +1,16 @@
 import { describe, it, expect } from "vitest";
-import { analyzeAttackSurface, buildSignalIndex, removeSignal, simulateRemovals } from "./attack-paths";
+import { analyzeAttackSurface, buildSignalIndex, removeSignal, remediationHref, simulateRemovals } from "./attack-paths";
 import type { Exposure, Threat } from "@/lib/types";
+
+describe("remediationHref", () => {
+  it("routes broker-removable signals to removals and threat/IR signals to the threat feed", () => {
+    expect(remediationHref("address")).toBe("/dashboard/removals");
+    expect(remediationHref("breach")).toBe("/dashboard/removals");
+    expect(remediationHref("credential")).toBe("/dashboard/threats");
+    expect(remediationHref("darkweb")).toBe("/dashboard/threats");
+    expect(remediationHref("impersonation")).toBe("/dashboard/threats");
+  });
+});
 
 const exposure = (over: Partial<Exposure>): Exposure => ({
   id: Math.random().toString(36).slice(2), subjectId: "s", category: "address", source: "data_broker",
