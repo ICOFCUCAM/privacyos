@@ -10,16 +10,14 @@
 
 import type { Exposure, RiskLevel } from "@/lib/types";
 import type { CredentialLeak } from "@/lib/suite-types";
+import { riskLevelFromScore } from "@/lib/scoring/bands";
 
 const RISK_WEIGHT: Record<RiskLevel, number> = { low: 8, medium: 18, high: 32, critical: 48 };
 const RISK_RANK: Record<RiskLevel, number> = { low: 0, medium: 1, high: 2, critical: 3 };
 const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
 
 export function riskBand(score: number): RiskLevel {
-  if (score >= 75) return "critical";
-  if (score >= 50) return "high";
-  if (score >= 25) return "medium";
-  return "low";
+  return riskLevelFromScore(score);
 }
 
 const PASSWORD_RE = /password|pwd|credential/i;
