@@ -90,7 +90,45 @@ const de: Messages = {
   "lang.label": "Sprache",
 };
 
-export const DICTIONARIES: Record<Locale, Messages> = { en, fr, es, de };
+const no: Messages = {
+  "nav.protection": "Beskyttelse",
+  "nav.overview": "Oversikt",
+  "nav.assistant": "AI-assistent",
+  "nav.exposures": "Eksponeringsoversikt",
+  "nav.removals": "Megler-fjerning",
+  "nav.reports": "Rapporter",
+  "nav.settings": "Innstillinger",
+  "nav.advanced": "Avanserte verktøy",
+  "nav.hideAdvanced": "Skjul avanserte verktøy",
+  "common.protecting": "Beskytter {name}",
+  "common.liveData": "Sanntidsdata",
+  "common.demoData": "Demodata",
+  "common.save": "Lagre",
+  "common.cancel": "Avbryt",
+  "common.signOut": "Logg ut",
+  "lang.label": "Språk",
+};
+
+const ja: Messages = {
+  "nav.protection": "保護",
+  "nav.overview": "概要",
+  "nav.assistant": "AIアシスタント",
+  "nav.exposures": "露出インベントリ",
+  "nav.removals": "ブローカー削除",
+  "nav.reports": "レポート",
+  "nav.settings": "設定",
+  "nav.advanced": "詳細ツール",
+  "nav.hideAdvanced": "詳細ツールを隠す",
+  "common.protecting": "{name} を保護中",
+  "common.liveData": "ライブデータ",
+  "common.demoData": "デモデータ",
+  "common.save": "保存",
+  "common.cancel": "キャンセル",
+  "common.signOut": "ログアウト",
+  "lang.label": "言語",
+};
+
+export const DICTIONARIES: Record<Locale, Messages> = { en, fr, es, de, no, ja };
 
 /** Translate a key for a locale, interpolating `{var}` placeholders. */
 export function translate(locale: Locale, key: string, vars?: Record<string, string | number>): string {

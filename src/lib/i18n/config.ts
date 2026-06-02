@@ -7,7 +7,7 @@
  * coercion helpers. Pure + unit-tested.
  */
 
-export type Locale = "en" | "fr" | "es" | "de";
+export type Locale = "en" | "fr" | "es" | "de" | "no" | "ja";
 
 export interface LocaleMeta {
   code: Locale;
@@ -22,6 +22,8 @@ export const LOCALES: LocaleMeta[] = [
   { code: "fr", label: "French", native: "Français", flag: "🇫🇷" },
   { code: "es", label: "Spanish", native: "Español", flag: "🇪🇸" },
   { code: "de", label: "German", native: "Deutsch", flag: "🇩🇪" },
+  { code: "no", label: "Norwegian", native: "Norsk", flag: "🇳🇴" },
+  { code: "ja", label: "Japanese", native: "日本語", flag: "🇯🇵" },
 ];
 
 export const DEFAULT_LOCALE: Locale = "en";
