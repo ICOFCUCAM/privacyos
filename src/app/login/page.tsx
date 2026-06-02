@@ -70,7 +70,7 @@ export default async function LoginPage({
             <p className="mb-6 text-sm text-slate-400">
               Sign in to your protection dashboard.
             </p>
-            <LoginForm next={next ?? "/dashboard"} configured={configured} oauthError={error} />
+            <LoginForm next={next ?? "/dashboard/home"} configured={configured} oauthError={error} />
           </div>
           <p className="mt-6 text-center text-xs text-slate-500">
             Protected by PrivacyOS · your data stays yours.

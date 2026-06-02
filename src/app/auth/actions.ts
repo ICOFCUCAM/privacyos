@@ -32,7 +32,7 @@ export async function signInWithProvider(provider: OAuthProvider): Promise<void>
   const origin = await siteOrigin();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
-    options: { redirectTo: `${origin}/auth/callback?next=/dashboard` },
+    options: { redirectTo: `${origin}/auth/callback?next=/dashboard/home` },
   });
   if (error || !data?.url) {
     redirect(`/login?error=${encodeURIComponent(error?.message ?? "Could not start sign-in")}`);
@@ -55,7 +55,7 @@ export async function signIn(_prev: AuthState, formData: FormData): Promise<Auth
   }
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
-  const next = String(formData.get("next") ?? "/dashboard") || "/dashboard";
+  const next = String(formData.get("next") ?? "/dashboard/home") || "/dashboard/home";
 
   const supabase = await getSupabaseServerClient();
   if (!supabase) return { error: "Auth is not configured." };
