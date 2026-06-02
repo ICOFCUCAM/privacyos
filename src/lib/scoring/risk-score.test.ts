@@ -39,6 +39,18 @@ describe("risk scoring", () => {
     expect(removed).toBeLessThan(active * 0.2);
   });
 
+  it("drops the overall score monotonically as remediation progresses", () => {
+    // The contract the removal→exposure write-back relies on: as the fleet moves
+    // an exposure through its remediation lifecycle, the score must fall.
+    const at = (status: Exposure["status"]) =>
+      computeRiskScore(
+        Array.from({ length: 6 }, (_, i) => makeExposure({ id: `e${i}`, riskLevel: "high", status })),
+      ).overall;
+    expect(at("discovered")).toBeGreaterThan(at("removal_requested"));
+    expect(at("removal_requested")).toBeGreaterThan(at("in_progress"));
+    expect(at("in_progress")).toBeGreaterThan(at("removed"));
+  });
+
   it("routes credential leaks into the security axis", () => {
     const score = computeRiskScore([
       makeExposure({ category: "credential", riskLevel: "critical" }),

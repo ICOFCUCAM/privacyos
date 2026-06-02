@@ -196,6 +196,11 @@ export class SupabaseDataSource implements DataSource {
       history: req.history,
     });
     if (error) throw error;
+    // Reflect remediation on the exposure itself so the risk score drops as the
+    // fleet works — otherwise filing a removal leaves the score untouched.
+    if (req.exposureId) {
+      await this.db.from("exposures").update({ status: req.status }).eq("id", req.exposureId);
+    }
   }
 
   async recheckRemoval(id: string): Promise<void> {
@@ -214,5 +219,10 @@ export class SupabaseDataSource implements DataSource {
       })
       .eq("id", id);
     if (upErr) throw upErr;
+    // Keep the linked exposure's status in lockstep so the score tracks progress
+    // (in_progress → removed lowers it; reappeared raises it again).
+    if (data.exposure_id) {
+      await this.db.from("exposures").update({ status: next.status }).eq("id", data.exposure_id);
+    }
   }
 }

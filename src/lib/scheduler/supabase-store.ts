@@ -182,6 +182,10 @@ export class SupabaseSchedulerStore implements SchedulerStore {
         history: r.history,
       })),
     );
+    // Sync each linked exposure so autonomous filings actually lower the score.
+    for (const r of requests) {
+      if (r.exposureId) await this.db.from("exposures").update({ status: r.status }).eq("id", r.exposureId);
+    }
   }
 
   async saveRemoval(_userId: string, request: RemovalRequest): Promise<void> {
@@ -194,6 +198,10 @@ export class SupabaseSchedulerStore implements SchedulerStore {
         history: request.history,
       })
       .eq("id", request.id);
+    // Advance the linked exposure in lockstep (in_progress → removed → ...).
+    if (request.exposureId) {
+      await this.db.from("exposures").update({ status: request.status }).eq("id", request.exposureId);
+    }
   }
 
   async saveReputation(userId: string, subjectId: string, data: ReputationData): Promise<void> {
