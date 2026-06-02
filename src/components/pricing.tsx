@@ -28,11 +28,13 @@ function PlanCard({
   annual,
   currency,
   highlighted = false,
+  purchasable = true,
 }: {
   plan: Plan;
   annual: boolean;
   currency: Currency;
   highlighted?: boolean;
+  purchasable?: boolean;
 }) {
   const { big, sub } = priceLabel(plan, annual, currency);
   const [busy, setBusy] = useState(false);
@@ -47,6 +49,11 @@ function PlanCard({
     }
   }, [highlighted]);
 
+  // A paid, priced plan whose Stripe Price isn't wired up yet. Rather than a dead
+  // end (or a raw "set STRIPE_PRICE_…" error), capture intent via signup.
+  const isPaid = plan.monthly !== 0 && plan.monthly !== null;
+  const billingPending = isPaid && !purchasable;
+
   async function choose() {
     if (plan.monthly === 0) {
       // Free plan is a conversion engine, not a checkout — start the free scan.
@@ -55,6 +62,12 @@ function PlanCard({
     }
     if (plan.monthly === null) {
       window.location.href = "mailto:sales@privacyos.app?subject=" + encodeURIComponent(`${plan.name} enquiry`);
+      return;
+    }
+    if (billingPending) {
+      // Checkout for this plan isn't live yet — start an account so we can
+      // activate it the moment billing is configured.
+      window.location.href = `/login?next=${encodeURIComponent(`/pricing?plan=${plan.id}`)}`;
       return;
     }
     setBusy(true);
@@ -70,7 +83,12 @@ function PlanCard({
         window.location.href = data.url;
         return;
       }
-      setErr(data.error ?? "Could not start checkout.");
+      // Never surface internal billing-config details to a customer.
+      const raw: string = data.error ?? "";
+      const friendly = /not configured|no stripe price/i.test(raw)
+        ? "Checkout for this plan isn’t available yet — please try again shortly."
+        : raw || "Could not start checkout.";
+      setErr(friendly);
     } catch {
       setErr("Could not start checkout.");
     } finally {
@@ -128,14 +146,31 @@ function PlanCard({
             : "border border-border text-slate-200 hover:bg-bg-elevated",
         )}
       >
-        {busy ? "Starting…" : plan.monthly === 0 ? "Start free scan" : plan.monthly === null ? "Contact sales" : "Choose plan"}
+        {busy
+          ? "Starting…"
+          : plan.monthly === 0
+            ? "Start free scan"
+            : plan.monthly === null
+              ? "Contact sales"
+              : billingPending
+                ? "Get started"
+                : "Choose plan"}
       </button>
       {err && <p className="mt-2 text-xs text-risk-critical">{err}</p>}
     </div>
   );
 }
 
-export function PricingTable({ recommendedPlanId }: { recommendedPlanId?: string }) {
+export function PricingTable({
+  recommendedPlanId,
+  purchasablePlanIds,
+}: {
+  recommendedPlanId?: string;
+  /** Plan ids wired to a Stripe Price. When omitted, all paid plans are assumed
+   *  purchasable (e.g. in tests/storybook). */
+  purchasablePlanIds?: string[];
+}) {
+  const purchasable = purchasablePlanIds ? new Set(purchasablePlanIds) : null;
   const [annual, setAnnual] = useState(true);
   const [currencyCode, setCurrencyCode] = useState(DEFAULT_CURRENCY);
   const currency = resolveCurrency(currencyCode);
@@ -203,6 +238,7 @@ export function PricingTable({ recommendedPlanId }: { recommendedPlanId?: string
                   annual={annual}
                   currency={currency}
                   highlighted={p.id === recommendedPlanId}
+                  purchasable={purchasable ? purchasable.has(p.id) : true}
                 />
               ))}
             </div>

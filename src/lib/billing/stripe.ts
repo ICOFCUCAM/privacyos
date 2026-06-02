@@ -27,6 +27,17 @@ export function stripePriceId(planId: string, annual = false): string | undefine
   return process.env[base];
 }
 
+/**
+ * Whether a plan can actually be checked out right now: Stripe must be
+ * configured and the plan mapped to a Stripe Price. Free ($0) and sales-assisted
+ * (Custom) plans are never "purchasable" via Checkout — they have their own
+ * paths (free scan / contact sales) — so this concerns paid, priced plans only.
+ * Used to degrade the pricing UI gracefully while prices are still being wired.
+ */
+export function isPlanPurchasable(planId: string): boolean {
+  return isStripeConfigured() && Boolean(stripePriceId(planId));
+}
+
 async function stripePost(path: string, form: Record<string, string>): Promise<Record<string, unknown>> {
   const res = await fetch(`https://api.stripe.com/v1/${path}`, {
     method: "POST",
