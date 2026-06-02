@@ -31,6 +31,14 @@ export const GATED_SUITES: GatedSuite[] = [
     prefixes: ["/dashboard/business", "/dashboard/domains", "/dashboard/employees", "/dashboard/third-party", "/dashboard/team"],
     upsell: "business",
   },
+  {
+    // Automation is an operator capability — standard plans get it auto-configured
+    // behind the scenes; only power-user/enterprise tiers build it directly.
+    feature: "automation",
+    label: "Automation & Workflows",
+    prefixes: ["/dashboard/workflow-builder", "/dashboard/automation-templates", "/dashboard/workflows", "/dashboard/playbooks", "/dashboard/agents"],
+    upsell: "business",
+  },
 ];
 
 /** The feature required for a given dashboard path, or null if it's core. */

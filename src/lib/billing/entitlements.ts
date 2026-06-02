@@ -34,7 +34,8 @@ export type Feature =
   | "ai_agent"
   | "deep_web"
   | "priority_support"
-  | "financial";
+  | "financial"
+  | "automation";
 
 export interface Entitlements {
   /** Active plan id, or null when unsubscribed/demo. */
@@ -54,7 +55,7 @@ const NONE: Entitlements = {
   entitled: false,
   features: {
     reputation: false, executive: false, business: false, family: false,
-    ai_agent: false, deep_web: false, priority_support: false, financial: false,
+    ai_agent: false, deep_web: false, priority_support: false, financial: false, automation: false,
   },
   brokerRemovalLimit: 0,
   familySeats: 0,
@@ -80,7 +81,7 @@ export const DEMO_ENTITLEMENTS: Entitlements = {
   entitled: true,
   features: {
     reputation: true, executive: true, business: true, family: true,
-    ai_agent: true, deep_web: true, priority_support: true, financial: true,
+    ai_agent: true, deep_web: true, priority_support: true, financial: true, automation: true,
   },
   brokerRemovalLimit: Infinity,
   familySeats: 6,
@@ -97,7 +98,7 @@ export const ADMIN_ENTITLEMENTS: Entitlements = {
   entitled: true,
   features: {
     reputation: true, executive: true, business: true, family: true,
-    ai_agent: true, deep_web: true, priority_support: true, financial: true,
+    ai_agent: true, deep_web: true, priority_support: true, financial: true, automation: true,
   },
   brokerRemovalLimit: Infinity,
   familySeats: 6,
@@ -151,6 +152,11 @@ export function entitlementsFor(sub: Subscription | null): Entitlements {
       // for the personal tiers that advertise "Identity Theft Monitoring".
       financial: cat === "executive" || cat === "business" ||
         (cat === "personal" && ["premium", "family"].includes(sub.planId)),
+      // Automation is an OPERATOR capability (Workflow Builder, templates,
+      // playbooks, agent orchestration) — reserved for power-user/enterprise
+      // tiers. Standard plans get automation auto-configured behind the scenes.
+      automation:
+        ["biz-growth", "biz-enterprise", "biz-enterprise-plus", "exec-elite", "ai-pro", "ai-enterprise"].includes(sub.planId),
     },
     brokerRemovalLimit: personalTier ? (BROKER_LIMITS[personalTier] ?? 0) : Infinity,
     familySeats: sub.planId === "family" ? 6 : 1,

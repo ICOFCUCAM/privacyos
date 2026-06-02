@@ -87,13 +87,22 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
+    // Automation is an operator/power-user surface — gated behind the
+    // `automation` capability. Standard plans get it auto-configured; they
+    // never need to build workflows themselves.
     group: "Automation",
+    feature: "automation",
     items: [
       { href: "/dashboard/agents", label: "AI Agents", icon: Bot },
       { href: "/dashboard/workflows", label: "Workflow Command", icon: GitBranch },
       { href: "/dashboard/workflow-builder", label: "Workflow Builder", icon: Blocks },
       { href: "/dashboard/automation-templates", label: "Automation Templates", icon: LayoutTemplate },
       { href: "/dashboard/playbooks", label: "Response Playbooks", icon: Workflow },
+    ],
+  },
+  {
+    group: "Account",
+    items: [
       { href: "/dashboard/legal", label: "Legal Automation", icon: Scale },
       { href: "/dashboard/reports", label: "Reports", icon: FileText },
       { href: "/dashboard/compliance", label: "Compliance & SLAs", icon: BadgeCheck },

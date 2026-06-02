@@ -14,7 +14,13 @@ describe("route gating map", () => {
     expect(requiredFeature("/dashboard")).toBeNull();
     expect(requiredFeature("/dashboard/exposures")).toBeNull();
     expect(requiredFeature("/dashboard/settings")).toBeNull();
-    expect(requiredFeature("/dashboard/agents")).toBeNull();
+    expect(requiredFeature("/dashboard/reports")).toBeNull();
+  });
+
+  it("gates the automation operator surface", () => {
+    expect(requiredFeature("/dashboard/workflow-builder")).toBe("automation");
+    expect(requiredFeature("/dashboard/automation-templates")).toBe("automation");
+    expect(requiredFeature("/dashboard/agents")).toBe("automation");
   });
 
   it("matches nested paths but not unrelated prefixes", () => {

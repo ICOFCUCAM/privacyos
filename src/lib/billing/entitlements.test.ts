@@ -51,6 +51,18 @@ describe("entitlements", () => {
     expect(entitlementsFor({ planId: "biz-growth", status: "active" }).features.business).toBe(true);
   });
 
+  it("automation (Workflow Builder/templates/playbooks) is power-user/enterprise only", () => {
+    const has = (id: string) => entitlementsFor({ planId: id, status: "active" }).features.automation;
+    // power-user / enterprise tiers
+    for (const id of ["biz-growth", "biz-enterprise", "exec-elite", "ai-pro", "ai-enterprise"]) {
+      expect(has(id), id).toBe(true);
+    }
+    // standard plans: automation runs behind the scenes, not exposed
+    for (const id of ["free", "starter", "plus", "premium", "family", "exec-essential", "biz-startup", "ai-pack"]) {
+      expect(has(id), id).toBe(false);
+    }
+  });
+
   it("the free plan grants 10 broker removals but no protection features (conversion tier)", () => {
     const e = entitlementsFor({ planId: "free", status: "active" });
     expect(e.entitled).toBe(true);

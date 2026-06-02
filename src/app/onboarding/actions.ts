@@ -7,6 +7,10 @@ import { getDataSource } from "@/lib/data";
 import { mapSubject } from "@/lib/data/mappers";
 import { runDiscovery } from "@/lib/discovery/pipeline";
 import { recordAudit } from "@/lib/audit/audit";
+import { getEntitlements } from "@/lib/billing/subscription";
+import { protectionsForEntitlements } from "@/lib/onboarding/auto-provision";
+import { findListing, installListing } from "@/lib/agents/workflow-marketplace";
+import { saveWorkflowAction } from "@/app/dashboard/workflow-builder/actions";
 
 export interface OnboardingState {
   error?: string;
@@ -72,6 +76,24 @@ export async function createSubject(
     } catch {
       /* ignore — the scheduled monitor will pick it up */
     }
+  }
+
+  // Auto-provision protection: install + enable the right packs for the plan so
+  // monitoring starts automatically. Standard customers never touch the builder.
+  try {
+    const ent = await getEntitlements();
+    const packs = protectionsForEntitlements(ent);
+    const seen = new Set<string>();
+    for (const id of packs) {
+      const listing = findListing(id);
+      if (!listing || seen.has(id)) continue;
+      seen.add(id);
+      for (const def of installListing(listing)) {
+        await saveWorkflowAction({ ...def, enabled: true });
+      }
+    }
+  } catch {
+    /* best-effort — never block onboarding on provisioning */
   }
 
   revalidatePath("/dashboard");
