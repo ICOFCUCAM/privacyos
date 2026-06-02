@@ -31,6 +31,9 @@ const en: Messages = {
   "common.cancel": "Cancel",
   "common.signOut": "Sign out",
   "lang.label": "Language",
+  "marketing.security": "Security",
+  "marketing.pricing": "Pricing",
+  "marketing.openDashboard": "Open Dashboard",
 };
 
 const fr: Messages = {
@@ -50,6 +53,9 @@ const fr: Messages = {
   "common.cancel": "Annuler",
   "common.signOut": "Se déconnecter",
   "lang.label": "Langue",
+  "marketing.security": "Sécurité",
+  "marketing.pricing": "Tarifs",
+  "marketing.openDashboard": "Ouvrir le tableau de bord",
 };
 
 const es: Messages = {
@@ -69,6 +75,9 @@ const es: Messages = {
   "common.cancel": "Cancelar",
   "common.signOut": "Cerrar sesión",
   "lang.label": "Idioma",
+  "marketing.security": "Seguridad",
+  "marketing.pricing": "Precios",
+  "marketing.openDashboard": "Abrir panel",
 };
 
 const de: Messages = {
@@ -88,6 +97,9 @@ const de: Messages = {
   "common.cancel": "Abbrechen",
   "common.signOut": "Abmelden",
   "lang.label": "Sprache",
+  "marketing.security": "Sicherheit",
+  "marketing.pricing": "Preise",
+  "marketing.openDashboard": "Dashboard öffnen",
 };
 
 const no: Messages = {
@@ -107,6 +119,9 @@ const no: Messages = {
   "common.cancel": "Avbryt",
   "common.signOut": "Logg ut",
   "lang.label": "Språk",
+  "marketing.security": "Sikkerhet",
+  "marketing.pricing": "Priser",
+  "marketing.openDashboard": "Åpne dashbord",
 };
 
 const ja: Messages = {
@@ -126,6 +141,9 @@ const ja: Messages = {
   "common.cancel": "キャンセル",
   "common.signOut": "ログアウト",
   "lang.label": "言語",
+  "marketing.security": "セキュリティ",
+  "marketing.pricing": "料金",
+  "marketing.openDashboard": "ダッシュボードを開く",
 };
 
 export const DICTIONARIES: Record<Locale, Messages> = { en, fr, es, de, no, ja };

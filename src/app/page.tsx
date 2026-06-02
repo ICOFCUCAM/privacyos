@@ -23,6 +23,7 @@ import {
 import { MoatBand } from "@/components/landing-visuals";
 import { SecurityArchitecture } from "@/components/security-architecture";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { getT } from "@/lib/i18n/server";
 import { buttonClasses } from "@/components/ui";
 
 const modules = [
@@ -36,7 +37,8 @@ const modules = [
   { icon: Bot, title: "Autonomous Agents", desc: "A coordinated fleet defending you 24/7." },
 ];
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const t = await getT();
   return (
     <main id="content" className="bg-grid min-h-screen">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
@@ -49,17 +51,17 @@ export default function LandingPage() {
             href="/security"
             className="hidden rounded-lg px-4 py-2 text-sm font-semibold text-slate-200 transition hover:bg-bg-elevated sm:block"
           >
-            Security
+            {t("marketing.security")}
           </Link>
           <Link
             href="/pricing"
             className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-200 transition hover:bg-bg-elevated"
           >
-            Pricing
+            {t("marketing.pricing")}
           </Link>
           <LanguageSwitcher compact />
           <Link href="/dashboard" className={buttonClasses("primary", "md")}>
-            Open Dashboard
+            {t("marketing.openDashboard")}
           </Link>
         </div>
       </header>
