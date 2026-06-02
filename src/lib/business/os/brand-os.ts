@@ -10,6 +10,7 @@
 
 import type { RiskLevel } from "@/lib/types";
 import type { CredentialLeak, DomainRisk, EmployeeExposure, ThirdPartyRisk } from "@/lib/suite-types";
+import { riskBandIndex } from "@/lib/scoring/bands";
 
 const RISK_WEIGHT: Record<RiskLevel, number> = { low: 8, medium: 18, high: 32, critical: 48 };
 const RISK_RANK: Record<RiskLevel, number> = { low: 0, medium: 1, high: 2, critical: 3 };
@@ -17,11 +18,10 @@ const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
 
 export type RiskBand = "low" | "elevated" | "high" | "critical";
 
+const RISK_BANDS: RiskBand[] = ["low", "elevated", "high", "critical"];
+
 export function brandBand(score: number): RiskBand {
-  if (score >= 75) return "critical";
-  if (score >= 50) return "high";
-  if (score >= 25) return "elevated";
-  return "low";
+  return RISK_BANDS[riskBandIndex(score)];
 }
 
 export interface BrandRiskInput {
