@@ -13,7 +13,8 @@ describe("broker removal submission", () => {
   });
 
   it("files a real opt-out when configured, returning the provider reference", async () => {
-    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({ reference: "OR-12345" }), { status: 200 }));
+    const fetchImpl = vi.fn(async (_url: string, _init?: RequestInit) =>
+      new Response(JSON.stringify({ reference: "OR-12345" }), { status: 200 }));
     const r = await submitRemoval(input, {
       env: { BROKER_REMOVAL_API_KEY: "k", BROKER_REMOVAL_ENDPOINT: "https://api.removal.test/optout" },
       fetchImpl: fetchImpl as unknown as typeof fetch,
@@ -22,8 +23,7 @@ describe("broker removal submission", () => {
     expect(r.submitted).toBe(true);
     expect(r.reference).toBe("OR-12345");
     expect(fetchImpl).toHaveBeenCalledOnce();
-    const [, init] = fetchImpl.mock.calls[0];
-    expect((init as RequestInit).method).toBe("POST");
+    expect(fetchImpl.mock.calls[0][1]?.method).toBe("POST");
   });
 
   it("degrades gracefully (never throws) when the provider fails", async () => {
