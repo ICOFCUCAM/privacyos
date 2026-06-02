@@ -119,7 +119,32 @@ storefront metadata (tagline, category, installs, rating) and a
 `listingSummary` (workflows, steps, agents, combined risk reduction). Pure and
 unit-tested — every listing resolves to real templates and installs valid.
 
-## 9. File map
+## 9. AI Workflow Generator (Layer 14)
+
+**Surface:** `/dashboard/workflow-builder/generate`
+**Engine:** `workflow-generator.ts`
+
+Turns a plain-English request ("Protect my CEO from doxxing.") into a complete,
+valid workflow automatically. Two paths behind one shape:
+
+- `generateWorkflow(prompt)` — a pure, deterministic **intent engine**: it reads
+  the **subject** (executive / family / business / self) and the **threat**
+  (doxxing / breach / reputation / broker / deepfake / impersonation / threat)
+  from the prompt and composes a coherent chain — Trigger → Discovery → persona
+  agent → Risk assessment → (threat remediation) → Case → Legal → Report. It
+  always returns a valid definition and needs no keys (the demo path + fallback).
+- `generateWorkflowWithAI(prompt, provider)` — lets a configured LLM draft the
+  plan, then **maps and validates** it through the same block model, falling
+  back to the rules engine on any miss. The LLM can never emit an invalid
+  workflow.
+
+The surface takes a prompt (with example chips), shows the generated **flow
+graph**, the detected subject/threat/confidence and a plain-language rationale,
+and saves the result into the builder. For "Protect my CEO from doxxing." it
+produces exactly: Trigger → Discovery Agent → Executive Protection Agent → Risk
+Assessment → Case Creation → Legal Agent → Report.
+
+## 10. File map
 
 ```
 src/lib/agents/workflow-builder.ts        model, ops, validation, simulateRun, executeWorkflow
@@ -132,14 +157,17 @@ src/lib/agents/workflow-analytics.ts      Layer 12 — ROI analytics over the hi
 src/lib/agents/workflow-analytics.test.ts unit tests
 src/lib/agents/workflow-marketplace.ts    Layer 13 — installable storefront listings
 src/lib/agents/workflow-marketplace.test.ts unit tests
+src/lib/agents/workflow-generator.ts      Layer 14 — NL → workflow (rules + LLM seam)
+src/lib/agents/workflow-generator.test.ts unit tests
 src/components/workflow-flow.tsx          flow-graph canvas
 src/app/dashboard/workflow-builder/       page.tsx + builder.tsx + actions.ts
 src/app/dashboard/workflow-builder/history/page.tsx       History view
 src/app/dashboard/workflow-builder/analytics/page.tsx     Analytics (ROI) view
 src/app/dashboard/workflow-builder/marketplace/           Marketplace view + install action
+src/app/dashboard/workflow-builder/generate/              AI Generator (page + client + actions)
 ```
 
-## 10. Not yet built
+## 11. Not yet built
 
 - A **drag-and-drop** node canvas (today the canvas renders the ordered model;
   reordering is via move-up/down controls and drag-reorder of the step list).
