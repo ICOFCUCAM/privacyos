@@ -62,6 +62,7 @@ const NONE: Entitlements = {
 
 /** Per-plan broker-removal allowances (personal tiers). */
 const BROKER_LIMITS: Record<string, number> = {
+  free: 10,
   starter: 10,
   plus: 50,
   premium: Infinity,

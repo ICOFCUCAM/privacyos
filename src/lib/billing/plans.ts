@@ -49,6 +49,16 @@ export const CATEGORY_META: Record<
 };
 
 export const PLANS: Plan[] = [
+  // ── Free assessment (conversion engine — one scan, not a usage tier) ───────
+  {
+    id: "free", category: "personal", name: "Free Exposure Scan", monthly: 0,
+    tagline: "See what's exposed about you — one free scan, no card required.",
+    target: "Everyone",
+    features: [
+      "One complete exposure scan", "Exposure report", "Protection score",
+      "Up to 10 Data Broker Removals",
+    ],
+  },
   // ── Personal ──────────────────────────────────────────────────────────────
   {
     id: "starter", category: "personal", name: "PrivacyOS Starter", monthly: 14.99,

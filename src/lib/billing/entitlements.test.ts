@@ -51,6 +51,15 @@ describe("entitlements", () => {
     expect(entitlementsFor({ planId: "biz-growth", status: "active" }).features.business).toBe(true);
   });
 
+  it("the free plan grants 10 broker removals but no protection features (conversion tier)", () => {
+    const e = entitlementsFor({ planId: "free", status: "active" });
+    expect(e.entitled).toBe(true);
+    expect(e.brokerRemovalLimit).toBe(10);
+    for (const f of ["reputation", "executive", "business", "family", "ai_agent", "deep_web", "financial"] as const) {
+      expect(e.features[f]).toBe(false);
+    }
+  });
+
   it("personal Plus/Premium/Family get reputation monitoring (no promise/gate gap)", () => {
     expect(entitlementsFor({ planId: "plus", status: "active" }).features.reputation).toBe(true);
     expect(entitlementsFor({ planId: "premium", status: "active" }).features.reputation).toBe(true);

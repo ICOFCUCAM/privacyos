@@ -29,6 +29,11 @@ function PlanCard({ plan, annual, currency }: { plan: Plan; annual: boolean; cur
   const [err, setErr] = useState<string | null>(null);
 
   async function choose() {
+    if (plan.monthly === 0) {
+      // Free plan is a conversion engine, not a checkout — start the free scan.
+      window.location.href = "/scan";
+      return;
+    }
     if (plan.monthly === null) {
       window.location.href = "mailto:sales@privacyos.app?subject=" + encodeURIComponent(`${plan.name} enquiry`);
       return;
@@ -93,7 +98,7 @@ function PlanCard({ plan, annual, currency }: { plan: Plan; annual: boolean; cur
             : "border border-border text-slate-200 hover:bg-bg-elevated",
         )}
       >
-        {busy ? "Starting…" : plan.monthly === null ? "Contact sales" : "Choose plan"}
+        {busy ? "Starting…" : plan.monthly === 0 ? "Start free scan" : plan.monthly === null ? "Contact sales" : "Choose plan"}
       </button>
       {err && <p className="mt-2 text-xs text-risk-critical">{err}</p>}
     </div>
