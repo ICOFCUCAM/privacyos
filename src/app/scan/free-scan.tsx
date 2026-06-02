@@ -137,9 +137,10 @@ export function FreeScan({ defaultName = "" }: { defaultName?: string }) {
             Based on your scan, {recommendation.planName} is the best fit to handle the remaining
             {" "}{recommendation.remaining} exposure{recommendation.remaining === 1 ? "" : "s"} — and keep watching, removing and defending automatically.
           </p>
-          <Link href={`/pricing?plan=${recommendation.planId}`} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand px-5 py-3 text-sm font-semibold text-white hover:bg-brand/90">
+          <Link href={`/start?plan=${recommendation.planId}`} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-brand px-5 py-3 text-sm font-semibold text-white hover:bg-brand/90">
             <ShieldCheck className="h-4 w-4" /> Protect me with {recommendation.planName} <ArrowRight className="h-4 w-4" />
           </Link>
+          <p className="mt-2 text-center text-[11px] text-slate-500">Activated in minutes · cancel anytime · 20% off annual</p>
         </div>
       )}
 
@@ -151,8 +152,15 @@ export function FreeScan({ defaultName = "" }: { defaultName?: string }) {
             <li key={f} className="flex items-center gap-2 text-sm text-slate-200"><CheckCircle2 className="h-4 w-4 shrink-0 text-risk-low" /> {f}</li>
           ))}
         </ul>
-        <Link href="/login?next=/dashboard/home" className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-brand px-4 py-3 text-sm font-semibold text-white hover:bg-brand/90">
-          <ShieldCheck className="h-4 w-4" /> Claim my {a.freeRemovals} free broker removals
+        <Link
+          href="/start?plan=free"
+          className={
+            recommendation && recommendation.remaining > 0
+              ? "mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border px-4 py-3 text-sm font-semibold text-slate-200 hover:bg-bg-elevated"
+              : "mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-brand px-4 py-3 text-sm font-semibold text-white hover:bg-brand/90"
+          }
+        >
+          <ShieldCheck className="h-4 w-4" /> Or start free — claim {a.freeRemovals} broker removals
         </Link>
       </div>
 
@@ -166,8 +174,8 @@ export function FreeScan({ defaultName = "" }: { defaultName?: string }) {
             </div>
           ))}
         </div>
-        <Link href="/pricing" className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-fg hover:underline">
-          See Protection Plans <ArrowRight className="h-4 w-4" />
+        <Link href={`/pricing?plan=${recommendation?.planId ?? ""}`} className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-fg hover:underline">
+          Compare all plans <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
     </div>

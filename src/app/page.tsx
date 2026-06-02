@@ -124,13 +124,14 @@ export default async function LandingPage() {
             See what&apos;s exposed, remove it, and let autonomous agents defend you around the clock.
           </p>
           <div className="mt-8 flex items-center justify-center gap-3">
-            <Link href="/dashboard/assistant" className={buttonClasses("primary", "lg")}>
-              Get Protected
+            <Link href="/scan" className={buttonClasses("primary", "lg")}>
+              Run a Free Exposure Scan
             </Link>
             <Link href="/pricing" className={buttonClasses("secondary", "lg")}>
               View Pricing
             </Link>
           </div>
+          <p className="mt-3 text-xs text-slate-500">Free · no signup · see what&apos;s exposed in seconds.</p>
         </div>
       </section>
 

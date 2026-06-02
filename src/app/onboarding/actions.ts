@@ -12,6 +12,8 @@ import { getEntitlements } from "@/lib/billing/subscription";
 import { protectionsForEntitlements, PROVISIONED_COOKIE } from "@/lib/onboarding/auto-provision";
 import { findListing, installListing } from "@/lib/agents/workflow-marketplace";
 import { saveWorkflowAction } from "@/app/dashboard/workflow-builder/actions";
+import { AUTONOMY_COOKIE, defaultModeForPlan } from "@/lib/home/autonomy";
+import { INTENT_COOKIE } from "@/lib/home/scan-intent";
 
 export interface OnboardingState {
   error?: string;
@@ -93,15 +95,28 @@ export async function createSubject(
         await saveWorkflowAction({ ...def, enabled: true });
       }
     }
+    const store = await cookies();
     if (seen.size > 0) {
       // Surface the provisioning outcome once on Protection Home.
-      (await cookies()).set(PROVISIONED_COOKIE, [...seen].join(","), { path: "/", maxAge: 60 * 60 * 24, sameSite: "lax" });
+      store.set(PROVISIONED_COOKIE, [...seen].join(","), { path: "/", maxAge: 60 * 60 * 24, sameSite: "lax" });
+    }
+    // Default the consent dial to a sensible mode for the plan so the customer
+    // lands on already-running protection instead of another decision screen.
+    if (!store.get(AUTONOMY_COOKIE)) {
+      store.set(AUTONOMY_COOKIE, defaultModeForPlan(ent.planId ?? undefined), {
+        path: "/",
+        maxAge: 60 * 60 * 24 * 365,
+        sameSite: "lax",
+      });
     }
   } catch {
     /* best-effort — never block onboarding on provisioning */
   }
 
+  // The scan's job is done — clear the through-line cookie.
+  (await cookies()).delete(INTENT_COOKIE);
+
   revalidatePath("/dashboard");
-  // Land new users straight in the activation moment — the exposure scan.
-  redirect("/dashboard/scan");
+  // Land new users straight on activated protection — packs on, autonomy set.
+  redirect("/dashboard/home");
 }

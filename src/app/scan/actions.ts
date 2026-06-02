@@ -6,6 +6,7 @@ import { getDataSource } from "@/lib/data";
 import { buildScaryMirror } from "@/lib/home/scary-mirror";
 import { freeAssessment, type FreeAssessment } from "@/lib/home/free-assessment";
 import { classifyProtection, type ProtectionRecommendation } from "@/lib/home/protection-profile";
+import { encodeIntent, INTENT_COOKIE } from "@/lib/home/scan-intent";
 
 const FREE_SCAN_COOKIE = "po_free_scan";
 
@@ -36,6 +37,21 @@ export async function runFreeAssessmentAction(name: string): Promise<FreeScanRes
 
   // One scan only — lock further scans behind an upgrade for a year.
   store.set(FREE_SCAN_COOKIE, "1", { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
+
+  // Carry the scan's conclusion (name, recommended plan, profile) across the
+  // auth boundary so /start can resume checkout and onboarding can pre-fill —
+  // the visitor never re-picks a plan or re-types their name.
+  store.set(
+    INTENT_COOKIE,
+    encodeIntent({
+      name: (name || "").trim() || displayName,
+      planId: recommendation.planId,
+      profile: recommendation.primary,
+      found: recommendation.found,
+      remaining: recommendation.remaining,
+    }),
+    { path: "/", maxAge: 60 * 60 * 24 * 30, sameSite: "lax" },
+  );
   await recordAudit({
     action: "free.assessment",
     entity: "subject",

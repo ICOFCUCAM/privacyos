@@ -65,9 +65,9 @@ function PlanCard({
       return;
     }
     if (billingPending) {
-      // Checkout for this plan isn't live yet — start an account so we can
-      // activate it the moment billing is configured.
-      window.location.href = `/login?next=${encodeURIComponent(`/pricing?plan=${plan.id}`)}`;
+      // Checkout for this plan isn't live yet — hand off to the single activation
+      // door, which signs the visitor in and onboards them (capturing the lead).
+      window.location.href = `/start?plan=${plan.id}`;
       return;
     }
     setBusy(true);
@@ -78,6 +78,12 @@ function PlanCard({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ planId: plan.id, annual, currency: currency.code }),
       });
+      // Not signed in: don't dead-end on a 401 — route through /start, which
+      // bounces through login and resumes this exact plan's checkout.
+      if (res.status === 401) {
+        window.location.href = `/start?plan=${plan.id}`;
+        return;
+      }
       const data = await res.json();
       if (res.ok && data.url) {
         window.location.href = data.url;
