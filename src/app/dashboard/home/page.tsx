@@ -49,6 +49,7 @@ export default async function ProtectionHomePage({
   try { removals = await ds.listRemovals(); } catch { removals = []; }
 
   const lens = tierLens(entitlements.planId);
+  const live = ds.live;
 
   const mode = coerceMode(store.get(AUTONOMY_COOKIE)?.value);
   const runs = runPlaybooks([
@@ -190,6 +191,12 @@ export default async function ProtectionHomePage({
           </p>
         )}
       </Card>
+
+      {!live && (
+        <p className="px-1 text-center text-[11px] text-slate-600">
+          Demo data — figures are illustrative. Connect your accounts to run live monitoring and removals.
+        </p>
+      )}
 
       {/* Tier lens — depth appropriate to the customer's plan */}
       <Link href={lens.href} className="flex items-center gap-3 rounded-2xl border border-border bg-bg-subtle/40 p-4 transition hover:border-brand/30">

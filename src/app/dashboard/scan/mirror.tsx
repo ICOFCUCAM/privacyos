@@ -26,7 +26,7 @@ const SEVERITY_CLS: Record<RiskTone, string> = {
 
 type Phase = "intro" | "scanning" | "reveal" | "consent";
 
-export function ScaryMirror({ defaultName, defaultMode }: { defaultName: string; defaultMode: AutonomyMode }) {
+export function ScaryMirror({ defaultName, defaultMode, live = true }: { defaultName: string; defaultMode: AutonomyMode; live?: boolean }) {
   const [phase, setPhase] = useState<Phase>("intro");
   const [name, setName] = useState(defaultName);
   const [report, setReport] = useState<ScaryMirrorReport | null>(null);
@@ -167,7 +167,11 @@ export function ScaryMirror({ defaultName, defaultMode }: { defaultName: string;
             {activating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
             {activating ? "Activating…" : `Activate protection${packCount > 0 ? ` · ${packCount} pack${packCount === 1 ? "" : "s"}` : ""}`}
           </button>
-          <p className="mt-2 text-center text-[11px] text-slate-600">We&rsquo;ll start working immediately and only interrupt you per your choice above.</p>
+          <p className="mt-2 text-center text-[11px] text-slate-600">
+            {live
+              ? "We’ll start working immediately and only interrupt you per your choice above."
+              : "Demo mode — these actions are simulated until you connect your accounts."}
+          </p>
         </Card>
       </div>
     );

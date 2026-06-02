@@ -13,7 +13,7 @@ export default async function ScanPage() {
 
   return (
     <div className="py-4">
-      <ScaryMirror defaultName={defaultName} defaultMode={defaultMode} />
+      <ScaryMirror defaultName={defaultName} defaultMode={defaultMode} live={ds.live} />
     </div>
   );
 }
