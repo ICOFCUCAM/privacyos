@@ -1,10 +1,15 @@
+import { Trash2, CheckCircle2, Loader2, ArrowRight } from "lucide-react";
 import { Card, PageHeader, RiskBadge, Pill, SectionTitle } from "@/components/ui";
 import { RiskDonut, SeverityBar } from "@/components/viz";
 import { ScanButton } from "@/components/scan-button";
 import { getDataSource } from "@/lib/data";
 import { clusterExposures } from "@/lib/discovery/entity-resolution";
+import { fileRemovalAction } from "@/app/dashboard/removals/actions";
 import { cn, timeAgo, titleCase } from "@/lib/ui";
 import type { RiskLevel } from "@/lib/types";
+
+/** Removal/monitoring states that mean an exposure is already being handled. */
+const IN_FLIGHT = new Set(["removal_requested", "in_progress", "reappeared", "monitoring"]);
 
 export const metadata = { title: "Exposures" };
 
@@ -79,6 +84,7 @@ export default async function ExposuresPage() {
                 <th className="px-5 py-3 font-medium">Risk</th>
                 <th className="px-5 py-3 font-medium">Status</th>
                 <th className="px-5 py-3 font-medium">Last seen</th>
+                <th className="px-5 py-3 text-right font-medium">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -100,6 +106,21 @@ export default async function ExposuresPage() {
                     <td className="px-5 py-3"><RiskBadge level={e.riskLevel} /></td>
                     <td className="px-5 py-3 text-slate-300">{titleCase(e.status)}</td>
                     <td className="px-5 py-3 text-slate-500">{timeAgo(e.lastSeenAt)}</td>
+                    <td className="px-5 py-3 text-right">
+                      {e.status === "removed" ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-risk-low"><CheckCircle2 className="h-3.5 w-3.5" /> Removed</span>
+                      ) : IN_FLIGHT.has(e.status) ? (
+                        <span className="inline-flex items-center gap-1 text-xs text-slate-400"><Loader2 className="h-3.5 w-3.5" /> Removing</span>
+                      ) : (
+                        <form action={fileRemovalAction} className="inline">
+                          <input type="hidden" name="brokerName" value={e.sourceName} />
+                          <input type="hidden" name="exposureId" value={e.id} />
+                          <button type="submit" className="inline-flex items-center gap-1 rounded-lg bg-brand px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-brand/90">
+                            <Trash2 className="h-3.5 w-3.5" /> Remove <ArrowRight className="h-3 w-3" />
+                          </button>
+                        </form>
+                      )}
+                    </td>
                   </tr>
                 );
               })}

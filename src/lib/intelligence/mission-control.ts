@@ -111,6 +111,8 @@ export interface PriorityAction {
   title: string;
   detail: string;
   href: string;
+  /** When present, the item can be approved/resolved inline — no dead-end navigation. */
+  resolve?: { kind: "recommendation" | "threat"; id: string };
 }
 
 const URGENCY_RANK: Record<ActionUrgency, number> = { critical: 0, high: 1, medium: 2 };
@@ -145,13 +147,18 @@ export function buildPriorityQueue(
 
   for (const w of workflows) {
     if (!w.blocked) continue;
+    // Route to a surface that can actually action it: a threat-triggered step
+    // resolves on the Threats feed (and inline here); an exposure-driven opt-out
+    // lives under Broker Removals. Never the empty Recommendations dead-end.
+    const threatSourced = w.source?.kind === "threat";
     out.push({
       id: `wf-${w.id}`,
       kind: "workflow",
       urgency: w.status === "escalated" ? "high" : "medium",
       title: w.name,
       detail: w.status === "escalated" ? "Workflow escalated — approval needed" : "Workflow awaiting approval",
-      href: "/dashboard/recommendations",
+      href: threatSourced ? "/dashboard/threats" : "/dashboard/removals",
+      ...(threatSourced && w.source ? { resolve: { kind: "threat" as const, id: w.source.id } } : {}),
     });
   }
 
@@ -165,6 +172,7 @@ export function buildPriorityQueue(
       title: t.title,
       detail: `${t.riskLevel === "critical" ? "Critical" : "High"} threat · unacknowledged`,
       href: "/dashboard/threats",
+      resolve: { kind: "threat", id: t.id },
     });
   }
 

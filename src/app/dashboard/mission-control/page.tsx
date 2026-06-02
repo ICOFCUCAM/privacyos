@@ -27,6 +27,7 @@ import {
   buildPriorityQueue, computePosture, countUnresolvedExposures,
   type ActionKind, type ActionUrgency, type PostureLevel,
 } from "@/lib/intelligence/mission-control";
+import { resolveNeedAction } from "@/app/dashboard/actions";
 import { cn, titleCase } from "@/lib/ui";
 import type { RiskLevel } from "@/lib/types";
 import { Crown, Target, LayoutGrid, Sparkles, Siren, Users, Plane, Scale } from "lucide-react";
@@ -211,20 +212,31 @@ export default async function MissionControlPage() {
               {queue.map((a) => {
                 const Icon = KIND_ICON[a.kind];
                 return (
-                  <li key={a.id}>
-                    <Link href={a.href} className="flex items-center gap-3 rounded-xl border border-border bg-bg-subtle/40 p-3 transition hover:border-brand/30 hover:bg-bg-subtle/70">
-                      <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ring-1", URGENCY[a.urgency])}>
-                        <Icon className="h-4 w-4" />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-white">{a.title}</p>
-                        <p className="text-[11px] text-slate-500">{titleCase(a.kind)} · {a.detail}</p>
-                      </div>
-                      <span className={cn("shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1", URGENCY[a.urgency])}>
-                        {a.urgency}
-                      </span>
-                      <ArrowRight className="h-4 w-4 shrink-0 text-slate-600" />
+                  <li key={a.id} className="flex items-center gap-3 rounded-xl border border-border bg-bg-subtle/40 p-3 transition hover:border-brand/30">
+                    <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ring-1", URGENCY[a.urgency])}>
+                      <Icon className="h-4 w-4" />
+                    </span>
+                    <Link href={a.href} className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-white hover:text-brand-fg">{a.title}</p>
+                      <p className="text-[11px] text-slate-500">{titleCase(a.kind)} · {a.detail}</p>
                     </Link>
+                    <span className={cn("shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1", URGENCY[a.urgency])}>
+                      {a.urgency}
+                    </span>
+                    {/* Resolve inline where it can be actioned; otherwise open the surface. */}
+                    {a.resolve ? (
+                      <form action={resolveNeedAction} className="shrink-0">
+                        <input type="hidden" name="kind" value={a.resolve.kind} />
+                        <input type="hidden" name="id" value={a.resolve.id} />
+                        <button type="submit" className="inline-flex items-center gap-1 rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand/90">
+                          Approve <ArrowRight className="h-3.5 w-3.5" />
+                        </button>
+                      </form>
+                    ) : (
+                      <Link href={a.href} className="shrink-0 rounded-lg p-1.5 text-slate-500 hover:text-white" aria-label="Open">
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>
+                    )}
                   </li>
                 );
               })}
