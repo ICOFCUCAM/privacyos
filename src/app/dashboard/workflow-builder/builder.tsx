@@ -16,7 +16,8 @@ import {
   addStep, describeTrigger, emptyWorkflow, moveStep, reorderStep, newStepId,
   removeStep, validateWorkflow, simulateRun, describeStep,
   TRIGGER_CATALOG, TRIGGER_CATEGORIES, RISK_QUALIFIED_TRIGGERS, ACTION_CATALOG, actionToStep,
-  type ActionBlock,
+  APPROVAL_CATALOG, approvalToStep,
+  type ActionBlock, type ApproverRole,
   type StepType, type TriggerKind, type WorkflowDefinition, type WorkflowStepDef,
   type ConditionField, type ConditionOp, type SampleEvent, type StepOutcome,
 } from "@/lib/agents/workflow-builder";
@@ -73,6 +74,7 @@ export function WorkflowBuilder({
   const [overIndex, setOverIndex] = useState<number | null>(null);
   const [dragAgent, setDragAgent] = useState<AgentKind | null>(null);
   const [dragAction, setDragAction] = useState<ActionBlock | null>(null);
+  const [dragApprover, setDragApprover] = useState<ApproverRole | null>(null);
 
   function addAgent(kind: AgentKind) {
     setDraft((d) => addStep(d, { id: newStepId(), type: "agent", agent: kind, label: AGENT_LABEL[kind] }));
@@ -80,12 +82,19 @@ export function WorkflowBuilder({
   function addAction(a: ActionBlock) {
     setDraft((d) => addStep(d, actionToStep(a)));
   }
-  function clearDrag() { setDragIndex(null); setDragAgent(null); setDragAction(null); setOverIndex(null); }
+  function addApproval(role: ApproverRole) {
+    setDraft((d) => addStep(d, approvalToStep(role)));
+  }
+  function dropNew(): boolean {
+    if (dragAgent) { addAgent(dragAgent); return true; }
+    if (dragAction) { addAction(dragAction); return true; }
+    if (dragApprover) { addApproval(dragApprover); return true; }
+    return false;
+  }
+  function clearDrag() { setDragIndex(null); setDragAgent(null); setDragAction(null); setDragApprover(null); setOverIndex(null); }
 
   function onDrop(to: number) {
-    if (dragAgent) addAgent(dragAgent);
-    else if (dragAction) addAction(dragAction);
-    else if (dragIndex !== null && dragIndex !== to) setDraft((d) => reorderStep(d, dragIndex, to));
+    if (!dropNew() && dragIndex !== null && dragIndex !== to) setDraft((d) => reorderStep(d, dragIndex, to));
     clearDrag();
   }
 
@@ -339,7 +348,7 @@ export function WorkflowBuilder({
                 key={a}
                 type="button"
                 draggable
-                onDragStart={() => { setDragAgent(a); setDragIndex(null); setDragAction(null); }}
+                onDragStart={() => { setDragAgent(a); setDragIndex(null); setDragAction(null); setDragApprover(null); }}
                 onDragEnd={() => setDragAgent(null)}
                 onClick={() => addAgent(a)}
                 className="flex cursor-grab items-center gap-2 rounded-lg border border-border bg-bg-elevated/60 px-2.5 py-2 text-left text-xs text-slate-300 transition hover:border-brand/40 hover:text-white active:cursor-grabbing"
@@ -365,7 +374,7 @@ export function WorkflowBuilder({
                   key={a.id}
                   type="button"
                   draggable
-                  onDragStart={() => { setDragAction(a); setDragIndex(null); setDragAgent(null); }}
+                  onDragStart={() => { setDragAction(a); setDragIndex(null); setDragAgent(null); setDragApprover(null); }}
                   onDragEnd={() => setDragAction(null)}
                   onClick={() => addAction(a)}
                   className="flex cursor-grab items-center gap-2 rounded-lg border border-border bg-bg-elevated/60 px-2.5 py-2 text-left text-xs text-slate-300 transition hover:border-brand/40 hover:text-white active:cursor-grabbing"
@@ -379,11 +388,35 @@ export function WorkflowBuilder({
           </div>
         </div>
 
-        {/* Steps list — drag to reorder, or drop an agent/action to add */}
+        {/* Human Approvals — enterprise sign-off gates (Layer 8) */}
+        <div className="mt-4">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Human Approvals · {APPROVAL_CATALOG.length} <span className="font-normal text-slate-500">· click or drag in a sign-off gate</span>
+          </p>
+          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+            {APPROVAL_CATALOG.map((a) => (
+              <button
+                key={a.role}
+                type="button"
+                draggable
+                onDragStart={() => { setDragApprover(a.role); setDragIndex(null); setDragAgent(null); setDragAction(null); }}
+                onDragEnd={() => setDragApprover(null)}
+                onClick={() => addApproval(a.role)}
+                className="flex cursor-grab items-center gap-2 rounded-lg border border-risk-medium/30 bg-risk-medium/5 px-2.5 py-2 text-left text-xs text-slate-300 transition hover:border-risk-medium/50 hover:text-white active:cursor-grabbing"
+                title="Click or drag into the workflow"
+              >
+                <GitFork className="h-3.5 w-3.5 shrink-0 text-risk-medium" />
+                <span className="min-w-0 truncate font-medium">{a.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Steps list — drag to reorder, or drop an agent/action/approval to add */}
         <div
           className="mt-4"
-          onDragOver={(e) => { if (dragAgent || dragAction) e.preventDefault(); }}
-          onDrop={() => { if (dragAgent) { addAgent(dragAgent); } else if (dragAction) { addAction(dragAction); } clearDrag(); }}
+          onDragOver={(e) => { if (dragAgent || dragAction || dragApprover) e.preventDefault(); }}
+          onDrop={() => { dropNew(); clearDrag(); }}
         >
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
             Blocks · {draft.steps.length} <span className="font-normal text-slate-500">· drag to reorder · drop an agent/action to add</span>

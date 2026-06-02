@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   addStep, describeTrigger, describeStep, emptyWorkflow, flowPreview, moveStep, removeStep, reorderStep,
   validateWorkflow, simulateRun, STEP_CATALOG, TRIGGER_CATALOG, TRIGGER_CATEGORIES,
-  ACTION_CATALOG, actionToStep,
+  ACTION_CATALOG, actionToStep, APPROVAL_CATALOG, approvalToStep,
   type WorkflowDefinition, type WorkflowStepDef,
 } from "./workflow-builder";
 
@@ -144,6 +144,16 @@ describe("simulateRun (dry-run)", () => {
     expect(crit.steps[0].outcome).toBe("run");
     expect(crit.steps[1].outcome).toBe("run");
     expect(crit.stoppedAt).toBeNull();
+  });
+
+  it("Layer-8 approvals: 4 roles, each pauses on its approver", () => {
+    expect(APPROVAL_CATALOG.map((a) => a.label)).toEqual(["User Approval", "Manager Approval", "Legal Approval", "Executive Approval"]);
+    const def = wf({ steps: [approvalToStep("manager"), step({ id: "p", type: "agent", agent: "security", label: "Proceed" })] });
+    const r = simulateRun(def, { risk: "high" });
+    expect(r.steps[0].outcome).toBe("paused");
+    expect(r.steps[0].detail).toMatch(/Manager/);
+    expect(def.steps[0].approver).toBe("manager");
+    expect(validateWorkflow(def).valid).toBe(true);
   });
 
   it("marks approval as paused and wait as waited", () => {

@@ -40,6 +40,8 @@ export interface WorkflowTrigger {
   cadence?: string;
 }
 
+export type ApproverRole = "user" | "manager" | "legal" | "executive";
+
 export type ConditionField = "risk" | "kind" | "score" | "source";
 export type ConditionOp = "eq" | "gt" | "gte" | "lt" | "lte" | "contains" | "exists";
 
@@ -57,6 +59,8 @@ export interface WorkflowStepDef {
   agent?: AgentKind;
   /** Decision steps pause for human approval. */
   requiresApproval?: boolean;
+  /** Who must approve a decision step. */
+  approver?: ApproverRole;
   /** Predicate for a "condition" step. */
   condition?: StepCondition;
   /** What a failed condition does: stop the run, or continue anyway. */
@@ -123,6 +127,27 @@ export const ACTION_CATALOG: ActionBlock[] = [
 /** Build a fresh step from an action-catalog entry. */
 export function actionToStep(a: ActionBlock): WorkflowStepDef {
   return { id: newStepId(), type: a.type, label: a.label, ...(a.agent ? { agent: a.agent } : {}) };
+}
+
+/* ── Human approvals (Layer 8) ───────────────────────────────────────────── */
+
+export const APPROVER_LABEL: Record<ApproverRole, string> = {
+  user: "User Approval",
+  manager: "Manager Approval",
+  legal: "Legal Approval",
+  executive: "Executive Approval",
+};
+
+export const APPROVAL_CATALOG: { role: ApproverRole; label: string }[] = [
+  { role: "user", label: "User Approval" },
+  { role: "manager", label: "Manager Approval" },
+  { role: "legal", label: "Legal Approval" },
+  { role: "executive", label: "Executive Approval" },
+];
+
+/** Build a fresh human-approval (decision) step for a given approver role. */
+export function approvalToStep(role: ApproverRole): WorkflowStepDef {
+  return { id: newStepId(), type: "decision", requiresApproval: true, approver: role, label: APPROVER_LABEL[role] };
 }
 
 export const TRIGGER_CATALOG: Record<TriggerKind, { label: string; category: TriggerCategory }> = {
@@ -351,7 +376,8 @@ export function simulateRun(def: WorkflowDefinition, event: SampleEvent): Simula
       return;
     }
     if (step.type === "decision") {
-      steps.push({ step, outcome: "paused", detail: "Awaiting human approval" });
+      const who = step.approver ? APPROVER_LABEL[step.approver].replace(/ Approval$/, "") : "human";
+      steps.push({ step, outcome: "paused", detail: `Awaiting ${who} approval` });
       return;
     }
     if (step.type === "wait") {
