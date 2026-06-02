@@ -33,6 +33,8 @@ export interface MissionInput {
   topAttackScore: number;
   /** Minors whose combined family risk has crossed the alert threshold. */
   childSafetyAlerts: number;
+  /** Financial exposure risk, 0–100 (higher = more at risk). Optional. */
+  financialRisk?: number;
 }
 
 export interface OperationalPosture {
@@ -62,6 +64,8 @@ export function computePosture(input: MissionInput): OperationalPosture {
   if (workflows.escalated > 0) criticalDrivers.push(`${workflows.escalated} escalated workflow${workflows.escalated === 1 ? "" : "s"}`);
   if (executiveRisk >= 75) criticalDrivers.push(`Executive risk critical (${executiveRisk})`);
   if (topAttackScore >= 70) criticalDrivers.push(`Live attack path (score ${topAttackScore})`);
+  const financialRisk = input.financialRisk ?? 0;
+  if (financialRisk >= 75) criticalDrivers.push(`Financial exposure critical (${financialRisk})`);
 
   const elevatedDrivers: string[] = [];
   if (workflows.awaitingApproval > 0) elevatedDrivers.push(`${workflows.awaitingApproval} awaiting approval`);
@@ -71,6 +75,7 @@ export function computePosture(input: MissionInput): OperationalPosture {
   if (executiveRisk >= 50 && executiveRisk < 75) elevatedDrivers.push(`Executive risk elevated (${executiveRisk})`);
   if (attackPaths > 0 && topAttackScore >= 45 && topAttackScore < 70) elevatedDrivers.push(`${attackPaths} live attack path${attackPaths === 1 ? "" : "s"}`);
   if (childSafetyAlerts > 0) elevatedDrivers.push(`${childSafetyAlerts} child-safety alert${childSafetyAlerts === 1 ? "" : "s"}`);
+  if (financialRisk >= 50 && financialRisk < 75) elevatedDrivers.push(`Financial exposure elevated (${financialRisk})`);
 
   let level: PostureLevel;
   let drivers: string[];

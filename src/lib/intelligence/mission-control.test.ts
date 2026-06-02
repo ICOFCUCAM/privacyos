@@ -58,6 +58,15 @@ describe("computePosture", () => {
     expect(elev.drivers.join(" ")).toMatch(/Executive risk elevated/);
   });
 
+  it("surfaces financial exposure as a posture driver", () => {
+    const crit = computePosture({ ...base, financialRisk: 80 });
+    expect(crit.level).toBe("critical");
+    expect(crit.drivers.join(" ")).toMatch(/Financial exposure critical/);
+    const elev = computePosture({ ...base, financialRisk: 60 });
+    expect(elev.level).toBe("elevated");
+    expect(elev.drivers.join(" ")).toMatch(/Financial exposure elevated/);
+  });
+
   it("factors live attack paths into posture + drivers", () => {
     const crit = computePosture({ ...base, attackPaths: 2, topAttackScore: 82 });
     expect(crit.level).toBe("critical");

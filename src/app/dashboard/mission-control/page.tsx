@@ -13,6 +13,7 @@ import { caseQueue, summarizeCases } from "@/lib/intelligence/case-intel";
 import { summarizeThreats } from "@/lib/intelligence/threat-intel";
 import { listWorkflowDefinitions } from "@/lib/agents/workflow-store";
 import { getModuleData } from "@/lib/data/modules";
+import { financialOverview } from "@/lib/financial/os/financial-os";
 import { executiveRiskIndices } from "@/lib/executive/os/risk-indices";
 import { analyzeAttackSurface } from "@/lib/executive/os/attack-paths";
 import { sharedExposures, memberRisks, familyOverview, childSafety } from "@/lib/family/os/family-os";
@@ -126,6 +127,7 @@ export default async function MissionControlPage() {
     attackPaths: surface.enabledPaths,
     topAttackScore: surface.topScore,
     childSafetyAlerts,
+    financialRisk: financialOverview({ exposures: data.exposures, credentialLeaks, threats: data.threats }).overall,
   });
   const queue = buildPriorityQueue(cases, workflows, data.threats);
 
