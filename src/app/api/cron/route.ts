@@ -16,11 +16,18 @@ import { resolveProvider } from "@/lib/agents/llm/provider";
  */
 async function handle(req: Request): Promise<NextResponse> {
   const secret = process.env.CRON_SECRET;
-  if (secret) {
-    const auth = req.headers.get("authorization");
-    if (auth !== `Bearer ${secret}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  // Fail closed: this endpoint runs the scheduler with the service-role client
+  // across every tenant, so it must never be callable without a configured
+  // secret. No secret = locked, not open.
+  if (!secret) {
+    return NextResponse.json(
+      { error: "Scheduler disabled (CRON_SECRET not configured)." },
+      { status: 503 },
+    );
+  }
+  const auth = req.headers.get("authorization");
+  if (auth !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const admin = getSupabaseAdminClient();
