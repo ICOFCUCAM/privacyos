@@ -31,9 +31,10 @@ describe("buildReportContext — board", () => {
     const headings = ctx.sections.map((s) => s.heading);
     expect(headings).toContain("Protection posture (all domains)");
     expect(ctx.stats.map((s) => s.label)).toContain("Domains at risk");
-    // all six domains listed
+    // all protection domains listed (incl. Financial Exposure)
     const posture = ctx.sections.find((s) => s.heading === "Protection posture (all domains)")!;
-    expect(posture.rows).toHaveLength(6);
+    expect(posture.rows).toHaveLength(7);
+    expect(posture.rows.some((r) => r.label === "Financial")).toBe(true);
   });
 });
 

@@ -15,6 +15,7 @@ import { assessTrips } from "@/lib/intelligence/travel-risk";
 import { travelOverview } from "@/lib/travel/os/travel-os";
 import { brandRiskIndices } from "@/lib/business/os/brand-os";
 import { buildAccounts, identityRisk } from "@/lib/identity/os/identity-os";
+import { financialOverview } from "@/lib/financial/os/financial-os";
 import { reputationOverview } from "@/lib/reputation/os/analysis";
 import { riskBandIndex } from "@/lib/scoring/bands";
 
@@ -65,6 +66,7 @@ export function protectionSuite(input: SuiteInput): DomainScore[] {
   const travel = travelOverview(assessTrips(input.travelAlerts, input.exposures, input.threats));
   const brand = brandRiskIndices({ domainRisks: input.domainRisks, employeeExposures: input.employeeExposures, thirdPartyRisks: input.thirdPartyRisks, credentialLeaks: input.credentialLeaks });
   const identity = identityRisk(buildAccounts({ credentialLeaks: input.credentialLeaks, exposures: input.exposures, knownEmails: input.subjectEmails }));
+  const financial = financialOverview({ exposures: input.exposures, credentialLeaks: input.credentialLeaks, threats: input.threats });
   const reputation = reputationOverview(input.mentions);
   // reputationOverview returns a neutral baseline health (~64) even with zero
   // mentions, so don't let "no coverage" masquerade as elevated risk.
@@ -78,6 +80,7 @@ export function protectionSuite(input: SuiteInput): DomainScore[] {
     { key: "travel", label: "Travel", href: "/dashboard/travel", score: travelScore, band: riskBand(travelScore), higherIsWorse: true, caption: `${travel.upcoming} upcoming · ${travel.highestPosture} posture` },
     { key: "brand", label: "Brand", href: "/dashboard/business", score: brand.overall, band: riskBand(brand.overall), higherIsWorse: true, caption: `${brand.band} brand risk` },
     { key: "identity", label: "Identity", href: "/dashboard/identity", score: identity.overall, band: riskBand(identity.overall), higherIsWorse: true, caption: `${identity.breachedAccounts} breached account(s)` },
+    { key: "financial", label: "Financial", href: "/dashboard/financial", score: financial.overall, band: riskBand(financial.overall), higherIsWorse: true, caption: `${financial.exposedAccounts} exposed account(s)` },
     { key: "reputation", label: "Reputation", href: "/dashboard/reputation", score: reputation.health, band: repHasData ? healthBand(reputation.health) : "low", higherIsWorse: false, caption: repHasData ? `${reputation.health}/100 health` : "no coverage yet" },
   ];
 

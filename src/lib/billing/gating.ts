@@ -17,6 +17,7 @@ export interface GatedSuite {
 }
 
 export const GATED_SUITES: GatedSuite[] = [
+  { feature: "financial", label: "Financial Exposure Protection", prefixes: ["/dashboard/financial"], upsell: "personal" },
   { feature: "reputation", label: "ReputationOS", prefixes: ["/dashboard/reputation"], upsell: "reputation" },
   {
     feature: "executive",

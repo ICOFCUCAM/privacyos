@@ -9,7 +9,7 @@ const base: SuiteInput = {
 describe("protectionSuite", () => {
   it("returns one row per domain with a band + interpretation", () => {
     const rows = protectionSuite(base);
-    expect(rows.map((r) => r.key).sort()).toEqual(["brand", "executive", "family", "identity", "reputation", "travel"]);
+    expect(rows.map((r) => r.key).sort()).toEqual(["brand", "executive", "family", "financial", "identity", "reputation", "travel"]);
     // reputation is a health score (higher = better), the rest are risk scores
     expect(rows.find((r) => r.key === "reputation")!.higherIsWorse).toBe(false);
     expect(rows.find((r) => r.key === "executive")!.higherIsWorse).toBe(true);
@@ -35,7 +35,7 @@ describe("protectionSuite", () => {
 
   it("summarizes domains / at-risk / worst", () => {
     const s = summarizeSuite(protectionSuite(base));
-    expect(s.domains).toBe(6);
+    expect(s.domains).toBe(7);
     expect(s.worst).not.toBeNull();
     expect(s.atRisk).toBeGreaterThanOrEqual(0);
   });

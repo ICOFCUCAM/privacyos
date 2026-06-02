@@ -33,7 +33,8 @@ export type Feature =
   | "family"
   | "ai_agent"
   | "deep_web"
-  | "priority_support";
+  | "priority_support"
+  | "financial";
 
 export interface Entitlements {
   /** Active plan id, or null when unsubscribed/demo. */
@@ -53,7 +54,7 @@ const NONE: Entitlements = {
   entitled: false,
   features: {
     reputation: false, executive: false, business: false, family: false,
-    ai_agent: false, deep_web: false, priority_support: false,
+    ai_agent: false, deep_web: false, priority_support: false, financial: false,
   },
   brokerRemovalLimit: 0,
   familySeats: 0,
@@ -78,7 +79,7 @@ export const DEMO_ENTITLEMENTS: Entitlements = {
   entitled: true,
   features: {
     reputation: true, executive: true, business: true, family: true,
-    ai_agent: true, deep_web: true, priority_support: true,
+    ai_agent: true, deep_web: true, priority_support: true, financial: true,
   },
   brokerRemovalLimit: Infinity,
   familySeats: 6,
@@ -95,7 +96,7 @@ export const ADMIN_ENTITLEMENTS: Entitlements = {
   entitled: true,
   features: {
     reputation: true, executive: true, business: true, family: true,
-    ai_agent: true, deep_web: true, priority_support: true,
+    ai_agent: true, deep_web: true, priority_support: true, financial: true,
   },
   brokerRemovalLimit: Infinity,
   familySeats: 6,
@@ -145,6 +146,10 @@ export function entitlementsFor(sub: Subscription | null): Entitlements {
       ai_agent: cat === "ai_addon" || ["plus", "premium", "family"].includes(sub.planId),
       priority_support: ["premium", "family"].includes(sub.planId) ||
         ["executive", "business"].includes(cat),
+      // Financial Exposure Protection: full for executive/business; monitoring
+      // for the personal tiers that advertise "Identity Theft Monitoring".
+      financial: cat === "executive" || cat === "business" ||
+        (cat === "personal" && ["premium", "family"].includes(sub.planId)),
     },
     brokerRemovalLimit: personalTier ? (BROKER_LIMITS[personalTier] ?? 0) : Infinity,
     familySeats: sub.planId === "family" ? 6 : 1,

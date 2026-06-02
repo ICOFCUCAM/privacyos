@@ -11,7 +11,7 @@ import {
   LayoutTemplate, Gauge, FileLock2,
   Search, Newspaper, LifeBuoy, Share2, Rocket,
   Home, UserX, Crosshair, LayoutGrid, VenetianMask, EyeOff, Target, Fingerprint, ShieldCheck,
-  SlidersHorizontal, ChevronDown,
+  SlidersHorizontal, ChevronDown, Banknote,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/ui";
@@ -36,6 +36,7 @@ export const navGroups: NavGroup[] = [
       { href: "/dashboard/assistant", label: "AI Assistant", icon: MessageSquareHeart },
       { href: "/dashboard/exposures", label: "Exposure Inventory", icon: Radar },
       { href: "/dashboard/identity", label: "Digital Identity", icon: Fingerprint },
+      { href: "/dashboard/financial", label: "Financial Exposure", icon: Banknote },
       { href: "/dashboard/removals", label: "Broker Removals", icon: Trash2 },
       { href: "/dashboard/threats", label: "Threat Feed", icon: ShieldAlert },
       { href: "/dashboard/cases", label: "Active Cases", icon: FolderKanban },
@@ -118,6 +119,7 @@ const CONSUMER_SURFACES = new Set<string>([
   "/dashboard/assistant",    // AI Assistant
   "/dashboard/exposures",    // Exposure Inventory
   "/dashboard/identity",     // Digital Identity
+  "/dashboard/financial",    // Financial Exposure
   "/dashboard/removals",     // Broker Removals
   "/dashboard/reputation",   // Reputation overview
   "/dashboard/reports",      // Reports
