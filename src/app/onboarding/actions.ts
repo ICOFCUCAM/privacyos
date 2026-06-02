@@ -102,13 +102,12 @@ export async function createSubject(
     }
     // Default the consent dial to a sensible mode for the plan so the customer
     // lands on already-running protection instead of another decision screen.
+    const defaultMode = defaultModeForPlan(ent.planId ?? undefined);
     if (!store.get(AUTONOMY_COOKIE)) {
-      store.set(AUTONOMY_COOKIE, defaultModeForPlan(ent.planId ?? undefined), {
-        path: "/",
-        maxAge: 60 * 60 * 24 * 365,
-        sameSite: "lax",
-      });
+      store.set(AUTONOMY_COOKIE, defaultMode, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
     }
+    // Persist server-side so the background cycle honors it from day one.
+    try { await (await getDataSource()).setAutonomyMode(defaultMode); } catch { /* best-effort */ }
   } catch {
     /* best-effort — never block onboarding on provisioning */
   }

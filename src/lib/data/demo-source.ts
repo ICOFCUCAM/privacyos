@@ -63,4 +63,8 @@ export class DemoDataSource implements DataSource {
   async recheckRemoval(): Promise<void> {
     // no-op in demo mode
   }
+
+  async setAutonomyMode(): Promise<void> {
+    // no-op in demo mode (the cookie still drives the demo UI)
+  }
 }

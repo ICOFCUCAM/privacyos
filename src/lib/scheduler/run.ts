@@ -17,6 +17,7 @@ import type { DiscoverySource } from "@/lib/discovery/source";
 import { computeRiskScore } from "@/lib/scoring/risk-score";
 import { advanceRemoval, shouldReappear } from "@/lib/brokers/removal";
 import { planAutoFilings } from "@/lib/brokers/auto-file";
+import { coerceMode, needsApproval } from "@/lib/home/autonomy";
 import { casesForNewThreats } from "@/lib/agents/threat-cases";
 import { reputationCasesFromMentions } from "@/lib/reputation/os/reputation-cases";
 import { reputationOverview } from "@/lib/reputation/os/analysis";
@@ -266,21 +267,28 @@ export async function runScheduledCycle(
 
     // 6f. Auto-file broker opt-outs for newly-discovered broker/public-record
     // exposures — the Privacy Agent files them so the removal pipeline populates
-    // itself from real discoveries (no manual step required).
+    // itself from real discoveries. Honors the subject's autonomy mode: advisor
+    // files nothing (everything waits for sign-off), hybrid files routine only,
+    // autopilot files everything below critical. Critical always waits.
     try {
+      const mode = coerceMode(fp.subject.autonomyMode);
+      const riskByExposure = new Map(exposures.map((e) => [e.id, e.riskLevel]));
       const existing = await store.listRemovalsForSubject(fp.subject.id);
       const filings = planAutoFilings(fp.subject.id, exposures, existing, { now });
-      if (filings.requests.length > 0) {
-        await store.createRemovals(fp.userId, fp.subject.id, filings.requests);
+      const eligible = filings.requests.filter(
+        (r) => !needsApproval(riskByExposure.get(r.exposureId ?? "") ?? "medium", mode),
+      );
+      if (eligible.length > 0) {
+        await store.createRemovals(fp.userId, fp.subject.id, eligible);
         await store.recordActions(fp.userId, fp.subject.id, [
           {
             agent: "privacy",
             kind: "remove",
-            summary: `Auto-filed ${filings.requests.length} broker opt-out(s) for new listings; 30/60/90-day re-checks scheduled.`,
+            summary: `Auto-filed ${eligible.length} broker opt-out(s) for new listings; 30/60/90-day re-checks scheduled.`,
             status: "completed",
           },
         ]);
-        removalsFiled += filings.requests.length;
+        removalsFiled += eligible.length;
       }
     } catch (err) {
       // Auto-filing is best-effort; never fail the whole cycle.

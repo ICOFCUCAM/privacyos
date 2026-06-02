@@ -323,6 +323,32 @@ describe("runScheduledCycle", () => {
     expect(store.createdRemovals[0].status).toBe("removal_requested");
   });
 
+  it("honors autonomy mode: advisor files nothing autonomously (waits for sign-off)", async () => {
+    const brokerSource: DiscoverySource = {
+      id: "broker-test",
+      name: "Broker test source",
+      async scan({ subject: s }) {
+        return {
+          threats: [],
+          exposures: [{
+            id: `e-${s.id}`, subjectId: s.id, category: "address", source: "data_broker",
+            sourceName: "Spokeo", snippet: "", riskLevel: "high", riskScore: 30, status: "discovered",
+            discoveredAt: new Date().toISOString(), lastSeenAt: new Date().toISOString(),
+          }],
+          log: [],
+        };
+      },
+    };
+    const store = new MemoryStore([
+      { userId: "u1", subject: { ...subject("a", "u1"), autonomyMode: "advisor" }, exposures: [], threats: [] },
+    ]);
+    const summary = await runScheduledCycle(store, {
+      sources: [brokerSource], provider: new MockProvider(), reputationSource: repSource, domainClient: domClient,
+    });
+    expect(summary.removalsFiled).toBe(0);
+    expect(store.createdRemovals).toHaveLength(0);
+  });
+
   it("collects reputation mentions + sentiment each cycle", async () => {
     const store = new MemoryStore([
       { userId: "u1", subject: subject("a", "u1"), exposures: [], threats: [] },

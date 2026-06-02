@@ -2,7 +2,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import {
   ShieldCheck, Trash2, Workflow as WorkflowIcon, Star, Radar, ArrowUpRight, ArrowDownRight,
-  CheckCircle2, AlertTriangle, MessageSquareHeart, ArrowRight, Search, Eye, Sparkles, SlidersHorizontal,
+  CheckCircle2, AlertTriangle, MessageSquareHeart, ArrowRight, Search, Eye, Sparkles, SlidersHorizontal, Moon,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Card } from "@/components/ui";
@@ -15,6 +15,7 @@ import {
   buildProtectionHome, type ProtectionBand, type ProtectionAction,
 } from "@/lib/home/protection-home";
 import { coerceMode, AUTONOMY_COOKIE, AUTONOMY_META } from "@/lib/home/autonomy";
+import { summarizeRecentProtection } from "@/lib/home/recent-protection";
 import { tierLens } from "@/lib/home/tiers";
 import { PROVISIONED_COOKIE } from "@/lib/onboarding/auto-provision";
 import { findListing } from "@/lib/agents/workflow-marketplace";
@@ -24,7 +25,7 @@ import { AutoProtect } from "@/components/auto-protect";
 import { getEntitlements } from "@/lib/billing/subscription";
 import { canRescan } from "@/lib/billing/entitlements";
 import type { RiskLevel } from "@/lib/types";
-import { cn } from "@/lib/ui";
+import { cn, timeAgo } from "@/lib/ui";
 
 export const metadata = { title: "Protection" };
 
@@ -68,13 +69,16 @@ export default async function ProtectionHomePage({
   ]);
   const workflows = buildWorkflows(runs);
 
+  // The fleet's recent autonomous work, for the "While you were away" panel.
+  const mod = await getModuleData();
+  const recent = summarizeRecentProtection(mod.agentActions);
+
   // Fold Financial Exposure into the autonomous view (when entitled): its
   // recommendations flow through the same "needs you" queue + autonomy
   // thresholds as everything else, so the customer just sees one more outcome.
   let recommendations = data.recommendations;
   if (entitlements.features.financial) {
-    const { credentialLeaks } = await getModuleData();
-    const fin = financialOverview({ exposures: data.exposures, credentialLeaks, threats: data.threats });
+    const fin = financialOverview({ exposures: data.exposures, credentialLeaks: mod.credentialLeaks, threats: data.threats });
     recommendations = [...recommendations, ...financialRecommendations(fin, data.subject.id)];
   }
 
@@ -90,6 +94,7 @@ export default async function ProtectionHomePage({
 
   const band = BAND_META[home.band];
   const name = data.subject.displayName?.split(" ")[0] ?? "there";
+  const criticalsPending = data.threats.filter((t) => !t.acknowledged && t.riskLevel === "critical").length;
   const justActivated = params.activated !== undefined;
   const activatedPacks = Number(params.activated) || 0;
 
@@ -171,6 +176,40 @@ export default async function ProtectionHomePage({
           </div>
         </div>
       </Card>
+
+      {/* While you were away — what the fleet handled autonomously, so protection is felt */}
+      {recent.total > 0 && (
+        <Card className="p-4">
+          <div className="mb-2 flex items-center justify-between">
+            <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+              <Moon className="h-3.5 w-3.5 text-brand" /> While you were away
+            </p>
+            <span className="text-[11px] text-slate-500">last 24h</span>
+          </div>
+          <p className="text-sm text-slate-200">
+            We handled <span className="font-semibold text-white">{recent.total}</span> thing{recent.total === 1 ? "" : "s"} for you
+            {criticalsPending === 0 ? (
+              <> — <span className="font-medium text-risk-low">nothing critical needs you</span>.</>
+            ) : (
+              <> — <span className="font-medium text-risk-high">{criticalsPending} critical need{criticalsPending === 1 ? "s" : ""} your sign-off</span>.</>
+            )}
+          </p>
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
+            {recent.removals > 0 && <AwayChip icon={Trash2} label={`${recent.removals} removal${recent.removals === 1 ? "" : "s"} filed`} />}
+            {recent.cases > 0 && <AwayChip icon={Sparkles} label={`${recent.cases} case${recent.cases === 1 ? "" : "s"} opened`} />}
+            {recent.scans + recent.monitors > 0 && <AwayChip icon={Radar} label={`${recent.scans + recent.monitors} monitoring sweep${recent.scans + recent.monitors === 1 ? "" : "s"}`} />}
+          </div>
+          <ul className="mt-3 space-y-1.5 border-t border-border pt-3">
+            {recent.latest.map((a) => (
+              <li key={a.id} className="flex items-center gap-2 text-[11px]">
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-risk-low" />
+                <span className="min-w-0 flex-1 truncate text-slate-300">{a.summary}</span>
+                <span className="shrink-0 text-slate-600">{timeAgo(a.createdAt)}</span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
 
       {/* ② What we're doing for you */}
       <Card className="p-4">
@@ -298,6 +337,14 @@ export default async function ProtectionHomePage({
         <ArrowRight className="h-4 w-4 shrink-0 text-brand" />
       </Link>
     </div>
+  );
+}
+
+function AwayChip({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-bg-subtle/60 px-2.5 py-1 text-[11px] font-medium text-slate-300 ring-1 ring-border">
+      <Icon className="h-3 w-3 text-brand-fg" /> {label}
+    </span>
   );
 }
 

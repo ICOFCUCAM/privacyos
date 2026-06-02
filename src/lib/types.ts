@@ -21,6 +21,9 @@ export interface Subject {
   usernames: string[];
   organization?: string;
   createdAt: string;
+  /** How hands-on the customer chose to be — persisted so the background cycle
+   *  honors it (advisor/hybrid/autopilot). Inline union avoids an import cycle. */
+  autonomyMode?: "autopilot" | "hybrid" | "advisor";
 }
 
 export type ExposureCategory =

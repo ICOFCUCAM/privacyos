@@ -203,6 +203,17 @@ export class SupabaseDataSource implements DataSource {
     }
   }
 
+  async setAutonomyMode(mode: "autopilot" | "hybrid" | "advisor"): Promise<void> {
+    const subject = await this.getPrimarySubject();
+    if (!subject) return;
+    // Best-effort: tolerate the column not existing yet (pre-migration).
+    try {
+      await this.db.from("subjects").update({ autonomy_mode: mode }).eq("id", subject.id);
+    } catch {
+      /* column missing until migration 0013 applies — the cookie still drives the UI */
+    }
+  }
+
   async recheckRemoval(id: string): Promise<void> {
     const { data, error } = await this.db.from("removal_requests").select("*").eq("id", id).single();
     if (error) throw error;

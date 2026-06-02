@@ -28,6 +28,8 @@ export function mapSubject(row: any): Subject {
     usernames: row.usernames ?? [],
     organization: row.organization ?? undefined,
     createdAt: row.created_at,
+    // Defensive: tolerate the column not existing yet (pre-migration) → autopilot.
+    autonomyMode: row.autonomy_mode ?? undefined,
   };
 }
 

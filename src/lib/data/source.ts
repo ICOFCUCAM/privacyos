@@ -44,6 +44,9 @@ export interface DataSource {
   /** Mark a threat as acknowledged. */
   acknowledgeThreat(id: string): Promise<void>;
 
+  /** Persist the primary subject's autonomy mode so the background cycle honors it. */
+  setAutonomyMode(mode: "autopilot" | "hybrid" | "advisor"): Promise<void>;
+
   /** Approve an agent recommendation. */
   approveRecommendation(id: string): Promise<void>;
 

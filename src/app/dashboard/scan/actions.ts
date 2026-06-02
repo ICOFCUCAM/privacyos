@@ -45,6 +45,9 @@ export async function startProtectionAction(mode: AutonomyMode, packs: string[])
 
   const store = await cookies();
   store.set(AUTONOMY_COOKIE, chosen, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
+  // Persist server-side too, so the background protection cycle honors the
+  // customer's choice (the cookie alone is invisible to the scheduler).
+  try { await (await getDataSource()).setAutonomyMode(chosen); } catch { /* best-effort */ }
 
   const installed = new Set<string>();
   for (const id of packs) {
