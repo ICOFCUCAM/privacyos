@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Workflow, CheckCircle2, LayoutTemplate, History, TrendingUp } from "lucide-react";
+import { Workflow, CheckCircle2, LayoutTemplate, History, TrendingUp, Store } from "lucide-react";
 import { PageHeader } from "@/components/ui";
 import { listWorkflowDefinitions } from "@/lib/agents/workflow-store";
 import { ALL_AGENT_KINDS } from "@/lib/billing/entitlements";
@@ -22,6 +22,12 @@ export default async function WorkflowBuilderPage({
         subtitle="Author your own automations — compose a trigger and an ordered chain of agent actions, gates and reports, then enable it to run on matching events."
         actions={
           <div className="flex items-center gap-2">
+            <Link
+              href="/dashboard/workflow-builder/marketplace"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-bg-elevated px-3 py-2 text-xs font-medium text-slate-300 hover:text-white"
+            >
+              <Store className="h-3.5 w-3.5" /> Marketplace
+            </Link>
             <Link
               href="/dashboard/workflow-builder/analytics"
               className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-bg-elevated px-3 py-2 text-xs font-medium text-slate-300 hover:text-white"
@@ -47,6 +53,12 @@ export default async function WorkflowBuilderPage({
         <div className="flex items-center gap-2 rounded-xl border border-risk-low/30 bg-risk-low/10 px-3.5 py-2.5 text-sm text-risk-low">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
           Template added to your saved workflows below — review the steps, then enable it.
+        </div>
+      )}
+      {params.from === "marketplace" && (
+        <div className="flex items-center gap-2 rounded-xl border border-risk-low/30 bg-risk-low/10 px-3.5 py-2.5 text-sm text-risk-low">
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          Workflow pack installed — the workflows are in your saved list below. Review the steps, then enable them.
         </div>
       )}
       <WorkflowBuilder initial={definitions} agents={ALL_AGENT_KINDS} />

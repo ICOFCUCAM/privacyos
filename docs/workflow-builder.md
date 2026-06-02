@@ -104,7 +104,22 @@ Automated**, **Actions Automated**, **Success Rate**, **Agent Utilization**
 surfaces a headline labour-cost-avoided figure (`ANALYST_HOURLY_USD`). Every
 number reconciles with the history it summarizes.
 
-## 8. File map
+## 8. Marketplace (Layer 13)
+
+**Surface:** `/dashboard/workflow-builder/marketplace`
+**Engine:** `workflow-marketplace.ts`
+
+A consumer-facing storefront of installable workflow packs — named outcomes
+("Protect My CEO", "Protect My Family", "Breach Response", "Reputation
+Recovery", "Remove Data Brokers") each backed by one or more catalog templates
+that install together. `installListing(listing)` instantiates every backing
+template into a fresh, editable `WorkflowDefinition`; the `installListingAction`
+server action saves them and drops the user into the builder. Listings carry
+storefront metadata (tagline, category, installs, rating) and a
+`listingSummary` (workflows, steps, agents, combined risk reduction). Pure and
+unit-tested — every listing resolves to real templates and installs valid.
+
+## 9. File map
 
 ```
 src/lib/agents/workflow-builder.ts        model, ops, validation, simulateRun, executeWorkflow
@@ -115,13 +130,16 @@ src/lib/agents/workflow-history-store.ts  history persistence (workflow_runs) + 
 src/lib/agents/workflow-history.test.ts   unit tests
 src/lib/agents/workflow-analytics.ts      Layer 12 — ROI analytics over the history
 src/lib/agents/workflow-analytics.test.ts unit tests
+src/lib/agents/workflow-marketplace.ts    Layer 13 — installable storefront listings
+src/lib/agents/workflow-marketplace.test.ts unit tests
 src/components/workflow-flow.tsx          flow-graph canvas
 src/app/dashboard/workflow-builder/       page.tsx + builder.tsx + actions.ts
-src/app/dashboard/workflow-builder/history/page.tsx     History view
-src/app/dashboard/workflow-builder/analytics/page.tsx   Analytics (ROI) view
+src/app/dashboard/workflow-builder/history/page.tsx       History view
+src/app/dashboard/workflow-builder/analytics/page.tsx     Analytics (ROI) view
+src/app/dashboard/workflow-builder/marketplace/           Marketplace view + install action
 ```
 
-## 9. Not yet built
+## 10. Not yet built
 
 - A **drag-and-drop** node canvas (today the canvas renders the ordered model;
   reordering is via move-up/down controls and drag-reorder of the step list).
