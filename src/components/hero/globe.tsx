@@ -32,8 +32,22 @@ const CITIES: [number, number, number][] = [
   [37.6, 127, 0.45], [13.7, 100.5, 0.4], [-6.2, 106.8, 0.45], [22.3, 114.2, 0.45], [24.7, 46.7, 0.35], [14.6, 121, 0.4],
   [-33.9, 151, 0.45], [-37.8, 145, 0.35],
 ];
-const cities = CITIES.map(([lat, lng, size]) => ({ lat, lng, size }));
-const ringPoints = cities.filter((c) => c.size >= 0.5);
+const cities = CITIES; // base metros (drives routes/rings)
+const ringPoints = CITIES.filter(([, , s]) => s >= 0.5).map(([lat, lng]) => ({ lat, lng }));
+
+// Clustered city-light field: each metro + jittered satellites (metro sprawl),
+// so populated regions glow with density — NASA night-earth, not a GIS map.
+type Light = { lat: number; lng: number; size: number; core: boolean };
+const lights: Light[] = [];
+for (const [lat, lng, size] of cities) {
+  lights.push({ lat, lng, size, core: true });
+  const sats = Math.round(size * 7);
+  for (let i = 0; i < sats; i++) {
+    const a = (i / sats) * Math.PI * 2;
+    const rad = size * (1.6 + (i % 3) * 0.9);
+    lights.push({ lat: lat + Math.sin(a) * rad * 0.6, lng: lng + Math.cos(a) * rad, size: size * 0.4, core: false });
+  }
+}
 
 function buildGlobe(quality: "high" | "med"): ThreeGlobe {
   const g = new ThreeGlobe({ animateIn: false })
@@ -41,22 +55,22 @@ function buildGlobe(quality: "high" | "med"): ThreeGlobe {
     .showAtmosphere(true)
     .atmosphereColor("#6f6ad6")
     .atmosphereAltitude(0.19)
-    // Continents as SOLID illuminated landmasses with bright coastlines.
+    // Continents: dark, subtle landmasses — perceptible but not a bright map.
     .polygonsData(landData.features)
-    .polygonCapColor(() => "rgba(92,99,210,0.42)")
-    .polygonSideColor(() => "rgba(70,76,160,0.10)")
-    .polygonStrokeColor(() => "rgba(176,188,255,0.55)")
-    .polygonAltitude(() => 0.007)
+    .polygonCapColor(() => "rgba(54,62,138,0.16)")
+    .polygonSideColor(() => "rgba(40,46,110,0.05)")
+    .polygonStrokeColor(() => "rgba(116,128,220,0.14)")
+    .polygonAltitude(() => 0.006)
     // Intercontinental routes with flowing signals.
     .arcsData(arcs)
     .arcColor(() => ["rgba(165,180,252,0)", "rgba(214,222,255,0.95)", "rgba(165,180,252,0)"])
     .arcDashLength(0.45).arcDashGap(1.4).arcDashInitialGap(() => Math.random() * 2).arcDashAnimateTime(3000)
     .arcStroke(0.26).arcAltitudeAutoScale(0.16)
-    // City lights (brightness ∝ metro size).
-    .pointsData(cities)
-    .pointColor(() => "#e3e9ff")
-    .pointAltitude(0.01)
-    .pointRadius((d: any) => 0.18 + d.size * 0.5)
+    // City lights — bright metro cores + dim sprawl (clustered density).
+    .pointsData(lights)
+    .pointColor((d: any) => (d.core ? "#eef2ff" : "#8f9cf2"))
+    .pointAltitude((d: any) => (d.core ? 0.012 : 0.006))
+    .pointRadius((d: any) => (d.core ? 0.16 + d.size * 0.5 : 0.07 + d.size * 0.25))
     // Scanning-wave pulses over the largest metros.
     .ringsData(ringPoints)
     .ringColor(() => (t: number) => `rgba(199,210,254,${Math.sqrt(1 - t) * 0.4})`)
