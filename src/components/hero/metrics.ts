@@ -1,10 +1,9 @@
 /**
  * Hero metrics — the outcome numbers the floating dashboard renders.
  *
- * On the public homepage there is no signed-in customer, so we render a
- * representative "demo mode": deterministic-but-non-round figures that drift
- * day to day so they feel live, never obviously fake. When real platform
- * metrics are available they can be passed straight in via `HeroMetrics`.
+ * Public homepage has no signed-in customer, so this is a representative "demo
+ * mode": deterministic-but-non-round figures that drift daily so they read live,
+ * never obviously fake. Real platform metrics can be passed straight in.
  */
 
 export type ActionTone = "low" | "medium" | "brand";
@@ -19,10 +18,9 @@ export interface HeroAction {
 export interface HeroMetrics {
   protectionScore: number;
   exposuresRemoved: number;
-  threatsPrevented: number;
+  threatsBlocked: number;
   familyProtected: number;
-  agentsActive: number;
-  /** 7 normalized points (0–1) for the protection-activity chart. */
+  /** Normalized, upward-trending series (0–1) for the flowing activity line. */
   chart: number[];
   actions: HeroAction[];
 }
@@ -36,21 +34,23 @@ export function demoHeroMetrics(now: Date = new Date()): HeroMetrics {
   const day = Math.floor(now.getTime() / 86_400_000);
   const r = (i: number) => seeded(day + i);
 
-  const chart = Array.from({ length: 7 }, (_, i) => 0.35 + seeded(day - i) * 0.6);
+  // Upward-trending protection-activity line with gentle variance.
+  const chart = Array.from({ length: 14 }, (_, i) => {
+    const trend = 0.3 + (i / 13) * 0.55;
+    return Math.min(1, Math.max(0.12, trend + (seeded(day * 2 + i) - 0.5) * 0.18));
+  });
 
   return {
     protectionScore: 92 + Math.round(r(7) * 6), // 92–98
     exposuresRemoved: 1180 + Math.round(r(1) * 260),
-    threatsPrevented: 280 + Math.round(r(2) * 90),
-    familyProtected: 4 + Math.round(r(3) * 2), // 4–6
-    agentsActive: 13,
+    threatsBlocked: 280 + Math.round(r(2) * 90),
+    familyProtected: 4 + Math.round(r(3) * 2),
     chart,
     actions: [
       { label: "Identity secured", detail: "Digital identity", tone: "brand", ago: "just now" },
       { label: "Broker removal completed", detail: "Spokeo", tone: "low", ago: "6m ago" },
-      { label: "Threat neutralized", detail: "Dark web", tone: "medium", ago: "22m ago" },
+      { label: "Threat blocked", detail: "Dark web", tone: "medium", ago: "22m ago" },
       { label: "Exposure removed", detail: "People-search", tone: "low", ago: "1h ago" },
-      { label: "Reputation risk reduced", detail: "Search results", tone: "brand", ago: "2h ago" },
     ],
   };
 }

@@ -37,10 +37,10 @@ export function HeroStage({ metrics }: { metrics?: HeroMetrics }) {
 
   return (
     <MotionConfig reducedMotion="user">
-      <div className="relative min-h-[440px] w-full md:min-h-[560px] lg:min-h-[620px]">
-        {/* Layer 1 — globe: bigger than the tablet, center-right, behind */}
+      <div className="relative w-full md:min-h-[600px] lg:min-h-[660px]">
+        {/* Layer 1 — globe: large, upper/behind, bigger than the tablet */}
         {showGlobe && (
-          <div className="pointer-events-none absolute right-[-16%] top-1/2 z-0 h-[96%] w-[104%] -translate-y-1/2">
+          <div className="pointer-events-none absolute -top-6 right-[-14%] z-0 h-[88%] w-full">
             <Globe count={count} reduced={reduced} />
           </div>
         )}
@@ -48,8 +48,8 @@ export function HeroStage({ metrics }: { metrics?: HeroMetrics }) {
         {/* Layer 3 — ambient protection network */}
         <ProtectionNetwork />
 
-        {/* Layer 2 — floating landscape dashboard, front + left-forward */}
-        <div className="relative z-10 mx-auto w-full max-w-[22rem] pt-8 sm:max-w-[30rem] lg:ml-0 lg:max-w-[31rem] lg:pt-16">
+        {/* Layer 2 — floating dashboard: overlaps the lower-left of the globe */}
+        <div className="relative mx-auto w-full max-w-[22rem] pt-6 sm:max-w-[30rem] md:absolute md:bottom-4 md:left-0 md:mx-0 md:max-w-[28rem] md:pt-0 lg:bottom-6 lg:max-w-[32rem]">
           <ProtectionDashboard metrics={metrics} flat={flat} />
         </div>
       </div>

@@ -35,9 +35,9 @@ export function ProtectionNetwork() {
           <motion.line
             key={i}
             x1={NODES[a].x} y1={NODES[a].y} x2={NODES[b].x} y2={NODES[b].y}
-            stroke="#8b5cf6" strokeWidth={0.18} strokeOpacity={0.35} strokeDasharray="1 2"
+            stroke="#6366f1" strokeWidth={0.14} strokeOpacity={0.22} strokeDasharray="1 2.5"
             initial={{ pathLength: 0, opacity: 0 }}
-            animate={{ pathLength: 1, opacity: 0.4 }}
+            animate={{ pathLength: 1, opacity: 0.22 }}
             transition={{ delay: 0.4 + i * 0.12, duration: 1.2, ease: "easeInOut" }}
           />
         ))}
@@ -57,9 +57,9 @@ export function ProtectionNetwork() {
             y: { duration: 5 + n.delay, repeat: Infinity, ease: "easeInOut", delay: n.delay },
           }}
         >
-          <span className="relative grid h-10 w-10 place-items-center rounded-2xl border border-violet-400/20 bg-bg-elevated/70 text-violet-200 shadow-lg shadow-brand/20 backdrop-blur">
-            <span className="absolute inset-0 animate-pulse-glow rounded-2xl bg-brand/10" />
-            <n.icon className="relative h-4 w-4" />
+          <span className="relative grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-[#0b0e1c]/80 text-slate-300 shadow-lg shadow-black/30 backdrop-blur">
+            <span className="absolute inset-0 animate-pulse-glow rounded-xl bg-indigo-500/[0.08]" />
+            <n.icon className="relative h-3.5 w-3.5" />
           </span>
         </motion.div>
       ))}

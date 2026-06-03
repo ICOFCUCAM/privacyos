@@ -16,7 +16,7 @@ export function Hero() {
       {/* Ambient top light for depth */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 -top-40 h-[420px] bg-[radial-gradient(60%_100%_at_60%_0%,rgba(99,102,241,0.16),transparent_70%)]"
+        className="pointer-events-none absolute inset-x-0 -top-40 h-[420px] bg-[radial-gradient(55%_100%_at_62%_0%,rgba(99,102,241,0.10),transparent_72%)]"
       />
 
       <div className="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-6 px-6 pb-10 pt-16 lg:grid-cols-12 lg:gap-x-10 lg:pb-20 lg:pt-28">
