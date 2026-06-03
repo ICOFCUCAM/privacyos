@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ShieldCheck, PlayCircle, Check } from "lucide-react";
-import { HeroVisual } from "@/components/hero-visual";
+import { HeroStage } from "@/components/hero/hero-stage";
+import { demoHeroMetrics } from "@/components/hero/metrics";
 
 const trust = [
   "AI-Powered Monitoring",
@@ -67,9 +68,9 @@ export function Hero() {
           </ul>
         </div>
 
-        {/* RIGHT — live coded tablet dashboard in front of the globe */}
-        <div className="relative lg:col-span-7 lg:-mr-6">
-          <HeroVisual />
+        {/* RIGHT — 3-layer interactive hero: globe + network + floating dashboard */}
+        <div className="relative lg:col-span-7">
+          <HeroStage metrics={demoHeroMetrics()} />
         </div>
       </div>
 
