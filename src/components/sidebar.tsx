@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
-import { Shield, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { signOut } from "@/app/auth/actions";
 import type { Feature } from "@/lib/billing/entitlements";
 import { NavList } from "@/components/nav";
+import { BrandMark } from "@/components/brand-mark";
 
 function initialsOf(name: string) {
   return (
@@ -20,29 +20,32 @@ export function Sidebar({
   subjectName,
   live,
   lockedFeatures = [],
+  isOperator = false,
+  planLabel,
 }: {
   subjectName?: string;
   live?: boolean;
   lockedFeatures?: Feature[];
+  isOperator?: boolean;
+  planLabel?: string;
 }) {
   const name = subjectName ?? "Demo Subject";
   return (
-    <aside className="hidden w-64 shrink-0 border-r border-border bg-bg-subtle/60 lg:flex lg:flex-col">
-      <Link href="/" className="flex items-center gap-2 px-5 py-5">
-        <Shield className="h-6 w-6 text-brand" />
-        <span className="text-lg font-bold text-white">PrivacyOS</span>
-      </Link>
+    <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-gradient-to-b from-bg-subtle/80 to-bg-subtle/40 lg:flex">
+      <div className="border-b border-border/60 px-5 py-4">
+        <BrandMark size={30} />
+      </div>
 
-      <NavList lockedFeatures={lockedFeatures} />
+      <NavList lockedFeatures={lockedFeatures} isOperator={isOperator} />
 
-      <div className="border-t border-border p-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-muted text-sm font-semibold text-brand-fg">
+      <div className="border-t border-border p-3">
+        <div className="flex items-center gap-3 rounded-xl bg-bg-elevated/40 p-2.5 ring-1 ring-border/60">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-brand to-brand-fg/70 text-sm font-semibold text-white ring-1 ring-white/10">
             {initialsOf(name)}
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-white">{name}</p>
-            <p className="truncate text-xs text-slate-500">{live ? "Executive plan" : "Demo mode"}</p>
+            <p className="truncate text-[11px] text-slate-500">{live ? (planLabel ?? "Free plan") : "Demo mode"}</p>
           </div>
           {live && (
             <form action={signOut}>

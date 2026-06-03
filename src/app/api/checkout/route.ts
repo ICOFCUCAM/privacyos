@@ -7,6 +7,7 @@ import {
   isStripeConfigured,
   stripePriceId,
 } from "@/lib/billing/stripe";
+import { isSupportedCurrency } from "@/lib/billing/currencies";
 
 /**
  * POST /api/checkout — start a Stripe Checkout session for a plan.
@@ -29,8 +30,10 @@ export async function POST(req: Request) {
   }
 
   let planId = "";
+  let annual = false;
+  let currency = "";
   try {
-    ({ planId } = await req.json());
+    ({ planId, annual = false, currency = "" } = await req.json());
   } catch {
     /* no body */
   }
@@ -40,7 +43,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "This plan is sales-assisted; contact sales." }, { status: 400 });
   }
 
-  const priceId = stripePriceId(plan.id);
+  const priceId = stripePriceId(plan.id, Boolean(annual));
   if (!priceId) {
     return NextResponse.json(
       { error: `No Stripe price mapped for ${plan.id} (set STRIPE_PRICE_${plan.id.toUpperCase().replace(/-/g, "_")}).` },
@@ -60,7 +63,10 @@ export async function POST(req: Request) {
     const url = await createCheckoutSession({
       priceId,
       planId: plan.id,
-      successUrl: `${base}/dashboard?checkout=success`,
+      annual: Boolean(annual),
+      // Only forward a presentment currency we support; else use the Price's base.
+      currency: isSupportedCurrency(currency) ? currency : undefined,
+      successUrl: `${base}/dashboard/home?checkout=success`,
       cancelUrl: `${base}/pricing?checkout=cancelled`,
       customerEmail: user.email ?? undefined,
       clientReferenceId: user.id,

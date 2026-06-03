@@ -1,7 +1,7 @@
 import Link from "next/link";
 import {
   Sparkles, TrendingDown, TrendingUp,
-  Radar, Trash2, Layers,
+  Radar, Trash2, Layers, Crosshair, ArrowRight,
 } from "lucide-react";
 import {
   Card,
@@ -29,7 +29,9 @@ import {
   onlineAgentCount, remediationProgress, threatTimeline, topExposureSources,
 } from "@/lib/intelligence/command-center";
 import { buildCorrelationGraph, correlationStats } from "@/lib/intelligence/correlation";
+import { analyzeAttackSurface } from "@/lib/executive/os/attack-paths";
 import { exposureToFinding, runPlaybooks, summarizeRuns, threatToFinding } from "@/lib/agents/playbooks";
+import { synthesizeRecommendations } from "@/lib/agents/synthesis";
 import { cn, timeAgo, titleCase } from "@/lib/ui";
 import type { RiskLevel } from "@/lib/types";
 
@@ -57,6 +59,12 @@ export default async function OverviewPage() {
     credentialLeaks: mod.credentialLeaks,
     domainRisks: mod.domainRisks,
     employeeExposures: mod.employeeExposures,
+    exposures: data.exposures,
+    threats: data.threats,
+    familyMembers: mod.familyMembers,
+    travelAlerts: mod.travelAlerts,
+    thirdPartyRisks: mod.thirdPartyRisks,
+    subjectEmails: data.subject.emails,
   });
   const suiteScores = [
     { label: "Privacy", value: scores.privacy },
@@ -67,6 +75,7 @@ export default async function OverviewPage() {
     { label: "Overall", value: scores.overall },
   ];
   const activeThreats = data.threats.filter((t) => !t.acknowledged);
+  const killChain = analyzeAttackSurface({ exposures: data.exposures, threats: data.threats, credentialLeaks: mod.credentialLeaks });
 
   // Operational intelligence (pure, derived from the real dataset).
   const roster = agentRoster(data.agents, mod.agentActions, available);
@@ -86,6 +95,7 @@ export default async function OverviewPage() {
     ...data.threats.map(threatToFinding),
   ]);
   const playbooks = summarizeRuns(playbookRuns);
+  const topRecs = synthesizeRecommendations(data.recommendations).plan.slice(0, 6);
 
   // Surface the most recent autonomous playbook executions in the live stream.
   const playbookFeed = playbookRuns.slice(0, 6).map((r, i) => ({
@@ -137,6 +147,20 @@ export default async function OverviewPage() {
         </div>
       </div>
 
+      {/* ── Attack-path chokepoint — the single highest-leverage fix ──────── */}
+      {killChain.chokepoint && killChain.chokepoint.breaks >= 2 && (
+        <Link href="/dashboard/executive/attack-paths" className="block">
+          <div className="flex items-center gap-3 rounded-lg border border-brand/40 bg-gradient-to-r from-brand/10 to-transparent px-3 py-2 transition hover:border-brand/60">
+            <Crosshair className="h-4 w-4 shrink-0 text-brand-fg" />
+            <p className="min-w-0 flex-1 truncate text-xs text-slate-200">
+              <span className="font-semibold text-brand-fg">One shot:</span> {killChain.chokepoint.action} —{" "}
+              <span className="text-slate-400">collapses {killChain.chokepoint.breaks} of {killChain.enabledPaths} live attack paths</span>
+            </p>
+            <ArrowRight className="h-3.5 w-3.5 shrink-0 text-slate-500" />
+          </div>
+        </Link>
+      )}
+
       {/* ── KPI strip — compact, horizontal ───────────────────────────────── */}
       <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
         <KpiTile icon={<Radar className="h-3.5 w-3.5 text-brand-fg" />} label="Discovery / wk" value={velocity.last7} sub="new exposures" delta={velocity.deltaPct} deltaGoodWhenNegative spark={velocity.perDay} />
@@ -145,12 +169,15 @@ export default async function OverviewPage() {
         <KpiTile icon={<Layers className="h-3.5 w-3.5 text-slate-300" />} label="Attack surface" value={surfaceTotal} sub={`${surface.filter((a) => a.count > 0).length} vectors · ${graphStats.sources} sources`} />
       </div>
 
-      {/* ── TIER 1 — score · operations stream · agents (above the fold) ───── */}
-      <div className="grid grid-cols-1 gap-2.5 xl:grid-cols-12">
-        <div className="space-y-2.5 xl:col-span-3">
+      {/* ── TIER 1 — score+recs · operations stream · agent fleet ───────────
+          Columns stretch to equal height; the recommendations card and agent
+          roster grow to fill, so no gap forms beneath the taller stream. */}
+      <div className="grid grid-cols-1 items-stretch gap-2.5 xl:grid-cols-12">
+        {/* Left: score + axis breakdown + recommendations */}
+        <div className="flex flex-col gap-2.5 xl:col-span-3">
           <Card className="p-3">
             <div className="flex items-center gap-3">
-              <ScoreGauge score={score.overall} size={96} />
+              <ScoreGauge score={score.overall} size={88} />
               <div className="min-w-0 flex-1">
                 <p className="text-[10px] uppercase tracking-wide text-slate-400">Exposure score</p>
                 <div className="mt-0.5 flex items-center gap-1.5">
@@ -172,53 +199,55 @@ export default async function OverviewPage() {
               <AxisStat label="Family" value={score.family} />
             </div>
           </Card>
+          <Card className="flex flex-1 flex-col p-3">
+            <SectionTitleRow title="AI recommendations" href="/dashboard/recommendations" />
+            <ul className="flex flex-1 flex-col divide-y divide-border">
+              {topRecs.map((r) => (
+                <li key={r.id} className="flex flex-1 items-center gap-2.5 py-1.5">
+                  <Sparkles className="h-3.5 w-3.5 shrink-0 text-brand" />
+                  <span className="min-w-0 flex-1 truncate text-[13px] text-white">{r.title}</span>
+                  <span className="shrink-0 text-[11px] font-semibold text-risk-low">−{r.impact}</span>
+                  <span className="hidden shrink-0 text-[10px] text-slate-500 sm:inline">{titleCase(r.agent)}</span>
+                </li>
+              ))}
+            </ul>
+          </Card>
         </div>
 
-        <div className="xl:col-span-6">
+        {/* Middle: live operations stream */}
+        <div className="flex flex-col xl:col-span-5">
           <ActivityStream events={feed} live={live} />
         </div>
 
-        <div className="xl:col-span-3">
-          <AgentRoster roster={roster} online={onlineAgents} total={totalAgents} live={live} />
+        {/* Right: the full agent fleet as a 4-column icon-tile grid (benchmark) */}
+        <div className="flex flex-col xl:col-span-4">
+          <AgentRoster roster={roster} online={onlineAgents} total={totalAgents} live={live} columns="tiles" />
         </div>
       </div>
 
-      {/* ── TIER 1 — recommendations · autonomous response (horizontal) ────── */}
-      <div className="grid grid-cols-1 items-start gap-2.5 lg:grid-cols-2">
-        <Card className="p-3">
-          <SectionTitleRow title="AI recommendations" href="/dashboard/recommendations" />
-          <ul className="mt-1 divide-y divide-border">
-            {data.recommendations.slice(0, 3).map((r) => (
-              <li key={r.id} className="flex items-center gap-2.5 py-1.5">
-                <Sparkles className="h-3.5 w-3.5 shrink-0 text-brand" />
-                <span className="min-w-0 flex-1 truncate text-sm text-white">{r.title}</span>
-                <span className="shrink-0 text-[11px] font-semibold text-risk-low">−{r.impact}</span>
-                <span className="hidden shrink-0 text-[10px] text-slate-500 sm:inline">{titleCase(r.agent)}</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
-        <Card className="p-3">
-          <SectionTitleRow title="Autonomous response" href="/dashboard/playbooks" />
-          <div className="mt-1.5 grid grid-cols-4 gap-2">
-            <MiniStat value={`${playbooks.automationRate}%`} label="Automated" tone="text-risk-low" />
-            <MiniStat value={String(playbooks.totalRuns)} label="Runs" />
-            <MiniStat value={String(playbooks.activePlaybooks)} label="Playbooks" />
-            <MiniStat value={String(playbooks.approvalSteps)} label="To approve" tone="text-risk-medium" />
-          </div>
-        </Card>
-      </div>
+      {/* ── TIER 1 — autonomous response (full-width KPI strip) ─────────────── */}
+      <Card className="p-3">
+        <SectionTitleRow title="Autonomous response" href="/dashboard/playbooks" />
+        <div className="mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6">
+          <MiniStat value={`${playbooks.automationRate}%`} label="Steps automated" tone="text-risk-low" />
+          <MiniStat value={String(playbooks.totalRuns)} label="Workflow runs" />
+          <MiniStat value={String(playbooks.autonomousRuns)} label="Fully autonomous" />
+          <MiniStat value={String(playbooks.activePlaybooks)} label="Active playbooks" />
+          <MiniStat value={String(playbooks.approvalSteps)} label="Awaiting approval" tone="text-risk-medium" />
+          <MiniStat value={String(data.cases.filter((c) => c.status !== "resolved").length)} label="Open cases" />
+        </div>
+      </Card>
 
       {/* ── TIER 2 — operational intelligence ──────────────────────────────── */}
       <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-2">
         <Card className="p-3">
           <SectionTitleRow title="Exposure discovery · 30d" right={<VelocityBadge delta={velocity.deltaPct} />} />
-          <StackedTimeline buckets={expTimeline} height={72} ariaLabel="Exposures discovered per day" />
+          <StackedTimeline buckets={expTimeline} height={56} ariaLabel="Exposures discovered per day" />
           <SeverityLegend />
         </Card>
         <Card className="p-3">
           <SectionTitleRow title="Threat activity · 30d" href="/dashboard/threats" linkLabel="Feed" />
-          <StackedTimeline buckets={thrTimeline} height={72} ariaLabel="Threats detected per day" />
+          <StackedTimeline buckets={thrTimeline} height={56} ariaLabel="Threats detected per day" />
           <SeverityLegend />
         </Card>
       </div>
@@ -226,11 +255,11 @@ export default async function OverviewPage() {
       <div className="grid grid-cols-1 items-start gap-2.5 lg:grid-cols-3">
         <Card className="p-3">
           <SectionTitleRow title="Attack surface" />
-          <div className="flex items-center justify-between gap-2">
-            <RadarChart axes={surface} size={168} />
-            <ul className="grid grid-cols-1 gap-y-0.5 text-xs">
+          <div className="flex items-center gap-4">
+            <RadarChart axes={surface} size={196} />
+            <ul className="flex-1 space-y-1 text-xs">
               {surface.filter((a) => a.count > 0).sort((a, b) => b.count - a.count).slice(0, 6).map((a) => (
-                <li key={a.key} className="flex items-center justify-between gap-3">
+                <li key={a.key} className="flex items-center justify-between gap-3 border-b border-border/50 pb-1 last:border-0">
                   <span className="text-slate-400">{a.label}</span>
                   <span className="font-semibold text-white">{a.count}</span>
                 </li>
@@ -249,17 +278,19 @@ export default async function OverviewPage() {
       </div>
 
       {/* ── TIER 3 — detailed analytics ────────────────────────────────────── */}
-      <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-3">
+      <div className="grid grid-cols-1 items-start gap-2.5 lg:grid-cols-3">
         <Card className="p-3 lg:col-span-2">
           <SectionTitleRow
             title="Threat correlation"
             right={<span className="text-[10px] text-slate-500">{graphStats.sources} src · {graphStats.categories} cat · {graphStats.criticalLinks} high-risk</span>}
           />
-          <div className="grid grid-cols-1 items-center gap-3 sm:grid-cols-2">
-            <div className="flex items-center justify-center">
-              <CorrelationGraphView graph={graph} size={300} />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+            {/* graph occupies the left ~55%, aligned under the heading (left-anchored) */}
+            <div className="min-w-0 flex-1">
+              <CorrelationGraphView graph={graph} size={460} />
             </div>
-            <div className="space-y-2">
+            {/* compact insight column — ~240px, ~30px gap from the graph */}
+            <div className="w-full shrink-0 space-y-2 sm:w-60">
               <CorrelationLegend />
               {graphStats.topSource && (
                 <div className="rounded-lg border border-border bg-bg-subtle/50 p-2.5">
@@ -280,13 +311,13 @@ export default async function OverviewPage() {
         </Card>
         <Card className="p-3">
           <SectionTitleRow title="Suite risk scores" />
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-1.5">
             {suiteScores.map((s) => {
               const level = scoreToLevel(s.value);
               return (
-                <div key={s.label} className="rounded-lg border border-border bg-bg-subtle/60 p-2 text-center">
-                  <p className={cn("text-lg font-bold", `text-risk-${level}`)}>{s.value}</p>
-                  <p className="text-[10px] text-slate-400">{s.label}</p>
+                <div key={s.label} className="rounded-lg border border-border bg-bg-subtle/60 px-1 py-1.5 text-center">
+                  <p className={cn("text-base font-bold", `text-risk-${level}`)}>{s.value}</p>
+                  <p className="text-[9px] uppercase tracking-wide text-slate-500">{s.label}</p>
                 </div>
               );
             })}
@@ -448,7 +479,7 @@ function SeverityLegend() {
     { level: "low", label: "Low" },
   ];
   return (
-    <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+    <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1">
       {items.map((it) => (
         <span key={it.level} className="inline-flex items-center gap-1.5 text-[11px] text-slate-500">
           <span className={cn("h-2 w-2 rounded-full", `bg-risk-${it.level}`)} />

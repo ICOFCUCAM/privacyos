@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { LocaleProvider } from "@/lib/i18n/provider";
+import { getLocale } from "@/lib/i18n/server";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
 
@@ -42,16 +44,19 @@ export const metadata: Metadata = {
     description: "Autonomous digital risk protection for individuals, executives, families and enterprises.",
     images: ["/hero-dashboard.png"],
   },
-  icons: { icon: "/icon.svg" },
+  // Favicon/app icons are provided by the App Router conventions
+  // (src/app/icon.png + src/app/apple-icon.png), generated from the transparent
+  // PrivacyOS shield — Next.js injects the correct <link> tags automatically.
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const locale = await getLocale();
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang={locale} className={inter.variable}>
       <body className="min-h-screen antialiased">
         <a
           href="#content"
@@ -59,7 +64,7 @@ export default function RootLayout({
         >
           Skip to content
         </a>
-        {children}
+        <LocaleProvider locale={locale}>{children}</LocaleProvider>
       </body>
     </html>
   );

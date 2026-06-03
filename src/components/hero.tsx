@@ -30,7 +30,7 @@ export function Hero() {
         className="pointer-events-none absolute inset-x-0 -top-40 h-[420px] bg-[radial-gradient(60%_100%_at_60%_0%,rgba(99,102,241,0.16),transparent_70%)]"
       />
 
-      <div className="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-6 px-6 pb-10 pt-16 lg:grid-cols-12 lg:gap-0 lg:pb-20 lg:pt-28">
+      <div className="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-6 px-6 pb-10 pt-16 lg:grid-cols-12 lg:gap-x-10 lg:pb-20 lg:pt-28">
         {/* LEFT — copy */}
         <div className="relative z-10 lg:col-span-5">
           <span className="inline-flex items-center gap-2 rounded-full border border-border bg-bg-elevated/70 px-3 py-1 text-xs font-medium text-brand-fg backdrop-blur">
@@ -53,18 +53,19 @@ export function Hero() {
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link
-              href="/dashboard/assistant"
+              href="/scan"
               className="group inline-flex items-center gap-2 rounded-lg bg-brand px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-brand/25 transition hover:bg-brand/90 hover:shadow-brand/40"
             >
-              <ShieldCheck className="h-4 w-4" /> Get Protected
+              <ShieldCheck className="h-4 w-4" /> Run a Free Exposure Scan
             </Link>
             <Link
               href="/dashboard"
               className="inline-flex items-center gap-2 rounded-lg border border-border bg-bg-elevated/40 px-6 py-3 text-sm font-semibold text-slate-200 backdrop-blur transition hover:bg-bg-elevated"
             >
-              <PlayCircle className="h-4 w-4" /> Watch Demo
+              <PlayCircle className="h-4 w-4" /> Explore the Demo
             </Link>
           </div>
+          <p className="mt-3 text-xs text-slate-500">No signup, no card — see what&rsquo;s exposed in seconds.</p>
 
           <ul className="mt-9 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
             {trust.map((t) => (
@@ -99,8 +100,9 @@ export function Hero() {
             />
           </div>
 
-          {/* Static, background-free composition — bleeds under the copy */}
-          <div className="relative z-10 lg:-ml-12 lg:-mr-14">
+          {/* Static, background-free composition — extends toward the right edge,
+              but no longer bleeds left under the copy (keeps clear of the text). */}
+          <div className="relative z-10 lg:-mr-14">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <picture>
               <source srcSet="/hero-dashboard.webp" type="image/webp" />

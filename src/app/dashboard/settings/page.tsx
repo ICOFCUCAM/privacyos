@@ -2,9 +2,12 @@ import Link from "next/link";
 import { Settings, CreditCard } from "lucide-react";
 import { buttonClasses, Card, PageHeader, Pill, SectionTitle } from "@/components/ui";
 import { SubjectSettingsForm } from "@/components/subject-settings-form";
+import { SuiteSeedControl } from "@/components/suite-seed-control";
 import { getDataSource } from "@/lib/data";
 import { getSubscription } from "@/lib/billing/subscription";
 import { PLANS } from "@/lib/billing/plans";
+import { isAdminEmail } from "@/lib/billing/entitlements";
+import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { titleCase } from "@/lib/ui";
 import { openBillingPortal } from "./billing-actions";
 
@@ -15,6 +18,13 @@ export default async function SettingsPage() {
   const subject = await ds.getPrimarySubject();
   const sub = await getSubscription();
   const plan = sub ? PLANS.find((p) => p.id === sub.planId) : null;
+
+  let isAdmin = false;
+  if (ds.live) {
+    const db = await getSupabaseServerClient();
+    const { data } = (await db?.auth.getUser()) ?? { data: { user: null } };
+    isAdmin = isAdminEmail(data?.user?.email);
+  }
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -72,6 +82,16 @@ export default async function SettingsPage() {
           )}
         </div>
       </Card>
+
+      {isAdmin && (
+        <Card>
+          <SectionTitle
+            title="Sample suite data"
+            subtitle="Admin · persist the demo dataset to your live account"
+          />
+          <SuiteSeedControl />
+        </Card>
+      )}
     </div>
   );
 }

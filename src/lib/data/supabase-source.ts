@@ -10,6 +10,7 @@ import type { ProtectOutcome } from "@/lib/agents/orchestrator";
 import type { DiscoveryFinding } from "@/lib/discovery/source";
 import { computeRiskScore } from "@/lib/scoring/risk-score";
 import { advanceRemoval, createRemoval, shouldReappear } from "@/lib/brokers/removal";
+import { caseFromRecommendation } from "@/lib/agents/recommendation-routing";
 import type { DataSource, PrivacyDataSet } from "./source";
 import {
   aggregateAgentStates,
@@ -68,6 +69,36 @@ export class SupabaseDataSource implements DataSource {
   }
 
   async approveRecommendation(id: string): Promise<void> {
+    // Approving a recommendation opens a real, tracked Case assigned to the
+    // owning agent, then marks the recommendation approved (so it leaves the
+    // queue). This turns approval into actual remediation work, not just a flag.
+    const { data: rec, error: recErr } = await this.db
+      .from("recommendations")
+      .select("id,subject_id,agent,title,rationale,risk_level")
+      .eq("id", id)
+      .maybeSingle();
+    if (recErr) throw recErr;
+
+    if (rec) {
+      const fields = caseFromRecommendation({
+        id: rec.id,
+        agent: rec.agent,
+        title: rec.title,
+        rationale: rec.rationale ?? "",
+        riskLevel: rec.risk_level,
+      });
+      const { error: caseErr } = await this.db.from("cases").insert({
+        subject_id: rec.subject_id,
+        type: fields.type,
+        title: fields.title,
+        summary: fields.summary,
+        status: "in_progress",
+        risk_level: fields.riskLevel,
+        assigned_agent: fields.assignedAgent,
+      });
+      if (caseErr) throw caseErr;
+    }
+
     const { error } = await this.db.from("recommendations").update({ approved: true }).eq("id", id);
     if (error) throw error;
   }
@@ -82,6 +113,16 @@ export class SupabaseDataSource implements DataSource {
     }));
     const { error: runErr } = await this.db.from("agent_runs").insert(runRows);
     if (runErr) throw runErr;
+
+    // Replace (not append) the open recommendation set for this subject, so
+    // repeated protect runs don't pile up duplicate rows. Approved
+    // recommendations are preserved — they've become tracked cases.
+    const { error: delErr } = await this.db
+      .from("recommendations")
+      .delete()
+      .eq("subject_id", outcome.subjectId)
+      .eq("approved", false);
+    if (delErr) throw delErr;
 
     if (outcome.recommendations.length > 0) {
       const recRows = outcome.recommendations.map((r) => ({
@@ -155,6 +196,22 @@ export class SupabaseDataSource implements DataSource {
       history: req.history,
     });
     if (error) throw error;
+    // Reflect remediation on the exposure itself so the risk score drops as the
+    // fleet works — otherwise filing a removal leaves the score untouched.
+    if (req.exposureId) {
+      await this.db.from("exposures").update({ status: req.status }).eq("id", req.exposureId);
+    }
+  }
+
+  async setAutonomyMode(mode: "autopilot" | "hybrid" | "advisor"): Promise<void> {
+    const subject = await this.getPrimarySubject();
+    if (!subject) return;
+    // Best-effort: tolerate the column not existing yet (pre-migration).
+    try {
+      await this.db.from("subjects").update({ autonomy_mode: mode }).eq("id", subject.id);
+    } catch {
+      /* column missing until migration 0013 applies — the cookie still drives the UI */
+    }
   }
 
   async recheckRemoval(id: string): Promise<void> {
@@ -173,5 +230,10 @@ export class SupabaseDataSource implements DataSource {
       })
       .eq("id", id);
     if (upErr) throw upErr;
+    // Keep the linked exposure's status in lockstep so the score tracks progress
+    // (in_progress → removed lowers it; reappeared raises it again).
+    if (data.exposure_id) {
+      await this.db.from("exposures").update({ status: next.status }).eq("id", data.exposure_id);
+    }
   }
 }

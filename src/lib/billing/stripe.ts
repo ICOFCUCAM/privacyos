@@ -13,11 +13,29 @@ export function isStripeConfigured(): boolean {
 
 /**
  * Maps a PrivacyOS plan id to its Stripe Price id via env, e.g.
- * STRIPE_PRICE_PLUS, STRIPE_PRICE_REP_CREATOR. Returns undefined if unmapped.
+ * STRIPE_PRICE_PLUS, STRIPE_PRICE_REP_CREATOR. When `annual` is requested it
+ * prefers the `_ANNUAL` variant (e.g. STRIPE_PRICE_PLUS_ANNUAL) and falls back
+ * to the monthly price when no annual price is configured. Returns undefined
+ * only when the plan is unmapped entirely.
  */
-export function stripePriceId(planId: string): string | undefined {
-  const key = `STRIPE_PRICE_${planId.toUpperCase().replace(/-/g, "_")}`;
-  return process.env[key];
+export function stripePriceId(planId: string, annual = false): string | undefined {
+  const base = `STRIPE_PRICE_${planId.toUpperCase().replace(/-/g, "_")}`;
+  if (annual) {
+    const annualPrice = process.env[`${base}_ANNUAL`];
+    if (annualPrice) return annualPrice;
+  }
+  return process.env[base];
+}
+
+/**
+ * Whether a plan can actually be checked out right now: Stripe must be
+ * configured and the plan mapped to a Stripe Price. Free ($0) and sales-assisted
+ * (Custom) plans are never "purchasable" via Checkout — they have their own
+ * paths (free scan / contact sales) — so this concerns paid, priced plans only.
+ * Used to degrade the pricing UI gracefully while prices are still being wired.
+ */
+export function isPlanPurchasable(planId: string): boolean {
+  return isStripeConfigured() && Boolean(stripePriceId(planId));
 }
 
 async function stripePost(path: string, form: Record<string, string>): Promise<Record<string, unknown>> {
@@ -46,6 +64,9 @@ export async function createCheckoutSession(opts: {
   customerEmail?: string;
   clientReferenceId?: string;
   annual?: boolean;
+  /** Presentment currency (ISO lower-case); requires the Price to carry a
+   *  matching `currency_options` entry. Omit for the Price's base currency. */
+  currency?: string;
 }): Promise<string> {
   const form: Record<string, string> = {
     mode: "subscription",
@@ -54,9 +75,11 @@ export async function createCheckoutSession(opts: {
     success_url: opts.successUrl,
     cancel_url: opts.cancelUrl,
     "metadata[plan_id]": opts.planId,
+    "metadata[cadence]": opts.annual ? "annual" : "monthly",
     "subscription_data[metadata][plan_id]": opts.planId,
     allow_promotion_codes: "true",
   };
+  if (opts.currency) form.currency = opts.currency.toLowerCase();
   if (opts.customerEmail) form.customer_email = opts.customerEmail;
   if (opts.clientReferenceId) form.client_reference_id = opts.clientReferenceId;
 

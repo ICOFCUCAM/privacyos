@@ -28,6 +28,8 @@ export function mapSubject(row: any): Subject {
     usernames: row.usernames ?? [],
     organization: row.organization ?? undefined,
     createdAt: row.created_at,
+    // Defensive: tolerate the column not existing yet (pre-migration) → autopilot.
+    autonomyMode: row.autonomy_mode ?? undefined,
   };
 }
 
@@ -91,16 +93,21 @@ export function mapRecommendation(row: any): Recommendation {
   };
 }
 
-/** Catalog of the 8 agents with their human-readable metadata. */
+/** Catalog of the agent fleet with human-readable metadata. */
 export const AGENT_CATALOG: { kind: AgentKind; name: string; description: string }[] = [
   { kind: "discovery", name: "Discovery Agent", description: "Scans the public internet, brokers and breach feeds." },
   { kind: "privacy", name: "Privacy Agent", description: "Files opt-outs and tracks removals." },
   { kind: "legal", name: "Legal Agent", description: "Drafts GDPR/CCPA requests and complaints." },
   { kind: "reputation", name: "Reputation Agent", description: "Monitors sentiment and search visibility." },
-  { kind: "security", name: "Security Agent", description: "Watches breach and dark-web sources." },
+  { kind: "security", name: "Security Agent", description: "Watches breach, dark-web and financial-exposure sources; secures money-bearing accounts." },
   { kind: "deepfake", name: "Deepfake Agent", description: "Detects synthetic media and voice clones." },
   { kind: "executive", name: "Executive Protection Agent", description: "VIP-grade physical & digital protection." },
   { kind: "business", name: "Business Intelligence Agent", description: "Org credential, asset and brand protection." },
+  { kind: "orchestrator", name: "Orchestrator Agent", description: "Triages, prioritizes and routes work across the fleet." },
+  { kind: "incident", name: "Incident Response Agent", description: "Runs response playbooks; automates safe steps and escalates active fraud & high-risk incidents." },
+  { kind: "compliance", name: "Compliance Agent", description: "Monitors SOC 2 control posture and SLA attainment." },
+  { kind: "threat_intel", name: "Threat Intelligence Agent", description: "Correlates signals — incl. financial exposure — into emerging-threat narratives." },
+  { kind: "vendor", name: "Vendor Risk Agent", description: "Assesses third-party and supply-chain risk." },
 ];
 
 /**

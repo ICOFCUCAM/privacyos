@@ -8,8 +8,11 @@ import { UpgradeGate } from "@/components/upgrade-gate";
 import { getDataSource } from "@/lib/data";
 import { getModuleData } from "@/lib/data/modules";
 import { getEntitlements } from "@/lib/billing/subscription";
-import { GATED_SUITES, requiredFeature } from "@/lib/billing/gating";
-import { CATEGORY_META } from "@/lib/billing/plans";
+import { isOperator } from "@/lib/billing/entitlements";
+import { GATED_SUITES, requiredFeature, isOperatorRoute } from "@/lib/billing/gating";
+import { CATEGORY_META, PLANS } from "@/lib/billing/plans";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { getT } from "@/lib/i18n/server";
 
 export default async function DashboardLayout({
   children,
@@ -25,24 +28,44 @@ export default async function DashboardLayout({
   // Plan gating: lock suite pages the current plan doesn't include.
   const entitlements = await getEntitlements();
   const pathname = (await headers()).get("x-pathname") ?? "";
+  // Internal operator consoles (company financials) are never for customers.
+  if (isOperatorRoute(pathname) && !isOperator(entitlements)) redirect("/dashboard/home");
+  const operator = isOperator(entitlements);
   const needed = requiredFeature(pathname);
   const locked = needed !== null && !entitlements.features[needed];
   const gatedSuite = needed ? GATED_SUITES.find((s) => s.feature === needed) : undefined;
   const lockedFeatures = GATED_SUITES.filter((s) => !entitlements.features[s.feature]).map((s) => s.feature);
+  // The viewer's actual plan, for the sidebar footer (no more hardcoded tier).
+  const planLabel = entitlements.planId === "admin"
+    ? "Admin"
+    : entitlements.planId === "free"
+      ? "Free plan"
+      : (PLANS.find((p) => p.id === entitlements.planId)?.name ?? "Free plan");
 
   const { notifications } = await getModuleData();
   const unread = notifications.filter((n) => !n.read).length;
+  const t = await getT();
 
   return (
     <div className="flex min-h-screen">
-      <Sidebar subjectName={subject?.displayName} live={ds.live} lockedFeatures={lockedFeatures} />
+      <a
+        href="#content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-brand focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white"
+      >
+        Skip to content
+      </a>
+      <Sidebar subjectName={subject?.displayName} live={ds.live} lockedFeatures={lockedFeatures} isOperator={operator} planLabel={planLabel} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <MobileNav subjectName={subject?.displayName} live={ds.live} lockedFeatures={lockedFeatures} />
+        <MobileNav subjectName={subject?.displayName} live={ds.live} lockedFeatures={lockedFeatures} isOperator={operator} planLabel={planLabel} />
         <header className="hidden items-center justify-between border-b border-border px-6 py-3 lg:flex">
           <p className="text-sm text-slate-400">
-            Protecting <span className="font-medium text-white">{name}</span>
+            {(() => {
+              const [before, after] = t("common.protecting", { name: "\u0000" }).split("\u0000");
+              return (<>{before}<span className="font-medium text-white">{name}</span>{after ?? ""}</>);
+            })()}
           </p>
           <div className="flex items-center gap-3">
+            <LanguageSwitcher compact />
             <Link
               href="/dashboard/notifications"
               aria-label={`Notifications${unread ? ` (${unread} unread)` : ""}`}
@@ -60,7 +83,7 @@ export default async function DashboardLayout({
               title={ds.live ? "Connected to Supabase" : "Running on the built-in demo dataset"}
             >
               <span className={`h-1.5 w-1.5 rounded-full ${ds.live ? "bg-risk-low" : "bg-risk-medium"}`} />
-              {ds.live ? "Live data" : "Demo data"}
+              {ds.live ? t("common.liveData") : t("common.demoData")}
             </span>
           </div>
         </header>

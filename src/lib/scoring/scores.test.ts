@@ -49,7 +49,20 @@ describe("scores", () => {
     const set = computeScoreSet({ risk: baseRisk });
     expect(set.overall).toBeGreaterThanOrEqual(0);
     expect(set.overall).toBeLessThanOrEqual(100);
-    expect(set.privacy).toBe(50);
-    expect(set.identity).toBe(40);
+    expect(set.privacy).toBe(50);                 // privacy = exposure risk
+    // module-sourced axes are 0 with no module data, and no mentions → 0 reputation risk
+    expect(set.identity).toBe(0);
+    expect(set.reputation).toBe(0);
+  });
+
+  it("sources axes from the module engines (one number per domain)", () => {
+    const withData = computeScoreSet({
+      risk: baseRisk,
+      credentialLeaks: [{ id: "l", account: "a@x.com", breachName: "B", dataClasses: ["Passwords"], pwnCount: 1000, riskLevel: "critical" }],
+      domainRisks: [{ id: "d", domainId: "d", domain: "x.com", kind: "typosquat", detail: "", riskLevel: "high", resolved: false, detectedAt: "" }],
+    });
+    // leaked credentials drive identity (ATO) and business (brand) risk up
+    expect(withData.identity).toBeGreaterThan(0);
+    expect(withData.business).toBeGreaterThan(0);
   });
 });

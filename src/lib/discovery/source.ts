@@ -14,6 +14,8 @@ export interface DiscoveryInput {
   subject: Subject;
   /** The already-known footprint, so sources/pipeline can avoid duplicates. */
   existing: Exposure[];
+  /** Already-known threats, so the pipeline doesn't re-emit them each run. */
+  existingThreats?: Threat[];
 }
 
 export interface DiscoveryFinding {

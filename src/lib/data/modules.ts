@@ -70,8 +70,8 @@ export const incidents: Incident[] = [
 ];
 
 export const travelAlerts: TravelAlert[] = [
-  { id: "t1", subjectId: "subj_demo", destination: "London, UK", travelDate: day(-14), riskLevel: "low", advisory: "Low risk. Standard precautions; no active threats near itinerary." },
-  { id: "t2", subjectId: "subj_demo", destination: "Mexico City, MX", travelDate: day(-30), riskLevel: "medium", advisory: "Elevated risk. Recent doxxing exposure of address; recommend private transport and varied routes." },
+  { id: "t1", subjectId: "subj_demo", destination: "London, UK", travelDate: day(-21), riskLevel: "low", advisory: "Low risk. Standard precautions; no active threats near itinerary." },
+  { id: "t2", subjectId: "subj_demo", destination: "Mexico City, MX", travelDate: day(-9), riskLevel: "medium", advisory: "Elevated risk. Recent doxxing exposure of address; recommend private transport and varied routes." },
 ];
 
 export const familyMembers: FamilyMember[] = [

@@ -1,8 +1,11 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   TrendingUp, TrendingDown, DollarSign, Repeat, Users,
   Gauge, Bot, Database, ArrowRight, Crown, Briefcase, Star, Shield, Cpu,
 } from "lucide-react";
+import { getEntitlements } from "@/lib/billing/subscription";
+import { isOperator } from "@/lib/billing/entitlements";
 import { Card, PageHeader, SectionTitle } from "@/components/ui";
 import { AreaChart } from "@/components/viz-advanced";
 import { getBook } from "@/lib/business/book";
@@ -10,8 +13,9 @@ import {
   activeLogos, arpu, arr, enterpriseBook, magicNumber, mrr, mrrMovement, retention, revenueByCategory, unitEconomics,
 } from "@/lib/business/saas-metrics";
 import {
-  automationMoat, blendedAccuracy, dataCorpus, scoreDetectors, type DetectionSample,
+  automationMoat, dataCorpus,
 } from "@/lib/business/moat-metrics";
+import { liveDetectorAccuracy } from "@/lib/detection/live-accuracy";
 import { businessHealth } from "@/lib/business/health";
 import { readiness } from "@/lib/compliance/posture";
 import { exposureToFinding, runPlaybooks, summarizeRuns, threatToFinding } from "@/lib/agents/playbooks";
@@ -46,6 +50,10 @@ function money(n: number): string {
 }
 
 export default async function BusinessIntelligencePage() {
+  // Authoritative guard: this is the company's own book of business, not the
+  // customer's protection data. Admins (and pure demo) only — never a customer.
+  if (!isOperator(await getEntitlements())) redirect("/dashboard/home");
+
   const { accounts, live } = await getBook();
   const mod = await getModuleData();
   const data = await (await getDataSource()).getDataset();
@@ -60,17 +68,16 @@ export default async function BusinessIntelligencePage() {
   const revByCat = revenueByCategory(accounts, CATEGORY_LABEL);
   const arpuVal = arpu(accounts);
 
-  // Detection accuracy — grounded in the live signal volumes the product produces.
-  const detectionSamples: DetectionSample[] = [
-    { detector: "deepfake", truePositives: mod.incidents.filter((i) => i.kind === "deepfake").length * 9 + 86, falsePositives: 4, falseNegatives: 3 },
-    { detector: "impersonation", truePositives: mod.incidents.filter((i) => i.kind === "impersonation").length * 7 + 72, falsePositives: 9, falseNegatives: 6 },
-    { detector: "credential", truePositives: Math.max(mod.credentialLeaks.length, 1) * 11 + 64, falsePositives: 3, falseNegatives: 4 },
-    { detector: "broker", truePositives: data.exposures.length * 6 + 58, falsePositives: 5, falseNegatives: 2 },
-    { detector: "sentiment", truePositives: Math.max(mod.mentions.length, 1) * 5 + 40, falsePositives: 12, falseNegatives: 10 },
-    { detector: "threat", truePositives: data.threats.length * 8 + 50, falsePositives: 6, falseNegatives: 5 },
-  ];
-  const detectors = scoreDetectors(detectionSamples);
-  const accuracy = blendedAccuracy(detectionSamples);
+  // Detection accuracy — computed by running the real scoring algorithms
+  // (lib/detection/scoring) over the live footprint, not modeled TP/FP counts.
+  const { detectors: liveDetectors, blended: accuracy } = liveDetectorAccuracy({
+    incidents: mod.incidents,
+    credentialLeaks: mod.credentialLeaks,
+    domainRisks: mod.domainRisks,
+    exposures: data.exposures,
+    primaryDomain: mod.domains.find((d) => d.isPrimary)?.domain ?? mod.domains[0]?.domain,
+  });
+  const detectors = liveDetectors.filter((d) => d.evaluated > 0);
 
   // Automation moat & proprietary corpus.
   const moat = automationMoat(mod.agentActions);
@@ -271,30 +278,34 @@ export default async function BusinessIntelligencePage() {
         </Card>
       </div>
 
-      {/* Defensibility: detection accuracy */}
+      {/* Defensibility: detection accuracy (computed from real scoring) */}
       <Card className="p-4">
         <SectionTitle
           title="Detection accuracy"
-          subtitle="Proprietary models — precision, recall and F1 across the detection stack"
+          subtitle="Confidence scored by the live detection algorithms over your footprint"
           action={<span className="text-sm font-bold text-risk-low">{accuracy}% blended</span>}
         />
-        <div className="grid grid-cols-1 gap-x-8 gap-y-2.5 md:grid-cols-2">
-          {detectors.map((d) => (
-            <div key={d.detector} className="flex items-center gap-3">
-              <span className="w-40 shrink-0 truncate text-xs text-slate-300">{d.label}</span>
-              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-bg-subtle">
-                <div
-                  className={cn("h-full rounded-full", d.stats.accuracy >= 90 ? "bg-risk-low" : d.stats.accuracy >= 75 ? "bg-risk-medium" : "bg-risk-high")}
-                  style={{ width: `${d.stats.accuracy}%` }}
-                />
+        {detectors.length > 0 ? (
+          <div className="grid grid-cols-1 gap-x-8 gap-y-2.5 md:grid-cols-2">
+            {detectors.map((d) => (
+              <div key={d.detector} className="flex items-center gap-3">
+                <span className="w-40 shrink-0 truncate text-xs text-slate-300">{d.label}</span>
+                <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-bg-subtle">
+                  <div
+                    className={cn("h-full rounded-full", d.accuracy >= 90 ? "bg-risk-low" : d.accuracy >= 75 ? "bg-risk-medium" : "bg-risk-high")}
+                    style={{ width: `${d.accuracy}%` }}
+                  />
+                </div>
+                <span className="w-12 shrink-0 text-right text-xs font-semibold text-white">{d.accuracy}%</span>
+                <span className="hidden w-20 shrink-0 text-right text-[10px] text-slate-500 sm:block">
+                  {d.evaluated} scored
+                </span>
               </div>
-              <span className="w-12 shrink-0 text-right text-xs font-semibold text-white">{d.stats.accuracy}%</span>
-              <span className="hidden w-28 shrink-0 text-right text-[10px] text-slate-500 sm:block">
-                P {d.stats.precision} · R {d.stats.recall}
-              </span>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-slate-500">No items to score yet — detectors activate as findings arrive.</p>
+        )}
       </Card>
 
       {/* Automation moat + proprietary data corpus */}
@@ -350,7 +361,7 @@ export default async function BusinessIntelligencePage() {
           <Scorecard label="CAC payback" value={`${ue.paybackMonths.toFixed(1)} mo`} good={ue.paybackMonths <= 12} note="months" />
           <Scorecard label="Magic number" value={magic.toFixed(1)} good={magic >= 0.75} note="net-new ARR / S&M" />
           <Scorecard label="Enterprise ACV" value={money(ent.acv)} good note={`${ent.contracts} contracts`} />
-          <Scorecard label="Detection acc." value={`${accuracy}%`} good={accuracy >= 90} note="blended F1" />
+          <Scorecard label="Detection acc." value={`${accuracy}%`} good={accuracy >= 90} note="live scored" />
           <Scorecard label="Automation" value={`${moat.automationRate}%`} good={moat.automationRate >= 75} note="autonomous" />
           <Scorecard label="Gross margin" value={`${Math.round(ue.grossMargin * 100)}%`} good note="software" />
         </div>

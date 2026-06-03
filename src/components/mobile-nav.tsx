@@ -1,23 +1,27 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Shield, Menu, X, LogOut } from "lucide-react";
+import { Menu, X, LogOut } from "lucide-react";
 import { signOut } from "@/app/auth/actions";
 import { cn } from "@/lib/ui";
 import type { Feature } from "@/lib/billing/entitlements";
 import { NavList } from "@/components/nav";
+import { BrandMark } from "@/components/brand-mark";
 
 /** Top bar + slide-over drawer for navigation on screens below lg. */
 export function MobileNav({
   subjectName,
   live,
   lockedFeatures = [],
+  isOperator = false,
+  planLabel,
 }: {
   subjectName?: string;
   live?: boolean;
   lockedFeatures?: Feature[];
+  isOperator?: boolean;
+  planLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
@@ -36,10 +40,7 @@ export function MobileNav({
     <div className="lg:hidden">
       {/* Top bar */}
       <div className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-bg/80 px-4 py-3 backdrop-blur">
-        <Link href="/" className="flex items-center gap-2">
-          <Shield className="h-5 w-5 text-brand" />
-          <span className="text-base font-bold text-white">PrivacyOS</span>
-        </Link>
+        <BrandMark size={26} wordmarkClass="text-base" />
         <button
           type="button"
           onClick={() => setOpen(true)}
@@ -71,10 +72,7 @@ export function MobileNav({
         )}
       >
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <Link href="/" className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-brand" />
-            <span className="text-base font-bold text-white">PrivacyOS</span>
-          </Link>
+          <BrandMark size={26} wordmarkClass="text-base" />
           <button
             type="button"
             onClick={() => setOpen(false)}
@@ -85,13 +83,13 @@ export function MobileNav({
           </button>
         </div>
 
-        <NavList lockedFeatures={lockedFeatures} onNavigate={() => setOpen(false)} />
+        <NavList lockedFeatures={lockedFeatures} isOperator={isOperator} onNavigate={() => setOpen(false)} />
 
         <div className="border-t border-border p-4">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-white">{subjectName ?? "Demo Subject"}</p>
-              <p className="truncate text-xs text-slate-500">{live ? "Executive plan" : "Demo mode"}</p>
+              <p className="truncate text-xs text-slate-500">{live ? (planLabel ?? "Free plan") : "Demo mode"}</p>
             </div>
             {live && (
               <form action={signOut}>

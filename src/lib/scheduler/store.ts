@@ -23,6 +23,7 @@ import type {
   Threat,
 } from "@/lib/types";
 import type { ProtectOutcome } from "@/lib/agents/orchestrator";
+import type { NewCaseFields } from "@/lib/agents/recommendation-routing";
 import type { AssessedRisk } from "@/lib/domains/dns";
 
 export interface Footprint {
@@ -57,6 +58,24 @@ export interface ScheduledRunSummary {
   newThreats: number;
   recommendations: number;
   removalsAdvanced: number;
+  /** New broker opt-outs auto-filed from discovered exposures this cycle. */
+  removalsFiled: number;
+  /** Cases auto-opened from new high/critical threats this cycle. */
+  casesOpened: number;
+  /** Reputation-recovery cases auto-opened from negative/defamatory coverage. */
+  reputationCasesOpened: number;
+  /** Times the principal was escalated to critical executive risk this cycle. */
+  executiveEscalations: number;
+  /** Protective cases auto-opened for escalating/harassment threat actors. */
+  executiveCasesOpened: number;
+  /** Doxxing leaks routed to a takedown channel this cycle. */
+  doxxingTakedownsRouted: number;
+  /** Active impersonation/deepfake signals tracked this cycle. */
+  impersonationSignals: number;
+  /** Active dark-web signals monitored this cycle. */
+  darkWebSignals: number;
+  /** Live (chainable) attack paths detected this cycle. */
+  attackPathsLive: number;
   mentionsCollected: number;
   domainRisksFound: number;
   ranAt: string;
@@ -97,10 +116,21 @@ export interface SchedulerStore {
   addNotifications(userId: string, notifs: NewNotification[]): Promise<void>;
   /** Removal requests due for processing / a re-check at `now`. */
   listDueRemovals(now: string): Promise<OwnedRemoval[]>;
+  /** Existing removals for a subject (to avoid double-filing). */
+  listRemovalsForSubject(subjectId: string): Promise<RemovalRequest[]>;
+  /** Insert newly auto-filed removal requests. */
+  createRemovals(userId: string, subjectId: string, requests: Omit<RemovalRequest, "id">[]): Promise<void>;
   /** Persist an advanced removal request. */
   saveRemoval(userId: string, request: RemovalRequest): Promise<void>;
   /** Replace the subject's mentions + sentiment series from a reputation scan. */
   saveReputation(userId: string, subjectId: string, data: ReputationData): Promise<void>;
   /** Upsert the domain and replace its risks from a DNS/email-security scan. */
   saveDomainRisks(userId: string, data: DomainScanData): Promise<void>;
+  /** Append timestamped investigation steps for a newly-discovered threat,
+   *  resolved by (subjectId, threatTitle). No-op if the threat row isn't found. */
+  recordInvestigation(userId: string, subjectId: string, threatTitle: string, steps: { agent: string; label: string }[]): Promise<void>;
+  /** Titles of the subject's currently-open cases (to avoid opening duplicates). */
+  listOpenCaseTitlesForSubject(subjectId: string): Promise<string[]>;
+  /** Open new cases (e.g. auto-raised from high/critical threats). */
+  createCases(userId: string, subjectId: string, cases: NewCaseFields[]): Promise<void>;
 }

@@ -17,6 +17,7 @@ export interface GatedSuite {
 }
 
 export const GATED_SUITES: GatedSuite[] = [
+  { feature: "financial", label: "Financial Exposure Protection", prefixes: ["/dashboard/financial"], upsell: "personal" },
   { feature: "reputation", label: "ReputationOS", prefixes: ["/dashboard/reputation"], upsell: "reputation" },
   {
     feature: "executive",
@@ -30,6 +31,14 @@ export const GATED_SUITES: GatedSuite[] = [
     prefixes: ["/dashboard/business", "/dashboard/domains", "/dashboard/employees", "/dashboard/third-party", "/dashboard/team"],
     upsell: "business",
   },
+  {
+    // Automation is an operator capability — standard plans get it auto-configured
+    // behind the scenes; only power-user/enterprise tiers build it directly.
+    feature: "automation",
+    label: "Automation & Workflows",
+    prefixes: ["/dashboard/workflow-builder", "/dashboard/automation-templates", "/dashboard/workflows", "/dashboard/playbooks", "/dashboard/agents"],
+    upsell: "business",
+  },
 ];
 
 /** The feature required for a given dashboard path, or null if it's core. */
@@ -40,4 +49,16 @@ export function requiredFeature(path: string): Feature | null {
     }
   }
   return null;
+}
+
+/**
+ * Operator-only route prefixes — internal company surfaces (the SaaS Growth &
+ * Revenue console with MRR/ARR/NRR/churn across the whole book of business).
+ * These are NOT customer protection data and must never be reachable by a
+ * customer account, even by typing the URL. Gated on operator/admin access.
+ */
+export const OPERATOR_PREFIXES = ["/dashboard/business-intelligence"];
+
+export function isOperatorRoute(path: string): boolean {
+  return OPERATOR_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`));
 }

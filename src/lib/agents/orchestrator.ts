@@ -26,9 +26,15 @@ import { SecurityAgent } from "./security-agent";
 import { DeepfakeAgent } from "./deepfake-agent";
 import { ExecutiveAgent } from "./executive-agent";
 import { BusinessAgent } from "./business-agent";
+import { OrchestratorAgent } from "./orchestrator-agent";
+import { IncidentAgent } from "./incident-agent";
+import { ComplianceAgent } from "./compliance-agent";
+import { ThreatIntelAgent } from "./threat-intel-agent";
+import { VendorAgent } from "./vendor-agent";
 
 export function allAgents(): BaseAgent[] {
   return [
+    // Domain specialists
     new DiscoveryAgent(),
     new PrivacyAgent(),
     new LegalAgent(),
@@ -37,8 +43,17 @@ export function allAgents(): BaseAgent[] {
     new DeepfakeAgent(),
     new ExecutiveAgent(),
     new BusinessAgent(),
+    // Coordination & response roles
+    new OrchestratorAgent(),
+    new IncidentAgent(),
+    new ComplianceAgent(),
+    new ThreatIntelAgent(),
+    new VendorAgent(),
   ];
 }
+
+/** Total number of agents in the fleet — single source of truth for UI counts. */
+export const AGENT_COUNT = allAgents().length;
 
 export interface ProtectInput {
   subject: Subject;

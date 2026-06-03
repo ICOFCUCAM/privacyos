@@ -6,6 +6,7 @@
  * shape and headers — the contract the dashboard and external schedulers rely on.
  */
 import { describe, expect, it } from "vitest";
+import { AGENT_COUNT } from "@/lib/agents/orchestrator";
 import { POST as protectPOST } from "./protect/route";
 import { POST as discoverPOST } from "./discover/route";
 import { GET as legalGET } from "./legal/route";
@@ -17,7 +18,7 @@ describe("POST /api/protect", () => {
     const res = await protectPOST(new Request("http://t/api/protect", { method: "POST" }));
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.agentStates).toHaveLength(8);
+    expect(body.agentStates).toHaveLength(AGENT_COUNT);
     expect(Array.isArray(body.recommendations)).toBe(true);
     expect(body.persisted).toBe(false); // demo mode
   });

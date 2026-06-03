@@ -16,6 +16,18 @@ import { runDiscovery } from "@/lib/discovery/pipeline";
 import type { DiscoverySource } from "@/lib/discovery/source";
 import { computeRiskScore } from "@/lib/scoring/risk-score";
 import { advanceRemoval, shouldReappear } from "@/lib/brokers/removal";
+import { planAutoFilings } from "@/lib/brokers/auto-file";
+import { coerceMode, needsApproval } from "@/lib/home/autonomy";
+import { casesForNewThreats } from "@/lib/agents/threat-cases";
+import { reputationCasesFromMentions } from "@/lib/reputation/os/reputation-cases";
+import { reputationOverview } from "@/lib/reputation/os/analysis";
+import { executiveRiskIndices } from "@/lib/executive/os/risk-indices";
+import { buildThreatActors, actorCasesToOpen } from "@/lib/executive/os/threat-actors";
+import { doxxingReport, takedownPlan, summarizeTakedowns, TAKEDOWN_LABEL } from "@/lib/executive/os/doxxing";
+import { impersonationReport } from "@/lib/executive/os/impersonation";
+import { darkWebReport } from "@/lib/executive/os/darkweb";
+import { analyzeAttackSurface } from "@/lib/executive/os/attack-paths";
+import { investigationTimeline } from "@/lib/intelligence/threat-intel";
 import { collectReputation, type MentionSource } from "@/lib/reputation/collect";
 import { scanDomain } from "@/lib/domains/scan";
 import { DohClient } from "@/lib/domains/dns";
@@ -42,20 +54,62 @@ export async function runScheduledCycle(
   deps: SchedulerDeps = {},
 ): Promise<ScheduledRunSummary> {
   const footprints = await store.listFootprints();
+  const now = new Date().toISOString();
   let newExposures = 0;
   let newThreats = 0;
   let recommendations = 0;
+  let removalsFiled = 0;
+  let casesOpened = 0;
+  let reputationCasesOpened = 0;
+  let executiveEscalations = 0;
+  let executiveCasesOpened = 0;
+  let doxxingTakedownsRouted = 0;
+  let impersonationSignals = 0;
+  let darkWebSignals = 0;
+  let attackPathsLive = 0;
   let mentionsCollected = 0;
   let domainRisksFound = 0;
 
   for (const fp of footprints) {
     // 1. Discover — only genuinely new findings come back (deduped).
     const finding = await runDiscovery(
-      { subject: fp.subject, existing: fp.exposures },
+      { subject: fp.subject, existing: fp.exposures, existingThreats: fp.threats },
       deps.sources,
     );
     if (finding.exposures.length || finding.threats.length) {
       await store.saveDiscovered(fp.userId, finding.exposures, finding.threats);
+    }
+
+    // Record the timestamped, agent-driven investigation for each NEW threat so
+    // the Threat Intelligence page shows the real trail, not just a derived one.
+    for (const t of finding.threats) {
+      const steps = investigationTimeline(t).map((s) => ({ agent: s.agent, label: s.label }));
+      await store.recordInvestigation(fp.userId, fp.subject.id, t.title, steps);
+    }
+
+    // Auto-open a tracked Case for each NEW high/critical threat, so the case
+    // queue (and Mission Control) populates itself from live detections instead
+    // of waiting for a human to file one. Deduped against open cases by title.
+    if (finding.threats.length > 0) {
+      try {
+        const openTitles = await store.listOpenCaseTitlesForSubject(fp.subject.id);
+        const newCases = casesForNewThreats(finding.threats, openTitles);
+        if (newCases.length > 0) {
+          await store.createCases(fp.userId, fp.subject.id, newCases);
+          await store.recordActions(fp.userId, fp.subject.id, [
+            {
+              agent: "incident",
+              kind: "escalate",
+              summary: `Opened ${newCases.length} case(s) from new high/critical threat(s) and assigned the responding agent(s).`,
+              status: "completed",
+            },
+          ]);
+          casesOpened += newCases.length;
+        }
+      } catch (err) {
+        // Case creation is best-effort; never fail the whole cycle.
+        console.error("[privacyos] auto-open cases failed:", err);
+      }
     }
 
     const exposures = [...fp.exposures, ...finding.exposures];
@@ -112,6 +166,135 @@ export async function runScheduledCycle(
       await store.addNotifications(fp.userId, notifs);
     }
 
+    // 6a. Executive-risk escalation. Recompute the Executive Risk Score over the
+    // refreshed footprint; if it's critical AND new critical findings landed this
+    // cycle, the Executive Agent escalates (record + alert). Gating to new
+    // criticals keeps it from re-firing every cron tick.
+    const execRisk = executiveRiskIndices({ exposures, threats, family: [], travel: [] });
+    await store.recordScores(fp.userId, fp.subject.id, [{ kind: "executive", value: execRisk.overall }]);
+    await store.recordActions(fp.userId, fp.subject.id, [
+      {
+        agent: "executive",
+        kind: "monitor",
+        summary: `Executive Risk Score: ${execRisk.overall}/100 (${execRisk.band}).`,
+        status: "completed",
+      },
+    ]);
+    // Physical-security critical is the true close-protection emergency (the
+    // scheduler footprint has no family/travel, so the composite under-reads).
+    if ((execRisk.band === "critical" || execRisk.physical >= 70) && critical.length > 0) {
+      await store.addNotifications(fp.userId, [
+        {
+          kind: "incident",
+          title: `Executive risk CRITICAL (${execRisk.overall}/100)`,
+          body: `New critical exposure pushed the principal's physical-security index to ${execRisk.physical}/100 (overall ${execRisk.overall}). Review Executive Protection now.`,
+          riskLevel: "critical",
+        },
+      ]);
+      await store.recordActions(fp.userId, fp.subject.id, [
+        { agent: "executive", kind: "escalate", summary: "Escalated principal to CRITICAL executive risk.", status: "completed" },
+      ]);
+      executiveEscalations += 1;
+    }
+
+    // 6b. Threat-actor tracking → protective cases. Cluster the active threats
+    // into actor profiles and open an executive-protection case for any actor
+    // that's actively escalating or running a harassment campaign (deduped).
+    const actors = buildThreatActors(threats, new Date(now).getTime());
+    const execOpenTitles = await store.listOpenCaseTitlesForSubject(fp.subject.id);
+    const actorCases = actorCasesToOpen(actors, execOpenTitles);
+    if (actorCases.length > 0) {
+      await store.createCases(fp.userId, fp.subject.id, actorCases);
+      await store.recordActions(fp.userId, fp.subject.id, [
+        { agent: "executive", kind: "escalate", summary: `Opened ${actorCases.length} protective case(s) for escalating/harassment threat actors.`, status: "completed" },
+      ]);
+      executiveCasesOpened += actorCases.length;
+    }
+
+    // 6c. Doxxing takedown routing. Classify the footprint's doxxing-enabling
+    // leaks (address/phone/family/employer from exposures + threats) and route
+    // each to its remediation channel, so the Executive Agent has a concrete
+    // takedown plan. Broker-routable leaks are filed by the removal pipeline
+    // below; this records the routed plan and surfaces it on the Doxxing tab.
+    const doxxing = doxxingReport({ exposures, threats, family: [], employees: [] });
+    const takedowns = takedownPlan(doxxing);
+    if (takedowns.length > 0) {
+      const routes = Object.entries(summarizeTakedowns(takedowns).byMethod)
+        .filter(([, n]) => n > 0)
+        .map(([m, n]) => `${n} ${TAKEDOWN_LABEL[m as keyof typeof TAKEDOWN_LABEL]}`)
+        .join(", ");
+      await store.recordActions(fp.userId, fp.subject.id, [
+        { agent: "executive", kind: "remove", summary: `Routed ${takedowns.length} doxxing takedown(s): ${routes}.`, status: "completed" },
+      ]);
+      doxxingTakedownsRouted += takedowns.length;
+    }
+
+    // 6d. Impersonation & dark-web monitoring. Read the footprint for the
+    // remaining ExecutiveOS pillars (incidents/domain-risks/credential feeds
+    // aren't in the footprint, so this catches the threat/exposure-driven
+    // signals) and record the sweep. Takedown/breach cases for these are opened
+    // by the threat-case pipeline above; this is observability, not escalation.
+    const impersonation = impersonationReport({ threats, incidents: [], domainRisks: [], exposures });
+    if (impersonation.active > 0) {
+      await store.recordActions(fp.userId, fp.subject.id, [
+        { agent: "executive", kind: "monitor", summary: `Tracking ${impersonation.active} impersonation/deepfake signal(s).`, status: "completed" },
+      ]);
+      impersonationSignals += impersonation.active;
+    }
+    const darkweb = darkWebReport({ credentialLeaks: [], threats, exposures });
+    if (darkweb.active > 0) {
+      await store.recordActions(fp.userId, fp.subject.id, [
+        { agent: "security", kind: "monitor", summary: `Monitoring ${darkweb.active} dark-web signal(s).`, status: "completed" },
+      ]);
+      darkWebSignals += darkweb.active;
+    }
+
+    // 6e. Attack-path analysis. Model how the footprint chains into real-world
+    // harm and surface the highest-leverage fix (the chokepoint) so the cycle
+    // autonomously prioritizes the single removal that collapses the most paths.
+    const surface = analyzeAttackSurface({ exposures, threats });
+    if (surface.chokepoint) {
+      await store.recordActions(fp.userId, fp.subject.id, [
+        {
+          agent: "executive",
+          kind: "analyze",
+          summary: `${surface.enabledPaths} live attack path(s). Highest-leverage fix: ${surface.chokepoint.action} — collapses ${surface.chokepoint.breaks}.`,
+          status: "completed",
+        },
+      ]);
+      attackPathsLive += surface.enabledPaths;
+    }
+
+    // 6f. Auto-file broker opt-outs for newly-discovered broker/public-record
+    // exposures — the Privacy Agent files them so the removal pipeline populates
+    // itself from real discoveries. Honors the subject's autonomy mode: advisor
+    // files nothing (everything waits for sign-off), hybrid files routine only,
+    // autopilot files everything below critical. Critical always waits.
+    try {
+      const mode = coerceMode(fp.subject.autonomyMode);
+      const riskByExposure = new Map(exposures.map((e) => [e.id, e.riskLevel]));
+      const existing = await store.listRemovalsForSubject(fp.subject.id);
+      const filings = planAutoFilings(fp.subject.id, exposures, existing, { now });
+      const eligible = filings.requests.filter(
+        (r) => !needsApproval(riskByExposure.get(r.exposureId ?? "") ?? "medium", mode),
+      );
+      if (eligible.length > 0) {
+        await store.createRemovals(fp.userId, fp.subject.id, eligible);
+        await store.recordActions(fp.userId, fp.subject.id, [
+          {
+            agent: "privacy",
+            kind: "remove",
+            summary: `Auto-filed ${eligible.length} broker opt-out(s) for new listings; 30/60/90-day re-checks scheduled.`,
+            status: "completed",
+          },
+        ]);
+        removalsFiled += eligible.length;
+      }
+    } catch (err) {
+      // Auto-filing is best-effort; never fail the whole cycle.
+      console.error("[privacyos] auto-file removals failed:", err);
+    }
+
     // 7. Refresh ReputationOS: collect news mentions + sentiment for this subject.
     try {
       const rep = await collectReputation(fp.subject, deps.reputationSource, { provider: deps.provider });
@@ -129,6 +312,42 @@ export async function runScheduledCycle(
         },
       ]);
       mentionsCollected += rep.mentions.length;
+
+      // Reputation-health snapshot for the trend chart (computed from the same
+      // mentions; rep.mentions omits id/subjectId but carries every scored field).
+      const repHealth = reputationOverview(rep.mentions as unknown as Parameters<typeof reputationOverview>[0]).health;
+      await store.recordScores(fp.userId, fp.subject.id, [{ kind: "reputation", value: repHealth }]);
+
+      // Auto-open a reputation-recovery case for defamatory / strongly-negative
+      // coverage, so suppression & repair fire autonomously (deduped by title).
+      const repOpenTitles = await store.listOpenCaseTitlesForSubject(fp.subject.id);
+      const repCases = reputationCasesFromMentions(rep.mentions, repOpenTitles);
+      if (repCases.length > 0) {
+        await store.createCases(fp.userId, fp.subject.id, repCases);
+        await store.recordActions(fp.userId, fp.subject.id, [
+          {
+            agent: "reputation",
+            kind: "escalate",
+            summary: `Opened ${repCases.length} reputation-recovery case(s) from negative/defamatory coverage.`,
+            status: "completed",
+          },
+        ]);
+        reputationCasesOpened += repCases.length;
+
+        // Notify on defamatory coverage, mirroring the critical-threat alert.
+        const defamatory = rep.mentions.filter((m) => m.isDefamatory);
+        if (defamatory.length > 0) {
+          await store.addNotifications(
+            fp.userId,
+            defamatory.map((m) => ({
+              kind: "incident" as const,
+              title: `Defamatory content detected: ${m.title}`,
+              body: `${m.sourceName} — a reputation-recovery case is open with a suppression & takedown plan.`,
+              riskLevel: "high" as const,
+            })),
+          );
+        }
+      }
     } catch (err) {
       // Reputation collection is best-effort; never fail the whole cycle.
       console.error("[privacyos] reputation collection failed:", err);
@@ -158,8 +377,7 @@ export async function runScheduledCycle(
     recommendations += outcome.recommendations.length;
   }
 
-  // 7. Advance any data-broker removals that are due (autonomous 30/60/90 re-checks).
-  const now = new Date().toISOString();
+  // 8. Advance any data-broker removals that are due (autonomous 30/60/90 re-checks).
   const due = await store.listDueRemovals(now);
   let removalsAdvanced = 0;
   for (const { userId, request } of due) {
@@ -174,6 +392,15 @@ export async function runScheduledCycle(
     newThreats,
     recommendations,
     removalsAdvanced,
+    removalsFiled,
+    casesOpened,
+    reputationCasesOpened,
+    executiveEscalations,
+    executiveCasesOpened,
+    doxxingTakedownsRouted,
+    impersonationSignals,
+    darkWebSignals,
+    attackPathsLive,
     mentionsCollected,
     domainRisksFound,
     ranAt: new Date().toISOString(),

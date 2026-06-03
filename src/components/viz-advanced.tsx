@@ -242,17 +242,17 @@ export function ProgressMeter({
         <span className="text-xs uppercase tracking-wide text-slate-400">Neutralized</span>
         <span className="text-2xl font-bold text-risk-low">{percent}%</span>
       </div>
-      <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-bg-subtle">
+      <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-bg-subtle">
         <div
           className="h-full rounded-full bg-gradient-to-r from-risk-low to-emerald-400 transition-all"
           style={{ width: `${percent}%` }}
         />
       </div>
-      <div className="mt-4 grid grid-cols-4 gap-2">
+      <div className="mt-2.5 grid grid-cols-4 gap-1.5">
         {stages.map((s) => (
-          <div key={s.key} className="rounded-lg border border-border bg-bg-subtle/60 p-2.5 text-center">
-            <p className={cn("text-lg font-bold", stageColor[s.level])}>{s.value}</p>
-            <p className="mt-0.5 text-[10px] text-slate-500">{s.label}</p>
+          <div key={s.key} className="rounded-lg border border-border bg-bg-subtle/60 p-1.5 text-center">
+            <p className={cn("text-base font-bold", stageColor[s.level])}>{s.value}</p>
+            <p className="text-[10px] text-slate-500">{s.label}</p>
           </div>
         ))}
       </div>

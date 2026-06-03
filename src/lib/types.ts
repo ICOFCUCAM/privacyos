@@ -21,6 +21,9 @@ export interface Subject {
   usernames: string[];
   organization?: string;
   createdAt: string;
+  /** How hands-on the customer chose to be — persisted so the background cycle
+   *  honors it (advisor/hybrid/autopilot). Inline union avoids an import cycle. */
+  autonomyMode?: "autopilot" | "hybrid" | "advisor";
 }
 
 export type ExposureCategory =
@@ -91,6 +94,7 @@ export type CaseType =
   | "deepfake_incident"
   | "impersonation_takedown"
   | "breach_response"
+  | "executive_protection"
   | "legal_request";
 
 export type CaseStatus = "open" | "in_progress" | "awaiting_response" | "escalated" | "resolved";
@@ -140,7 +144,13 @@ export type AgentKind =
   | "security"
   | "deepfake"
   | "executive"
-  | "business";
+  | "business"
+  // ── Coordination & response roles (added beyond the original 8 specialists) ──
+  | "orchestrator"
+  | "incident"
+  | "compliance"
+  | "threat_intel"
+  | "vendor";
 
 export type AgentStatus = "idle" | "running" | "blocked" | "error";
 

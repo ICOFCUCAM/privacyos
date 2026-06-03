@@ -7,6 +7,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Exposure, Recommendation, RemovalRequest, Threat } from "@/lib/types";
 import type { ProtectOutcome } from "@/lib/agents/orchestrator";
+import type { NewCaseFields } from "@/lib/agents/recommendation-routing";
 import { mapExposure, mapRemoval, mapSubject, mapThreat } from "@/lib/data/mappers";
 import { isRemovalDue } from "@/lib/brokers/removal";
 import type {
@@ -162,6 +163,31 @@ export class SupabaseSchedulerStore implements SchedulerStore {
       .filter((o) => isRemovalDue(o.request, now));
   }
 
+  async listRemovalsForSubject(subjectId: string): Promise<RemovalRequest[]> {
+    const { data } = await this.db.from("removal_requests").select("*").eq("subject_id", subjectId);
+    return (data ?? []).map(mapRemoval);
+  }
+
+  async createRemovals(userId: string, subjectId: string, requests: Omit<RemovalRequest, "id">[]): Promise<void> {
+    if (requests.length === 0) return;
+    await this.db.from("removal_requests").insert(
+      requests.map((r) => ({
+        user_id: userId,
+        subject_id: subjectId,
+        exposure_id: r.exposureId ?? null,
+        broker_name: r.brokerName,
+        status: r.status,
+        submitted_at: r.submittedAt,
+        next_check_at: r.nextCheckAt ?? null,
+        history: r.history,
+      })),
+    );
+    // Sync each linked exposure so autonomous filings actually lower the score.
+    for (const r of requests) {
+      if (r.exposureId) await this.db.from("exposures").update({ status: r.status }).eq("id", r.exposureId);
+    }
+  }
+
   async saveRemoval(_userId: string, request: RemovalRequest): Promise<void> {
     await this.db
       .from("removal_requests")
@@ -172,6 +198,10 @@ export class SupabaseSchedulerStore implements SchedulerStore {
         history: request.history,
       })
       .eq("id", request.id);
+    // Advance the linked exposure in lockstep (in_progress → removed → ...).
+    if (request.exposureId) {
+      await this.db.from("exposures").update({ status: request.status }).eq("id", request.exposureId);
+    }
   }
 
   async saveReputation(userId: string, subjectId: string, data: ReputationData): Promise<void> {
@@ -240,5 +270,61 @@ export class SupabaseSchedulerStore implements SchedulerStore {
         })),
       );
     }
+  }
+
+  async recordInvestigation(
+    userId: string,
+    subjectId: string,
+    threatTitle: string,
+    steps: { agent: string; label: string }[],
+  ): Promise<void> {
+    if (steps.length === 0) return;
+    // Resolve the most-recent threat row for this subject+title.
+    const { data: threat } = await this.db
+      .from("threats")
+      .select("id")
+      .eq("subject_id", subjectId)
+      .eq("title", threatTitle)
+      .order("detected_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!threat) return;
+    // Stagger timestamps a few minutes apart so the timeline reads chronologically.
+    const base = Date.now();
+    await this.db.from("threat_investigations").insert(
+      steps.map((s, i) => ({
+        user_id: userId,
+        subject_id: subjectId,
+        threat_id: threat.id,
+        agent: s.agent,
+        label: s.label,
+        created_at: new Date(base + i * 6 * 60_000).toISOString(),
+      })),
+    );
+  }
+
+  async listOpenCaseTitlesForSubject(subjectId: string): Promise<string[]> {
+    const { data } = await this.db
+      .from("cases")
+      .select("title")
+      .eq("subject_id", subjectId)
+      .neq("status", "resolved");
+    return (data ?? []).map((r) => r.title as string);
+  }
+
+  async createCases(userId: string, subjectId: string, cases: NewCaseFields[]): Promise<void> {
+    if (cases.length === 0) return;
+    await this.db.from("cases").insert(
+      cases.map((c) => ({
+        user_id: userId,
+        subject_id: subjectId,
+        type: c.type,
+        title: c.title,
+        summary: c.summary,
+        status: "open",
+        risk_level: c.riskLevel,
+        assigned_agent: c.assignedAgent,
+      })),
+    );
   }
 }

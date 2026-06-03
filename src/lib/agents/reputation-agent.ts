@@ -2,15 +2,17 @@ import { BaseAgent, type AgentContext, type AgentResult } from "./base-agent";
 import type { AgentKind } from "@/lib/types";
 
 /**
- * Reputation Agent — monitors search rankings, news, reviews and forums,
- * scores sentiment, and proposes suppression/recovery strategies for harmful
- * content.
+ * Reputation Agent — the brain of ReputationOS. Monitors search, news, blogs,
+ * forums, Reddit, social, video and review sites; scores sentiment, authority,
+ * reach, influence and brand perception; and drives growth (content, SEO,
+ * social), earned media, recovery (suppression, repair, crisis comms) and
+ * opportunity intelligence — auto-generating campaigns, PR and recovery plans.
  */
 export class ReputationAgent extends BaseAgent {
   readonly kind: AgentKind = "reputation";
   readonly name = "Reputation Agent";
   readonly description =
-    "Monitors search visibility, news and sentiment; designs SEO suppression and reputation-recovery plans.";
+    "Runs ReputationOS: 24/7 monitoring + sentiment/authority/reach/influence/brand scoring across the web, plus growth, SEO, earned media, recovery and opportunity intelligence with auto-generated campaigns.";
 
   async run(ctx: AgentContext): Promise<AgentResult> {
     const result = this.empty();

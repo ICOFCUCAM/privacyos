@@ -7,6 +7,13 @@ import { getDataSource } from "@/lib/data";
 import { mapSubject } from "@/lib/data/mappers";
 import { runDiscovery } from "@/lib/discovery/pipeline";
 import { recordAudit } from "@/lib/audit/audit";
+import { cookies } from "next/headers";
+import { getEntitlements } from "@/lib/billing/subscription";
+import { protectionsForEntitlements, PROVISIONED_COOKIE } from "@/lib/onboarding/auto-provision";
+import { findListing, installListing } from "@/lib/agents/workflow-marketplace";
+import { saveWorkflowAction } from "@/app/dashboard/workflow-builder/actions";
+import { AUTONOMY_COOKIE, defaultModeForPlan } from "@/lib/home/autonomy";
+import { INTENT_COOKIE } from "@/lib/home/scan-intent";
 
 export interface OnboardingState {
   error?: string;
@@ -74,6 +81,41 @@ export async function createSubject(
     }
   }
 
+  // Auto-provision protection: install + enable the right packs for the plan so
+  // monitoring starts automatically. Standard customers never touch the builder.
+  try {
+    const ent = await getEntitlements();
+    const packs = protectionsForEntitlements(ent);
+    const seen = new Set<string>();
+    for (const id of packs) {
+      const listing = findListing(id);
+      if (!listing || seen.has(id)) continue;
+      seen.add(id);
+      for (const def of installListing(listing)) {
+        await saveWorkflowAction({ ...def, enabled: true });
+      }
+    }
+    const store = await cookies();
+    if (seen.size > 0) {
+      // Surface the provisioning outcome once on Protection Home.
+      store.set(PROVISIONED_COOKIE, [...seen].join(","), { path: "/", maxAge: 60 * 60 * 24, sameSite: "lax" });
+    }
+    // Default the consent dial to a sensible mode for the plan so the customer
+    // lands on already-running protection instead of another decision screen.
+    const defaultMode = defaultModeForPlan(ent.planId ?? undefined);
+    if (!store.get(AUTONOMY_COOKIE)) {
+      store.set(AUTONOMY_COOKIE, defaultMode, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
+    }
+    // Persist server-side so the background cycle honors it from day one.
+    try { await (await getDataSource()).setAutonomyMode(defaultMode); } catch { /* best-effort */ }
+  } catch {
+    /* best-effort — never block onboarding on provisioning */
+  }
+
+  // The scan's job is done — clear the through-line cookie.
+  (await cookies()).delete(INTENT_COOKIE);
+
   revalidatePath("/dashboard");
-  redirect("/dashboard");
+  // Land new users straight on activated protection — packs on, autonomy set.
+  redirect("/dashboard/home");
 }

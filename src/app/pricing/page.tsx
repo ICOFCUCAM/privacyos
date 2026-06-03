@@ -1,9 +1,11 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Shield } from "lucide-react";
+import { BrandMark } from "@/components/brand-mark";
 import { PricingTable } from "@/components/pricing";
 import { TrustStrip } from "@/components/landing-sections";
 import { buttonClasses } from "@/components/ui";
+import { PLANS } from "@/lib/billing/plans";
+import { isPlanPurchasable } from "@/lib/billing/stripe";
 
 const faqs: { q: string; a: string }[] = [
   {
@@ -34,14 +36,19 @@ export const metadata: Metadata = {
     "Plans for individuals, families, professionals, public figures, executives and enterprises. Save 20% with annual billing.",
 };
 
-export default function PricingPage() {
+export default async function PricingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ plan?: string }>;
+}) {
+  const { plan: recommendedPlanId } = await searchParams;
+  // Which paid plans are actually wired to a Stripe Price right now. Unconfigured
+  // plans degrade to a signup CTA instead of surfacing a raw env-var error.
+  const purchasablePlanIds = PLANS.filter((p) => isPlanPurchasable(p.id)).map((p) => p.id);
   return (
     <main className="bg-grid min-h-screen">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-        <Link href="/" className="flex items-center gap-2">
-          <Shield className="h-6 w-6 text-brand" />
-          <span className="text-lg font-bold text-white">PrivacyOS</span>
-        </Link>
+        <BrandMark size={32} wordmarkClass="text-xl" />
         <Link href="/dashboard" className={buttonClasses("primary", "md")}>
           Open Dashboard
         </Link>
@@ -62,7 +69,7 @@ export default function PricingPage() {
       </div>
 
       <section className="mx-auto max-w-6xl px-6 pb-16">
-        <PricingTable />
+        <PricingTable recommendedPlanId={recommendedPlanId} purchasablePlanIds={purchasablePlanIds} />
       </section>
 
       <section className="mx-auto max-w-6xl px-6 pb-16">

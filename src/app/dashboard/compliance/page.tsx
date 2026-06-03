@@ -9,8 +9,9 @@ import { getAuditLog } from "@/lib/audit/audit";
 import {
   CONTROLS, postureByCriterion, readiness, slaReport, type ControlStatus, type TrustCriterion,
 } from "@/lib/compliance/posture";
-import { blendedAccuracy, type DetectionSample } from "@/lib/business/moat-metrics";
+import { liveDetectorAccuracy } from "@/lib/detection/live-accuracy";
 import { exposureToFinding, runPlaybooks, summarizeRuns, threatToFinding } from "@/lib/agents/playbooks";
+import { allFrameworkCoverage, overallFrameworkCoverage, COMPLIANCE_TASKS } from "@/lib/compliance/frameworks";
 import { cn } from "@/lib/ui";
 
 export const metadata = { title: "Compliance & SLAs" };
@@ -41,14 +42,15 @@ export default async function CompliancePage() {
   const posture = postureByCriterion();
   const ready = readiness();
 
-  // Detection accuracy — same grounding as the operator console.
-  const detectionSamples: DetectionSample[] = [
-    { detector: "deepfake", truePositives: mod.incidents.filter((i) => i.kind === "deepfake").length * 9 + 86, falsePositives: 4, falseNegatives: 3 },
-    { detector: "impersonation", truePositives: mod.incidents.filter((i) => i.kind === "impersonation").length * 7 + 72, falsePositives: 9, falseNegatives: 6 },
-    { detector: "credential", truePositives: Math.max(mod.credentialLeaks.length, 1) * 11 + 64, falsePositives: 3, falseNegatives: 4 },
-    { detector: "threat", truePositives: data.threats.length * 8 + 50, falsePositives: 6, falseNegatives: 5 },
-  ];
-  const accuracy = blendedAccuracy(detectionSamples);
+  // Detection accuracy — computed by the live scoring algorithms (same as the
+  // operator console), not modeled samples.
+  const { blended: accuracy } = liveDetectorAccuracy({
+    incidents: mod.incidents,
+    credentialLeaks: mod.credentialLeaks,
+    domainRisks: mod.domainRisks,
+    exposures: data.exposures,
+    primaryDomain: mod.domains.find((d) => d.isPrimary)?.domain ?? mod.domains[0]?.domain,
+  });
   // Auto-remediation rate = the share of response-playbook steps that execute
   // without a human — the single source of truth shared with the playbooks view.
   const playbooks = summarizeRuns(
@@ -65,6 +67,9 @@ export default async function CompliancePage() {
 
   const auditUser = auditLog.filter((e) => e.actor === "user").length;
   const auditAgent = auditLog.filter((e) => e.actor.startsWith("agent")).length;
+
+  const frameworks = allFrameworkCoverage();
+  const overallCoverage = overallFrameworkCoverage();
 
   return (
     <div className="space-y-4">
@@ -115,6 +120,34 @@ export default async function CompliancePage() {
           <p className="text-[11px] text-slate-500">{auditAgent} agent · {auditUser} user</p>
         </Card>
       </div>
+
+      {/* Regulatory & certification frameworks — executed by the Compliance Agent */}
+      <Card className="p-4">
+        <SectionTitle
+          title="Compliance frameworks"
+          subtitle="GDPR · CCPA · SOC 2 · ISO 27001 · HIPAA · PCI-DSS — monitored continuously by the Compliance Agent"
+          action={<span className="text-sm font-bold text-risk-low">{overallCoverage}% blended</span>}
+        />
+        <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 lg:grid-cols-6">
+          {frameworks.map((f) => (
+            <div key={f.id} className="rounded-lg border border-border bg-bg-subtle/40 p-3 text-center">
+              <p className={cn("text-xl font-bold", f.coverage >= 90 ? "text-risk-low" : f.coverage >= 70 ? "text-risk-medium" : "text-risk-high")}>
+                {f.coverage}%
+              </p>
+              <p className="mt-0.5 text-xs font-medium text-white">{f.name}</p>
+              <p className="text-[10px] text-slate-500">{f.met}/{f.total} met</p>
+              <p className={cn("mt-1 text-[10px] font-semibold uppercase",
+                f.standing === "Compliant" ? "text-risk-low" : f.standing === "On track" ? "text-risk-medium" : "text-risk-high")}>
+                {f.standing}
+              </p>
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 text-[11px] text-slate-500">
+          The Compliance Agent runs {COMPLIANCE_TASKS.length} continuous-monitoring tasks each cycle — DSAR turnaround,
+          breach-notification clocks, audit-log integrity, ISMS drift and cardholder-data checks.
+        </p>
+      </Card>
 
       {/* SLA targets */}
       <Card className="p-4">

@@ -6,7 +6,7 @@
 import type { AgentKind, RiskLevel, ThreatKind } from "@/lib/types";
 
 /* ── Scoring ─────────────────────────────────────────────────────────────── */
-export type ScoreKind = "privacy" | "identity" | "reputation" | "executive" | "business" | "overall";
+export type ScoreKind = "privacy" | "identity" | "reputation" | "executive" | "business" | "family" | "travel" | "overall";
 
 export interface ScoreSet {
   privacy: number;
@@ -177,7 +177,7 @@ export interface LegalRequest {
 }
 
 /* ── Reporting & notifications ───────────────────────────────────────────── */
-export type ReportType = "privacy" | "executive" | "business" | "threat" | "compliance" | "risk" | "board";
+export type ReportType = "privacy" | "executive" | "family" | "travel" | "identity" | "business" | "threat" | "compliance" | "risk" | "board";
 
 export interface ReportMeta {
   id: string;

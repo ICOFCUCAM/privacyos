@@ -14,6 +14,7 @@ import type {
   RiskScore,
   Threat,
 } from "@/lib/types";
+import { riskLevelFromScore } from "./bands";
 
 /** Base severity weight per risk level. */
 const LEVEL_WEIGHT: Record<RiskLevel, number> = {
@@ -137,8 +138,5 @@ export function computeRiskScore(
 
 /** Convert a 0–100 exposure score into a coarse risk band for UI + reports. */
 export function scoreToLevel(score: number): RiskLevel {
-  if (score >= 75) return "critical";
-  if (score >= 50) return "high";
-  if (score >= 25) return "medium";
-  return "low";
+  return riskLevelFromScore(score);
 }

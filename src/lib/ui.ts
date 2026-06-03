@@ -6,13 +6,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export const riskColor: Record<RiskLevel, string> = {
-  low: "text-risk-low",
-  medium: "text-risk-medium",
-  high: "text-risk-high",
-  critical: "text-risk-critical",
-};
-
 export const riskBg: Record<RiskLevel, string> = {
   low: "bg-risk-low/15 text-risk-low ring-1 ring-risk-low/30",
   medium: "bg-risk-medium/15 text-risk-medium ring-1 ring-risk-medium/30",

@@ -24,7 +24,8 @@ describe("plan catalog", () => {
   });
 
   it("covers every category and the expected tier counts", () => {
-    expect(plansByCategory("personal")).toHaveLength(4);
+    expect(plansByCategory("personal")).toHaveLength(5); // free + starter/plus/premium/family
+    expect(plansByCategory("personal").some((p) => p.id === "free" && p.monthly === 0)).toBe(true);
     expect(plansByCategory("reputation")).toHaveLength(3);
     expect(plansByCategory("executive")).toHaveLength(3);
     expect(plansByCategory("business")).toHaveLength(4);
