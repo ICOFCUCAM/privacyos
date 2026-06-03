@@ -66,7 +66,7 @@ export default async function ProtectionHomePage({
   const runs = runPlaybooks([
     ...data.exposures.map(exposureToFinding),
     ...data.threats.filter((t) => !t.acknowledged).map(threatToFinding),
-  ]);
+  ], mode);
   const workflows = buildWorkflows(runs);
 
   // The fleet's recent autonomous work, for the "While you were away" panel.

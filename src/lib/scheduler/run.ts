@@ -18,6 +18,7 @@ import { computeRiskScore } from "@/lib/scoring/risk-score";
 import { advanceRemoval, shouldReappear } from "@/lib/brokers/removal";
 import { planAutoFilings } from "@/lib/brokers/auto-file";
 import { coerceMode, needsApproval } from "@/lib/home/autonomy";
+import { runPlaybooks, exposureToFinding, threatToFinding } from "@/lib/agents/playbooks";
 import { casesForNewThreats } from "@/lib/agents/threat-cases";
 import { reputationCasesFromMentions } from "@/lib/reputation/os/reputation-cases";
 import { reputationOverview } from "@/lib/reputation/os/analysis";
@@ -67,6 +68,8 @@ export async function runScheduledCycle(
   let impersonationSignals = 0;
   let darkWebSignals = 0;
   let attackPathsLive = 0;
+  let playbooksAutoExecuted = 0;
+  let playbooksAwaitingApproval = 0;
   let mentionsCollected = 0;
   let domainRisksFound = 0;
 
@@ -145,6 +148,50 @@ export async function runScheduledCycle(
         })),
     ];
     await store.recordActions(fp.userId, fp.subject.id, actions);
+
+    // The customer's consent dial — gates both the playbooks below and the
+    // broker auto-filing in step 6f.
+    const mode = coerceMode(fp.subject.autonomyMode);
+
+    // 4a. Execute the response playbooks ("recorded plans") against the findings
+    // that surfaced this cycle, gated by the subject's autonomy dial. Steps that
+    // clear the gate run autonomously and are recorded as completed agent actions
+    // — so the customer sees them in the "While you were away" feed; runs that
+    // still need sign-off pause and raise a notification for the approval queue.
+    // Scoped to NEW findings so a plan isn't re-executed every cron tick.
+    const newFindings = [
+      ...finding.exposures.map(exposureToFinding),
+      ...finding.threats.map(threatToFinding),
+    ];
+    if (newFindings.length > 0) {
+      for (const run of runPlaybooks(newFindings, mode)) {
+        if (run.autoSteps > 0) {
+          await store.recordActions(fp.userId, fp.subject.id, [
+            {
+              agent: run.owner,
+              kind: "report",
+              summary: run.fullyAutonomous
+                ? `Ran the ${run.playbookName} playbook end-to-end for "${run.finding.title}" — ${run.autoSteps} step(s) executed autonomously.`
+                : `Ran the ${run.playbookName} playbook for "${run.finding.title}" — ${run.autoSteps} step(s) executed, ${run.approvalSteps} awaiting your sign-off.`,
+              status: "completed",
+            },
+          ]);
+        }
+        if (run.fullyAutonomous) {
+          playbooksAutoExecuted += 1;
+        } else if (run.approvalSteps > 0) {
+          playbooksAwaitingApproval += 1;
+          await store.addNotifications(fp.userId, [
+            {
+              kind: "incident",
+              title: `Approval needed: ${run.playbookName}`,
+              body: `The ${run.playbookName} response for "${run.finding.title}" has ${run.approvalSteps} step(s) waiting on your sign-off.`,
+              riskLevel: run.finding.riskLevel,
+            },
+          ]);
+        }
+      }
+    }
 
     // 5. Score snapshots for trend charts.
     const risk = computeRiskScore(exposures, threats);
@@ -271,7 +318,6 @@ export async function runScheduledCycle(
     // files nothing (everything waits for sign-off), hybrid files routine only,
     // autopilot files everything below critical. Critical always waits.
     try {
-      const mode = coerceMode(fp.subject.autonomyMode);
       const riskByExposure = new Map(exposures.map((e) => [e.id, e.riskLevel]));
       const existing = await store.listRemovalsForSubject(fp.subject.id);
       const filings = planAutoFilings(fp.subject.id, exposures, existing, { now });
@@ -401,6 +447,8 @@ export async function runScheduledCycle(
     impersonationSignals,
     darkWebSignals,
     attackPathsLive,
+    playbooksAutoExecuted,
+    playbooksAwaitingApproval,
     mentionsCollected,
     domainRisksFound,
     ranAt: new Date().toISOString(),

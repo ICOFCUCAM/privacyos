@@ -166,6 +166,22 @@ const critSource: DiscoverySource = {
   },
 };
 
+// A source that yields one medium-risk data-broker listing — triggers the
+// Data-Broker Removal playbook, which runs end-to-end under autopilot.
+const brokerSource: DiscoverySource = {
+  id: "broker", name: "Broker",
+  async scan({ subject }) {
+    const ts = new Date().toISOString();
+    return {
+      exposures: [
+        { id: `bx-${subject.id}`, subjectId: subject.id, category: "address", source: "data_broker", sourceName: "Spokeo", snippet: "listing", riskLevel: "medium", riskScore: 20, status: "discovered", discoveredAt: ts, lastSeenAt: ts },
+      ],
+      threats: [],
+      log: ["found broker listing"],
+    };
+  },
+};
+
 // Deterministic DNS client (no network) — fetch always fails → sample assessment.
 const domClient = new DohClient((async () => {
   throw new Error("blocked");
@@ -205,6 +221,45 @@ describe("runScheduledCycle", () => {
     expect(summary.casesOpened).toBe(2);
     expect(store.createdCases).toHaveLength(2);
     expect(store.createdCases[0]).toMatchObject({ type: "breach_response", assignedAgent: "security", riskLevel: "critical" });
+  });
+
+  it("executes recorded playbooks under the autonomy gate and records them for the away-feed", async () => {
+    const store = new MemoryStore([
+      { userId: "u1", subject: { ...subject("a", "u1"), autonomyMode: "autopilot" }, exposures: [], threats: [] },
+    ]);
+    const summary = await runScheduledCycle(store, {
+      sources: [brokerSource],
+      provider: new MockProvider(),
+      reputationSource: cleanRepSource,
+      domainClient: domClient,
+    });
+    // Autopilot + a medium-risk listing → the Data-Broker Removal plan runs end-to-end.
+    expect(summary.playbooksAutoExecuted).toBe(1);
+    expect(summary.playbooksAwaitingApproval).toBe(0);
+    // …and it's recorded as a completed agent action, so it surfaces in "While you were away".
+    const playbookAction = store.actions.flat().find((a) => a.kind === "report" && /Data-Broker Removal/.test(a.summary));
+    expect(playbookAction).toBeTruthy();
+    expect(playbookAction!.summary).toMatch(/autonomously/);
+    expect(playbookAction!.status).toBe("completed");
+  });
+
+  it("pauses high-risk playbook steps for sign-off and notifies the customer", async () => {
+    const store = new MemoryStore([
+      { userId: "u1", subject: { ...subject("a", "u1"), autonomyMode: "autopilot" }, exposures: [], threats: [] },
+    ]);
+    const summary = await runScheduledCycle(store, {
+      sources: [critSource],
+      provider: new MockProvider(),
+      reputationSource: cleanRepSource,
+      domainClient: domClient,
+    });
+    // The critical credential leak triggers the breach playbook; its acting steps
+    // need sign-off (critical ≥ the autopilot floor and the escalation gate).
+    expect(summary.playbooksAwaitingApproval).toBe(1);
+    expect(summary.playbooksAutoExecuted).toBe(0);
+    const notif = store.notifications.flat().find((n) => /Approval needed: Credential Breach Response/.test(n.title));
+    expect(notif).toBeTruthy();
+    expect(notif!.riskLevel).toBe("critical");
   });
 
   it("does not re-open a case when one already exists for the threat", async () => {

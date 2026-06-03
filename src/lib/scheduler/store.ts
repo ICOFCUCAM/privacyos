@@ -76,6 +76,10 @@ export interface ScheduledRunSummary {
   darkWebSignals: number;
   /** Live (chainable) attack paths detected this cycle. */
   attackPathsLive: number;
+  /** Response playbooks executed end-to-end (no step needed a human) this cycle. */
+  playbooksAutoExecuted: number;
+  /** Playbooks that ran but paused at least one step for the customer's sign-off. */
+  playbooksAwaitingApproval: number;
   mentionsCollected: number;
   domainRisksFound: number;
   ranAt: string;
