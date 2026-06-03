@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { buttonClasses } from "@/components/ui";
+import { Reveal, CountUp } from "@/components/reveal";
 import { cn } from "@/lib/ui";
 
 /* ── 2. Free Exposure Assessment — the primary conversion engine ──────────── */
@@ -180,11 +181,12 @@ export function ProtectionPlansTeaser() {
 }
 
 /* ── Outcome metrics (re-framed from platform internals to customer outcomes) ── */
-const outcomeMetrics: { icon: LucideIcon; value: string; label: string }[] = [
-  { icon: Radar, value: "60+", label: "Sources scanned for you" },
+type Metric = { icon: LucideIcon; count?: number; suffix?: string; value?: string; label: string };
+const outcomeMetrics: Metric[] = [
+  { icon: Radar, count: 60, suffix: "+", label: "Sources scanned for you" },
   { icon: Gauge, value: "24/7", label: "Continuous monitoring" },
-  { icon: Trash2, value: "Automatic", label: "Removals filed for you" },
-  { icon: ShieldCheck, value: "Minutes", label: "To full protection" },
+  { icon: Trash2, count: 10, label: "Free broker removals" },
+  { icon: ShieldCheck, count: 7, label: "Exposure layers checked" },
 ];
 
 export function OutcomeMetricsBand() {
@@ -194,7 +196,9 @@ export function OutcomeMetricsBand() {
         {outcomeMetrics.map((o) => (
           <div key={o.label} className="px-4 text-center">
             <o.icon className="mx-auto mb-2 h-5 w-5 text-brand-fg" />
-            <p className="text-2xl font-bold tracking-tight text-white sm:text-3xl">{o.value}</p>
+            <p className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
+              {o.count !== undefined ? <CountUp to={o.count} suffix={o.suffix} /> : o.value}
+            </p>
             <p className="mt-1 text-sm text-slate-400">{o.label}</p>
           </div>
         ))}
