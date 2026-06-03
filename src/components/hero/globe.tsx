@@ -5,10 +5,8 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import ThreeGlobe from "three-globe";
 import { feature } from "topojson-client";
-// World geography as DATA (not a displayed texture) → procedural dot Earth.
-// `countries` is a GeometryCollection, so feature() yields a FeatureCollection
-// with .features (land is a single MultiPolygon → no .features → black globe).
-import countriesTopo from "world-atlas/countries-110m.json";
+// Higher-resolution country geometry as DATA (not a texture) → real coastlines.
+import countriesTopo from "world-atlas/countries-50m.json";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const landData = feature(countriesTopo as any, (countriesTopo as any).objects.countries) as any;
@@ -17,52 +15,54 @@ const HUBS: Record<string, [number, number]> = {
   ny: [40.7, -74], la: [34, -118], sao: [-23.5, -46.6], lon: [51.5, -0.1], mos: [55.7, 37.6],
   lag: [6.5, 3.4], nai: [-1.3, 36.8], dxb: [25, 55], mum: [19, 72.8], sin: [1.3, 103.8], tok: [35.7, 139.7], syd: [-33.9, 151],
 };
+// Intercontinental routes — purposeful coverage, not random lines.
 const ROUTE_KEYS: [keyof typeof HUBS, keyof typeof HUBS][] = [
   ["ny", "lon"], ["lon", "lag"], ["lag", "dxb"], ["dxb", "sin"], ["sin", "tok"], ["ny", "sao"],
-  ["lon", "mos"], ["dxb", "mum"], ["mum", "sin"], ["tok", "syd"], ["la", "tok"], ["nai", "dxb"], ["la", "ny"],
+  ["lon", "mos"], ["dxb", "mum"], ["mum", "sin"], ["tok", "syd"], ["la", "tok"], ["nai", "dxb"], ["la", "ny"], ["mos", "tok"],
 ];
-const arcs = ROUTE_KEYS.map(([a, b]) => ({
-  startLat: HUBS[a][0], startLng: HUBS[a][1], endLat: HUBS[b][0], endLng: HUBS[b][1],
-}));
-const points = Object.values(HUBS).map(([lat, lng]) => ({ lat, lng }));
-// Larger metros get scanning-wave rings (Layer 7).
-const majorPoints = (["ny", "lon", "dxb", "sin", "tok", "lag", "sao", "syd"] as (keyof typeof HUBS)[])
-  .map((k) => ({ lat: HUBS[k][0], lng: HUBS[k][1] }));
+const arcs = ROUTE_KEYS.map(([a, b]) => ({ startLat: HUBS[a][0], startLng: HUBS[a][1], endLat: HUBS[b][0], endLng: HUBS[b][1] }));
+
+// Dense city-lights layer (NASA night-earth feel): [lat, lng, brightness].
+const CITIES: [number, number, number][] = [
+  [40.7, -74, 0.6], [34, -118, 0.5], [41.9, -87.6, 0.4], [43.7, -79.4, 0.4], [19.4, -99.1, 0.5], [25.8, -80.2, 0.35], [29.8, -95.4, 0.35],
+  [-23.5, -46.6, 0.5], [-34.6, -58.4, 0.45], [-22.9, -43.2, 0.35], [4.7, -74, 0.35], [-12, -77, 0.3],
+  [51.5, -0.1, 0.55], [48.9, 2.35, 0.5], [40.4, -3.7, 0.4], [52.5, 13.4, 0.4], [55.7, 37.6, 0.45], [41.9, 12.5, 0.35], [41, 28.9, 0.45], [52.2, 21, 0.3],
+  [6.5, 3.4, 0.5], [30, 31.2, 0.45], [-26.2, 28, 0.4], [-1.3, 36.8, 0.35], [33.6, -7.6, 0.3], [9, 7.4, 0.3],
+  [25, 55, 0.45], [19, 72.8, 0.55], [28.6, 77.2, 0.55], [1.3, 103.8, 0.5], [35.7, 139.7, 0.6], [31.2, 121.5, 0.55], [39.9, 116.4, 0.5],
+  [37.6, 127, 0.45], [13.7, 100.5, 0.4], [-6.2, 106.8, 0.45], [22.3, 114.2, 0.45], [24.7, 46.7, 0.35], [14.6, 121, 0.4],
+  [-33.9, 151, 0.45], [-37.8, 145, 0.35],
+];
+const cities = CITIES.map(([lat, lng, size]) => ({ lat, lng, size }));
+const ringPoints = cities.filter((c) => c.size >= 0.5);
 
 function buildGlobe(quality: "high" | "med"): ThreeGlobe {
   const g = new ThreeGlobe({ animateIn: false })
-    .globeMaterial(new THREE.MeshPhongMaterial({ color: new THREE.Color("#0a0d1c"), transparent: true, opacity: 0.96, shininess: 5 }))
+    .globeMaterial(new THREE.MeshPhongMaterial({ color: new THREE.Color("#070a16"), transparent: true, opacity: 0.98, shininess: 8 }))
     .showAtmosphere(true)
     .atmosphereColor("#6f6ad6")
-    .atmosphereAltitude(0.16)
-    // continents as illuminated dots
-    .hexPolygonsData(landData.features)
-    .hexPolygonResolution(quality === "med" ? 2 : 3)
-    .hexPolygonMargin(0.2)
-    .hexPolygonUseDots(true)
-    .hexPolygonColor(() => "#8b93f5")
-    // intercontinental flowing routes
+    .atmosphereAltitude(0.19)
+    // Continents as SOLID illuminated landmasses with bright coastlines.
+    .polygonsData(landData.features)
+    .polygonCapColor(() => "rgba(92,99,210,0.42)")
+    .polygonSideColor(() => "rgba(70,76,160,0.10)")
+    .polygonStrokeColor(() => "rgba(176,188,255,0.55)")
+    .polygonAltitude(() => 0.007)
+    // Intercontinental routes with flowing signals.
     .arcsData(arcs)
     .arcColor(() => ["rgba(165,180,252,0)", "rgba(214,222,255,0.95)", "rgba(165,180,252,0)"])
-    .arcDashLength(0.45)
-    .arcDashGap(1.4)
-    .arcDashInitialGap(() => Math.random() * 2)
-    .arcDashAnimateTime(3000)
-    .arcStroke(0.26)
-    .arcAltitudeAutoScale(0.16)
-    // city-light clusters (Layer 2)
-    .pointsData(points)
-    .pointColor(() => "#dbe3ff")
-    .pointAltitude(0.008)
-    .pointRadius(0.34)
-    .pointsMerge(true)
-    // scanning-wave pulses over major metros (Layer 7)
-    .ringsData(majorPoints)
-    .ringColor(() => (t: number) => `rgba(199,210,254,${Math.sqrt(1 - t) * 0.45})`)
-    .ringMaxRadius(4.5)
-    .ringPropagationSpeed(1.3)
-    .ringRepeatPeriod(2400);
+    .arcDashLength(0.45).arcDashGap(1.4).arcDashInitialGap(() => Math.random() * 2).arcDashAnimateTime(3000)
+    .arcStroke(0.26).arcAltitudeAutoScale(0.16)
+    // City lights (brightness ∝ metro size).
+    .pointsData(cities)
+    .pointColor(() => "#e3e9ff")
+    .pointAltitude(0.01)
+    .pointRadius((d: any) => 0.18 + d.size * 0.5)
+    // Scanning-wave pulses over the largest metros.
+    .ringsData(ringPoints)
+    .ringColor(() => (t: number) => `rgba(199,210,254,${Math.sqrt(1 - t) * 0.4})`)
+    .ringMaxRadius(4.5).ringPropagationSpeed(1.3).ringRepeatPeriod(2600);
 
+  if (quality === "med") g.pointsMerge(true);
   g.rotation.set(0.34, -0.55, 0.06);
   g.scale.setScalar(0.0118);
   return g;
@@ -75,7 +75,7 @@ function OrbitRings({ reduced }: { reduced: boolean }) {
   const rings = [
     { r: 1.36, tilt: 1.1, color: "#818cf8", op: 0.16 },
     { r: 1.46, tilt: -0.75, color: "#6366f1", op: 0.13 },
-    { r: 1.3, tilt: 0.45, color: "#a5b4fc", op: 0.11 },
+    { r: 1.3, tilt: 0.45, color: "#a5b4fc", op: 0.1 },
   ];
   return (
     <group ref={g} rotation={[0.3, 0, 0.08]}>
@@ -91,16 +91,16 @@ function OrbitRings({ reduced }: { reduced: boolean }) {
 
 function GlobeObject({ quality, reduced }: { quality: "high" | "med"; reduced: boolean }) {
   const globe = useMemo(() => buildGlobe(quality), [quality]);
-  useFrame((_, delta) => { if (!reduced) globe.rotation.y += delta * 0.03; });
+  useFrame((_, delta) => { if (!reduced) globe.rotation.y += delta * 0.028; });
   return <primitive object={globe} />;
 }
 
 /**
- * Layer 1 — the digital Earth. Built with three-globe from real world land
- * geometry (data, not a flat texture): illuminated continent dots, soft
- * atmosphere, intercontinental routes with flowing signals, and city-light
- * clusters. Lazy + client-only; reduced motion freezes rotation; resolution
- * drops on tablet (LOD).
+ * Layer 1 — the digital Earth. Solid, illuminated continents with real
+ * coastlines (50m country geometry as data, not a texture), a dense city-lights
+ * layer (NASA night-earth feel), intercontinental routes + flowing signals,
+ * orbital rings, scan pulses and atmospheric rim glow. Lazy + client-only;
+ * reduced motion freezes; resolution eases on tablet.
  */
 export default function Globe({ quality = "high", reduced = false }: { quality?: "high" | "med"; reduced?: boolean }) {
   return (
@@ -111,8 +111,8 @@ export default function Globe({ quality = "high", reduced = false }: { quality?:
       style={{ background: "transparent" }}
       frameloop={reduced ? "demand" : "always"}
     >
-      <ambientLight intensity={1.3} />
-      <directionalLight position={[3, 1.5, 2.5]} intensity={1.1} color="#bdbaff" />
+      <ambientLight intensity={0.9} />
+      <directionalLight position={[3, 1.5, 2.5]} intensity={1.3} color="#cdd2ff" />
       <GlobeObject quality={quality} reduced={reduced} />
       <OrbitRings reduced={reduced} />
     </Canvas>
