@@ -37,19 +37,21 @@ export function HeroStage({ metrics }: { metrics?: HeroMetrics }) {
 
   return (
     <MotionConfig reducedMotion="user">
-      <div className="relative w-full md:min-h-[600px] lg:min-h-[660px]">
-        {/* Layer 1 — globe: large, upper/behind, bigger than the tablet */}
+      <div className="relative flex w-full items-center justify-center lg:min-h-[520px]">
+        {/* Layer 1 — globe: behind, wrapping atmosphere (secondary to the device) */}
         {showGlobe && (
-          <div className="pointer-events-none absolute -top-6 right-[-14%] z-0 h-[88%] w-full">
-            <Globe count={count} reduced={reduced} />
+          <div className="pointer-events-none absolute inset-0 z-0 opacity-80">
+            <div className="absolute left-1/2 top-1/2 h-[118%] w-[118%] -translate-x-1/2 -translate-y-1/2">
+              <Globe count={count} reduced={reduced} />
+            </div>
           </div>
         )}
 
         {/* Layer 3 — ambient protection network */}
         <ProtectionNetwork />
 
-        {/* Layer 2 — floating dashboard: overlaps the lower-left of the globe */}
-        <div className="relative mx-auto w-full max-w-[22rem] pt-6 sm:max-w-[30rem] md:absolute md:bottom-4 md:left-0 md:mx-0 md:max-w-[28rem] md:pt-0 lg:bottom-6 lg:max-w-[32rem]">
+        {/* Layer 2 — the dominant floating device, centered over the globe */}
+        <div className="relative z-10 mx-auto w-full max-w-[24rem] py-6 sm:max-w-[34rem] lg:max-w-[33rem] lg:py-0 xl:max-w-[40rem]">
           <ProtectionDashboard metrics={metrics} flat={flat} />
         </div>
       </div>
