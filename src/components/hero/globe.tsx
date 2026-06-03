@@ -41,12 +41,12 @@ function buildGlobe(quality: "high" | "med"): ThreeGlobe {
     // intercontinental flowing routes
     .arcsData(arcs)
     .arcColor(() => ["rgba(165,180,252,0)", "rgba(214,222,255,0.95)", "rgba(165,180,252,0)"])
-    .arcDashLength(0.5)
-    .arcDashGap(1.1)
+    .arcDashLength(0.45)
+    .arcDashGap(1.4)
     .arcDashInitialGap(() => Math.random() * 2)
-    .arcDashAnimateTime(2800)
-    .arcStroke(0.32)
-    .arcAltitudeAutoScale(0.45)
+    .arcDashAnimateTime(3000)
+    .arcStroke(0.26)
+    .arcAltitudeAutoScale(0.16)
     // city-light clusters
     .pointsData(points)
     .pointColor(() => "#dbe3ff")
