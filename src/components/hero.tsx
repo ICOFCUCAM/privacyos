@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ShieldCheck, PlayCircle, Check } from "lucide-react";
-import { HeroScan } from "@/components/hero-scan";
+import { HeroVisual } from "@/components/hero-visual";
 
 const trust = [
   "AI-Powered Monitoring",
@@ -8,18 +8,6 @@ const trust = [
   "Data Broker Removal",
   "Dark Web Intelligence",
 ];
-
-// Background-free render — depth from layered lighting + a two-stage shadow.
-const render: React.CSSProperties = {
-  filter:
-    "drop-shadow(0 22px 45px rgba(79,70,229,0.32)) drop-shadow(0 50px 110px rgba(0,0,0,0.6))",
-};
-
-// Grounding reflection: a flipped copy that fades out beneath the render.
-const reflect: React.CSSProperties = {
-  maskImage: "linear-gradient(to bottom, rgba(0,0,0,0.55), transparent 42%)",
-  WebkitMaskImage: "linear-gradient(to bottom, rgba(0,0,0,0.55), transparent 42%)",
-};
 
 export function Hero() {
   return (
@@ -79,60 +67,9 @@ export function Hero() {
           </ul>
         </div>
 
-        {/* RIGHT — live exposure scan (the signature moment) */}
-        <div className="relative lg:col-span-7">
-          {/* Layered intelligence-network lighting */}
-          <div
-            aria-hidden
-            className="pointer-events-none absolute left-1/2 top-1/2 -z-0 h-[155%] w-[155%] -translate-x-1/2 -translate-y-1/2"
-          >
-            {/* wide soft halo */}
-            <div className="animate-pulse-glow absolute inset-[14%] rounded-full bg-brand/16 blur-3xl" />
-            {/* tighter bright core */}
-            <div className="absolute inset-[30%] rounded-full bg-brand/25 blur-2xl" />
-            {/* aurora wash */}
-            <div
-              className="absolute inset-0 opacity-50 blur-2xl"
-              style={{
-                background:
-                  "conic-gradient(from 210deg at 55% 45%, rgba(99,102,241,0.18), transparent 35%, rgba(165,180,252,0.12) 60%, transparent 85%)",
-              }}
-            />
-          </div>
-
-          {/* Product render — restored as the hero visual */}
-          <div className="relative z-10 lg:-mr-14">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <picture>
-              <source srcSet="/hero-dashboard.webp" type="image/webp" />
-              <img
-                src="/hero-dashboard.png"
-                alt="PrivacyOS — live digital risk command center over a global intelligence network"
-                className="w-full select-none"
-                style={render}
-                draggable={false}
-              />
-            </picture>
-            {/* Grounding reflection */}
-            <div aria-hidden className="pointer-events-none absolute inset-x-0 top-full -z-0 -mt-3 hidden lg:block">
-              <picture>
-                <source srcSet="/hero-dashboard.webp" type="image/webp" />
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/hero-dashboard.png"
-                  alt=""
-                  className="w-full -scale-y-100 select-none opacity-[0.16] blur-[2px]"
-                  style={reflect}
-                  draggable={false}
-                />
-              </picture>
-            </div>
-
-            {/* Live exposure-scan callout — floats over the render */}
-            <div className="callout-float absolute -bottom-8 -left-4 z-20 hidden w-72 sm:block lg:-left-10 lg:w-80">
-              <HeroScan />
-            </div>
-          </div>
+        {/* RIGHT — live coded tablet dashboard in front of the globe */}
+        <div className="relative lg:col-span-7 lg:-mr-6">
+          <HeroVisual />
         </div>
       </div>
 
