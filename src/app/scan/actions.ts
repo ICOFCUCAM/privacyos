@@ -3,10 +3,11 @@
 import { cookies } from "next/headers";
 import { recordAudit } from "@/lib/audit/audit";
 import { getDataSource } from "@/lib/data";
-import { buildScaryMirror, type MirrorFinding } from "@/lib/home/scary-mirror";
+import { buildScaryMirror, type MirrorFinding, type MirrorCategory } from "@/lib/home/scary-mirror";
 import { freeAssessment, type FreeAssessment } from "@/lib/home/free-assessment";
 import { classifyProtection, type ProtectionRecommendation } from "@/lib/home/protection-profile";
 import { encodeIntent, INTENT_COOKIE } from "@/lib/home/scan-intent";
+import { liveExposureScan } from "@/lib/home/live-scan";
 
 const FREE_SCAN_COOKIE = "po_free_scan";
 
@@ -20,6 +21,8 @@ export interface FreeScanResult {
   findings?: MirrorFinding[];
   /** How many sources the scan swept (for the scanning UI). */
   sourcesScanned?: number;
+  /** Mirror categories backed by genuinely-live external data (vs the preview). */
+  liveLayers?: MirrorCategory[];
 }
 
 /**
@@ -27,14 +30,31 @@ export interface FreeScanResult {
  * not a usage tier: a visitor gets ONE scan; a cookie records it, and any
  * rescan returns `locked` so the customer must upgrade. No signup required.
  */
-export async function runFreeAssessmentAction(name: string): Promise<FreeScanResult> {
+export async function runFreeAssessmentAction(name: string, email?: string): Promise<FreeScanResult> {
   const store = await cookies();
   if (store.get(FREE_SCAN_COOKIE)) {
     return { locked: true };
   }
 
-  const displayName = (name || "you").trim().split(" ")[0] || "you";
-  const { exposures, threats } = await (await getDataSource()).getDataset();
+  const fullName = (name || "").trim();
+  const displayName = fullName.split(" ")[0] || "you";
+
+  // Try genuinely-live connectors first (HIBP breaches by email, Google SERP &
+  // GDELT news by name). Use the real results when a real check was possible or
+  // anything was found; otherwise fall back to the deterministic preview so the
+  // public scan still demonstrates the product where no keys are configured.
+  const live = await liveExposureScan({ name: fullName || "you", email, subjectId: `free_${Date.now()}` });
+  let liveLayers: MirrorCategory[] = [];
+  let exposures = live.exposures;
+  let threats = live.threats;
+  if (live.keysConfigured || live.exposures.length > 0 || live.threats.length > 0) {
+    liveLayers = live.liveLayers;
+  } else {
+    const demo = await (await getDataSource()).getDataset();
+    exposures = demo.exposures;
+    threats = demo.threats;
+  }
+
   const report = buildScaryMirror({ name: displayName, exposures, threats });
   const assessment = freeAssessment(report);
   const recommendation = classifyProtection(report);
@@ -59,8 +79,8 @@ export async function runFreeAssessmentAction(name: string): Promise<FreeScanRes
   await recordAudit({
     action: "free.assessment",
     entity: "subject",
-    metadata: { exposures: assessment.totalExposures, protectionScore: assessment.protectionScore },
+    metadata: { exposures: assessment.totalExposures, protectionScore: assessment.protectionScore, live: liveLayers.length > 0 },
   });
 
-  return { locked: false, assessment, recommendation, findings: report.findings, sourcesScanned: report.sourcesScanned };
+  return { locked: false, assessment, recommendation, findings: report.findings, sourcesScanned: report.sourcesScanned, liveLayers };
 }
