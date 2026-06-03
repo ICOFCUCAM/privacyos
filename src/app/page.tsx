@@ -11,6 +11,7 @@ import {
   OutcomeMetricsBand,
 } from "@/components/landing-outcomes";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { Reveal } from "@/components/reveal";
 import { getT } from "@/lib/i18n/server";
 import { buttonClasses } from "@/components/ui";
 
@@ -55,25 +56,25 @@ export default async function LandingPage() {
       <OutcomeMetricsBand />
 
       {/* 2 — Free exposure assessment (the conversion engine) */}
-      <FreeAssessmentBand />
+      <Reveal><FreeAssessmentBand /></Reveal>
 
       {/* 3 — Exposure categories discovered */}
-      <ExposureCategories />
+      <Reveal><ExposureCategories /></Reveal>
 
       {/* 4 — How protection works (autonomous, on your behalf) */}
-      <HowProtectionWorks />
+      <Reveal><HowProtectionWorks /></Reveal>
 
       {/* Who it protects */}
-      <PersonaBand />
+      <Reveal><PersonaBand /></Reveal>
 
       {/* 5 — Protection plans */}
-      <ProtectionPlansTeaser />
+      <Reveal><ProtectionPlansTeaser /></Reveal>
 
       {/* 6 — Social proof & trust */}
-      <TrustStrip />
+      <Reveal><TrustStrip /></Reveal>
 
       {/* 7 — Final conversion */}
-      <section className="mx-auto max-w-5xl px-6 py-24">
+      <Reveal className="mx-auto max-w-5xl px-6 py-24">
         <div className="relative overflow-hidden rounded-[2rem] border border-brand/25 bg-gradient-to-b from-brand/10 via-bg-elevated/40 to-bg-elevated/20 px-6 py-16 text-center shadow-2xl shadow-brand/10 ring-1 ring-white/5">
           <div aria-hidden className="pointer-events-none absolute inset-x-0 -top-28 h-56 bg-[radial-gradient(50%_100%_at_50%_0%,rgba(99,102,241,0.28),transparent_70%)]" />
           <div className="relative">
@@ -94,7 +95,7 @@ export default async function LandingPage() {
             <p className="mt-4 text-xs text-slate-500">Free · no signup · see what&apos;s exposed in under a minute.</p>
           </div>
         </div>
-      </section>
+      </Reveal>
 
       <footer className="border-t border-border bg-bg-subtle/30">
         <div className="mx-auto max-w-6xl px-6 py-12">

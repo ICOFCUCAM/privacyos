@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ShieldCheck, PlayCircle, Check } from "lucide-react";
+import { HeroScan } from "@/components/hero-scan";
 
 const trust = [
   "AI-Powered Monitoring",
@@ -7,19 +8,6 @@ const trust = [
   "Data Broker Removal",
   "Dark Web Intelligence",
 ];
-
-// Background-free render, integrated directly. No float, no frame — depth comes
-// from layered lighting and a refined two-stage shadow.
-const render: React.CSSProperties = {
-  filter:
-    "drop-shadow(0 22px 45px rgba(79,70,229,0.32)) drop-shadow(0 50px 110px rgba(0,0,0,0.6))",
-};
-
-// Grounding reflection: a flipped copy that fades out beneath the render.
-const reflect: React.CSSProperties = {
-  maskImage: "linear-gradient(to bottom, rgba(0,0,0,0.55), transparent 42%)",
-  WebkitMaskImage: "linear-gradient(to bottom, rgba(0,0,0,0.55), transparent 42%)",
-};
 
 export function Hero() {
   return (
@@ -79,7 +67,7 @@ export function Hero() {
           </ul>
         </div>
 
-        {/* RIGHT — premium product render */}
+        {/* RIGHT — live exposure scan (the signature moment) */}
         <div className="relative lg:col-span-7">
           {/* Layered intelligence-network lighting */}
           <div
@@ -100,34 +88,8 @@ export function Hero() {
             />
           </div>
 
-          {/* Static, background-free composition — extends toward the right edge,
-              but no longer bleeds left under the copy (keeps clear of the text). */}
-          <div className="relative z-10 lg:-mr-14">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <picture>
-              <source srcSet="/hero-dashboard.webp" type="image/webp" />
-              <img
-                src="/hero-dashboard.png"
-                alt="PrivacyOS — live digital risk command center over a global intelligence network"
-                className="w-full select-none"
-                style={render}
-                draggable={false}
-              />
-            </picture>
-            {/* Grounding reflection (absolute → no layout shift) */}
-            <div aria-hidden className="pointer-events-none absolute inset-x-0 top-full -z-0 -mt-3 hidden lg:block">
-              <picture>
-                <source srcSet="/hero-dashboard.webp" type="image/webp" />
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/hero-dashboard.png"
-                  alt=""
-                  className="w-full -scale-y-100 select-none opacity-[0.16] blur-[2px]"
-                  style={reflect}
-                  draggable={false}
-                />
-              </picture>
-            </div>
+          <div className="relative z-10 lg:px-6">
+            <HeroScan />
           </div>
         </div>
       </div>

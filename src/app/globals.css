@@ -66,6 +66,15 @@ body {
 .animate-spin-slow-rev { animation: spinSlow 90s linear infinite reverse; }
 .animate-pulse-glow { animation: pulseGlow 4s ease-in-out infinite; }
 
+/* Cinematic depth: a faint film grain overlay (apply to an absolute overlay div). */
+.grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Slow radar sweep for the live-scan hero visual. */
+@keyframes radarSweep { to { transform: rotate(360deg); } }
+.radar-sweep { animation: radarSweep 7s linear infinite; }
+
 @media (prefers-reduced-motion: reduce) {
   .hero-float, .callout-float, .animate-spin-slow, .animate-spin-slow-rev, .animate-pulse-glow { animation: none; }
 }
