@@ -9,11 +9,13 @@
 
 import type {
   AgentActionKind,
+  FamilyMember,
   LegalRequestType,
   Mention,
   NotificationKind,
   ScoreKind,
   SentimentDay,
+  TravelAlert,
 } from "@/lib/suite-types";
 import type {
   Exposure,
@@ -33,6 +35,11 @@ export interface Footprint {
   subject: Subject;
   exposures: Exposure[];
   threats: Threat[];
+  /** The principal's family roster — feeds executive family/physical risk and
+   *  the family-protection cascade. Optional so callers can omit when absent. */
+  family?: FamilyMember[];
+  /** The principal's travel itinerary — feeds executive travel risk. */
+  travel?: TravelAlert[];
 }
 
 export interface NewAgentAction {
@@ -95,6 +102,10 @@ export interface ScheduledRunSummary {
   evidenceSealed: number;
   /** Legal instruments auto-drafted from newly-opened cases this cycle. */
   legalDrafted: number;
+  /** Family-protection cases auto-opened from household risk this cycle. */
+  familyCasesOpened: number;
+  /** Elevated/high-posture upcoming trips flagged this cycle. */
+  travelRisksFlagged: number;
   mentionsCollected: number;
   domainRisksFound: number;
   ranAt: string;

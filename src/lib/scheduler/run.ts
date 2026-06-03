@@ -22,6 +22,8 @@ import { runPlaybooks, exposureToFinding, threatToFinding } from "@/lib/agents/p
 import { actionEvidence, type EvidenceItem } from "@/lib/intelligence/evidence-vault";
 import { planCaseActions } from "@/lib/cases/case-actions";
 import { LEGAL_TYPE_LABELS } from "@/lib/legal/engine";
+import { assessTrips } from "@/lib/intelligence/travel-risk";
+import { familyOverview, memberRisks, sharedExposures, childSafety } from "@/lib/family/os/family-os";
 import { casesForNewThreats } from "@/lib/agents/threat-cases";
 import type { NewCaseFields } from "@/lib/agents/recommendation-routing";
 import { reputationCasesFromMentions } from "@/lib/reputation/os/reputation-cases";
@@ -77,6 +79,8 @@ export async function runScheduledCycle(
   let playbooksAwaitingApproval = 0;
   let evidenceSealed = 0;
   let legalDrafted = 0;
+  let familyCasesOpened = 0;
+  let travelRisksFlagged = 0;
   let mentionsCollected = 0;
   let domainRisksFound = 0;
 
@@ -88,6 +92,10 @@ export async function runScheduledCycle(
     // Cases opened anywhere in this subject's cycle — drafted into legal
     // instruments in one pass below (the Case → Legal cascade).
     const openedCases: NewCaseFields[] = [];
+    // The principal's household + itinerary now feed the executive composite and
+    // their own protective cascades (steps 6h/6i) — no longer hardcoded empty.
+    const family = fp.family ?? [];
+    const travel = fp.travel ?? [];
     const now0 = new Date().toISOString();
 
     // 1. Discover — only genuinely new findings come back (deduped).
@@ -256,7 +264,7 @@ export async function runScheduledCycle(
     // refreshed footprint; if it's critical AND new critical findings landed this
     // cycle, the Executive Agent escalates (record + alert). Gating to new
     // criticals keeps it from re-firing every cron tick.
-    const execRisk = executiveRiskIndices({ exposures, threats, family: [], travel: [] });
+    const execRisk = executiveRiskIndices({ exposures, threats, family, travel });
     await store.recordScores(fp.userId, fp.subject.id, [{ kind: "executive", value: execRisk.overall }]);
     await store.recordActions(fp.userId, fp.subject.id, [
       {
@@ -266,8 +274,9 @@ export async function runScheduledCycle(
         status: "completed",
       },
     ]);
-    // Physical-security critical is the true close-protection emergency (the
-    // scheduler footprint has no family/travel, so the composite under-reads).
+    // Physical-security critical is the true close-protection emergency; the
+    // physical-index fallback also catches address/family exposure the composite
+    // might average down.
     if ((execRisk.band === "critical" || execRisk.physical >= 70) && critical.length > 0) {
       await store.addNotifications(fp.userId, [
         {
@@ -315,7 +324,7 @@ export async function runScheduledCycle(
     // each to its remediation channel, so the Executive Agent has a concrete
     // takedown plan. Broker-routable leaks are filed by the removal pipeline
     // below; this records the routed plan and surfaces it on the Doxxing tab.
-    const doxxing = doxxingReport({ exposures, threats, family: [], employees: [] });
+    const doxxing = doxxingReport({ exposures, threats, family, employees: [] });
     const takedowns = takedownPlan(doxxing);
     if (takedowns.length > 0) {
       const routes = Object.entries(summarizeTakedowns(takedowns).byMethod)
@@ -371,6 +380,80 @@ export async function runScheduledCycle(
         },
       ]);
       attackPathsLive += surface.enabledPaths;
+    }
+
+    // 6e-i. Travel risk. Score the principal's itinerary against their live
+    // footprint and flag elevated/high-posture upcoming trips (record + alert +
+    // seal). Travel now feeds the executive composite above, so a risky trip
+    // raises the principal's score rather than being invisible to the engine.
+    if (travel.length > 0) {
+      const trips = assessTrips(travel, exposures, threats);
+      const elevated = trips
+        .filter((t) => t.upcoming && (t.posture === "high" || t.posture === "elevated"))
+        .sort((a, b) => b.riskScore - a.riskScore);
+      if (elevated.length > 0) {
+        const worst = elevated[0];
+        await store.recordActions(fp.userId, fp.subject.id, [
+          { agent: "executive", kind: "monitor", summary: `Travel risk: ${elevated.length} upcoming trip(s) at elevated/high posture (worst: ${worst.alert.destination}).`, status: "completed" },
+        ]);
+        await store.addNotifications(fp.userId, [
+          {
+            kind: "incident",
+            title: `Travel risk: ${worst.alert.destination}`,
+            body: `${worst.posture} posture${worst.daysUntil != null ? ` · departs in ${worst.daysUntil} day(s)` : ""}. ${worst.alert.advisory}`,
+            riskLevel: worst.alert.riskLevel,
+          },
+        ]);
+        evidence.push(actionEvidence({
+          subjectId: fp.subject.id,
+          action: `Flagged ${elevated.length} elevated-risk trip(s)`,
+          detail: elevated.map((t) => `${t.alert.destination} (${t.posture})`).join("; "),
+          source: "Executive Agent",
+          riskLevel: worst.alert.riskLevel,
+          collectedBy: "executive",
+          collectedAt: now0,
+        }));
+        travelRisksFlagged += elevated.length;
+      }
+    }
+
+    // 6e-ii. Family protection. Roll the household roster up against the shared
+    // footprint; when a child-safety alert or high/critical relative exposure
+    // surfaces, open a protective case (deduped) and push it into openedCases so
+    // it inherits the Case → Legal + Evidence cascades. Family now feeds the
+    // executive composite, so household risk lifts the principal's score too.
+    if (family.length > 0) {
+      const fo = familyOverview(family, exposures);
+      const safety = childSafety(memberRisks(family, sharedExposures(exposures)));
+      if (safety.alerts.length > 0) {
+        await store.recordActions(fp.userId, fp.subject.id, [
+          { agent: "executive", kind: "monitor", summary: `Family sweep: ${fo.members} member(s), risk ${fo.familyRisk}/100, ${safety.alerts.length} child-safety/at-risk alert(s).`, status: "completed" },
+        ]);
+        const famTitle = `Family protection: ${safety.alerts.length} household member(s) at risk`;
+        const famOpenTitles = await store.listOpenCaseTitlesForSubject(fp.subject.id);
+        if (!famOpenTitles.includes(famTitle)) {
+          const famCase: NewCaseFields = {
+            type: "executive_protection",
+            title: famTitle,
+            summary: `${safety.alerts.length} household member(s) crossed the risk threshold (family risk ${fo.familyRisk}/100). Protective review of the household's shared exposure recommended.`,
+            riskLevel: safety.alerts.some((a) => a.member.riskLevel === "critical") ? "critical" : "high",
+            assignedAgent: "executive",
+          };
+          await store.createCases(fp.userId, fp.subject.id, [famCase]);
+          openedCases.push(famCase);
+          evidence.push(actionEvidence({
+            subjectId: fp.subject.id,
+            action: "Opened family-protection case",
+            detail: famTitle,
+            source: "Executive Agent",
+            riskLevel: famCase.riskLevel,
+            collectedBy: "executive",
+            collectedAt: now0,
+            caseTitle: famTitle,
+          }));
+          familyCasesOpened += 1;
+        }
+      }
     }
 
     // 6f. Auto-file broker opt-outs for newly-discovered broker/public-record
@@ -592,6 +675,8 @@ export async function runScheduledCycle(
     playbooksAwaitingApproval,
     evidenceSealed,
     legalDrafted,
+    familyCasesOpened,
+    travelRisksFlagged,
     mentionsCollected,
     domainRisksFound,
     ranAt: new Date().toISOString(),

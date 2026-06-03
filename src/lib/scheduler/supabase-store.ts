@@ -10,6 +10,7 @@ import type { ProtectOutcome } from "@/lib/agents/orchestrator";
 import type { NewCaseFields } from "@/lib/agents/recommendation-routing";
 import type { EvidenceItem } from "@/lib/intelligence/evidence-vault";
 import { mapExposure, mapRemoval, mapSubject, mapThreat } from "@/lib/data/mappers";
+import { mapFamilyMember, mapTravelAlert } from "@/lib/data/module-mappers";
 import { isRemovalDue } from "@/lib/brokers/removal";
 import type {
   DomainScanData,
@@ -27,10 +28,12 @@ export class SupabaseSchedulerStore implements SchedulerStore {
   constructor(private db: SupabaseClient) {}
 
   async listFootprints(): Promise<Footprint[]> {
-    const [{ data: subjects }, { data: exposures }, { data: threats }] = await Promise.all([
+    const [{ data: subjects }, { data: exposures }, { data: threats }, { data: family }, { data: travel }] = await Promise.all([
       this.db.from("subjects").select("*"),
       this.db.from("exposures").select("*"),
       this.db.from("threats").select("*"),
+      this.db.from("family_profiles").select("*"),
+      this.db.from("travel_alerts").select("*"),
     ]);
 
     const expBySubject = new Map<string, Exposure[]>();
@@ -45,12 +48,28 @@ export class SupabaseSchedulerStore implements SchedulerStore {
       list.push(mapThreat(row));
       thrBySubject.set(row.subject_id, list);
     }
+    const famBySubject = new Map<string, ReturnType<typeof mapFamilyMember>[]>();
+    for (const row of family ?? []) {
+      if (!row.subject_id) continue;
+      const list = famBySubject.get(row.subject_id) ?? [];
+      list.push(mapFamilyMember(row));
+      famBySubject.set(row.subject_id, list);
+    }
+    const travelBySubject = new Map<string, ReturnType<typeof mapTravelAlert>[]>();
+    for (const row of travel ?? []) {
+      if (!row.subject_id) continue;
+      const list = travelBySubject.get(row.subject_id) ?? [];
+      list.push(mapTravelAlert(row));
+      travelBySubject.set(row.subject_id, list);
+    }
 
     return (subjects ?? []).map((row) => ({
       userId: row.user_id,
       subject: mapSubject(row),
       exposures: expBySubject.get(row.id) ?? [],
       threats: thrBySubject.get(row.id) ?? [],
+      family: famBySubject.get(row.id) ?? [],
+      travel: travelBySubject.get(row.id) ?? [],
     }));
   }
 

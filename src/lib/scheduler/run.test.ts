@@ -334,6 +334,37 @@ describe("runScheduledCycle", () => {
     expect(draftAction).toBeTruthy();
   });
 
+  it("cascades family and travel risk into protective cases, legal drafts and sealed evidence", async () => {
+    const future = new Date(Date.now() + 14 * 86_400_000).toISOString().slice(0, 10);
+    const store = new MemoryStore([
+      {
+        userId: "u1",
+        subject: subject("a", "u1"),
+        exposures: [],
+        threats: [],
+        family: [{ id: "m1", displayName: "Kid A", relation: "child", isMinor: true, riskLevel: "high", exposuresCount: 3 }],
+        travel: [{ id: "tr1", subjectId: "a", destination: "Bogotá", travelDate: future, riskLevel: "critical", advisory: "Elevated personal-security risk" }],
+      },
+    ]);
+    const summary = await runScheduledCycle(store, {
+      sources: [],
+      provider: new MockProvider(),
+      reputationSource: cleanRepSource,
+      domainClient: domClient,
+    });
+
+    // Family roster → protective case → legal draft + sealed evidence (full cascade).
+    expect(summary.familyCasesOpened).toBe(1);
+    expect(store.createdCases.some((c) => c.type === "executive_protection" && /Family protection/.test(c.title))).toBe(true);
+    expect(store.legalDrafts.some((d) => d.type === "privacy_violation")).toBe(true);
+    expect(store.evidence.some((e) => /family-protection case/i.test(e.title))).toBe(true);
+
+    // Travel itinerary → elevated-trip flag + notification + sealed evidence.
+    expect(summary.travelRisksFlagged).toBeGreaterThanOrEqual(1);
+    expect(store.notifications.flat().some((n) => /Travel risk: Bogotá/.test(n.title))).toBe(true);
+    expect(store.evidence.some((e) => /elevated-risk trip/i.test(e.title))).toBe(true);
+  });
+
   it("escalates the principal to critical executive risk on critical physical threats", async () => {
     const physicalSource: DiscoverySource = {
       id: "phys", name: "Physical",
