@@ -43,9 +43,11 @@ type LogLine = { stage: number; text: string; done: boolean };
 export function FreeScan({ defaultName = "" }: { defaultName?: string }) {
   const [phase, setPhase] = useState<Phase>("intro");
   const [name, setName] = useState(defaultName);
+  const [email, setEmail] = useState("");
   const [assessment, setAssessment] = useState<FreeAssessment | null>(null);
   const [recommendation, setRecommendation] = useState<ProtectionRecommendation | null>(null);
   const [findings, setFindings] = useState<MirrorFinding[]>([]);
+  const [liveLayers, setLiveLayers] = useState<MirrorCategory[]>([]);
 
   // Live scanning state
   const [stageIndex, setStageIndex] = useState(0);
@@ -63,9 +65,10 @@ export function FreeScan({ defaultName = "" }: { defaultName?: string }) {
 
     // Pull the real report up front, then pace the reveal so it reads like a
     // genuine deep search across every layer (not an instant lookup).
-    const res = await runFreeAssessmentAction(name);
+    const res = await runFreeAssessmentAction(name, email.trim() || undefined);
     if (cancelled.current) return;
     if (res.locked || !res.assessment) { await sleep(700); if (!cancelled.current) setPhase("locked"); return; }
+    setLiveLayers(res.liveLayers ?? []);
 
     const countByCat: Partial<Record<MirrorCategory, number>> = {};
     for (const f of res.findings ?? []) countByCat[f.category] = f.count;
@@ -107,13 +110,22 @@ export function FreeScan({ defaultName = "" }: { defaultName?: string }) {
           value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") run(); }}
-          placeholder="Your name (optional)"
+          placeholder="Your full name"
           className="mt-5 w-full rounded-lg border border-border bg-bg-subtle px-3 py-2.5 text-sm text-white placeholder:text-slate-600 focus:border-brand focus:outline-none"
+        />
+        <input
+          value={email}
+          type="email"
+          onChange={(e) => setEmail(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") run(); }}
+          placeholder="Your email (to check breaches & the dark web)"
+          className="mt-2 w-full rounded-lg border border-border bg-bg-subtle px-3 py-2.5 text-sm text-white placeholder:text-slate-600 focus:border-brand focus:outline-none"
         />
         <button onClick={run} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-brand px-4 py-3 text-sm font-semibold text-white hover:bg-brand/90">
           <Search className="h-4 w-4" /> Scan my exposure — free
         </button>
-        <p className="mt-3 text-[11px] text-slate-600">Sweeps {TOTAL_SOURCES} source groups across 7 layers · ~20s · exposure report · protection score · up to 10 free broker removals.</p>
+        <p className="mt-3 text-[11px] text-slate-600">Live check across breach databases, search engines &amp; news · exposure report · protection score · up to 10 free broker removals.</p>
+        <p className="mt-1 text-[11px] text-slate-700">Your email is used only to check breach databases. No signup, no card.</p>
       </div>
     );
   }
@@ -192,8 +204,21 @@ export function FreeScan({ defaultName = "" }: { defaultName?: string }) {
   /* ── Reveal — the scary window ──────────────────────────────────────────── */
   if (!assessment) return null;
   const a = assessment;
+  const liveSet = new Set(liveLayers);
   return (
     <div className="mx-auto max-w-2xl space-y-4">
+      {/* Live vs preview — honest about where the data came from */}
+      {liveSet.size > 0 ? (
+        <div className="flex items-center gap-2 rounded-xl border border-risk-low/30 bg-risk-low/10 px-3.5 py-2 text-xs text-risk-low">
+          <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-risk-low/60" /><span className="relative inline-flex h-2 w-2 rounded-full bg-risk-low" /></span>
+          Live results — checked breach databases, search engines &amp; news in real time.
+        </div>
+      ) : (
+        <div className="rounded-xl border border-border bg-bg-subtle/40 px-3.5 py-2 text-xs text-slate-500">
+          Preview using sample data — live results activate once the breach &amp; search connectors are configured.
+        </div>
+      )}
+
       {/* Headline + score */}
       <div className="rounded-2xl border border-risk-high/30 bg-risk-high/5 p-6 text-center">
         <p className="text-sm font-medium uppercase tracking-wide text-slate-400">Your exposure report</p>
@@ -217,6 +242,9 @@ export function FreeScan({ defaultName = "" }: { defaultName?: string }) {
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-sm font-semibold text-white">{f.label}</p>
                     <span className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ring-1 ${SEV_TONE(f.severity)}`}>{f.severity}</span>
+                    {liveSet.has(f.category) && (
+                      <span className="inline-flex items-center gap-1 rounded-md bg-risk-low/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-risk-low ring-1 ring-risk-low/30">Live</span>
+                    )}
                   </div>
                   {f.samples.length > 0 && (
                     <p className="mt-0.5 truncate text-[11px] text-slate-500">
