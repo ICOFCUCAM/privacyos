@@ -20,6 +20,7 @@ import type { DiscoverySource } from "@/lib/discovery/source";
 import type { Exposure, Recommendation, Subject, Threat } from "@/lib/types";
 import type { ProtectOutcome } from "@/lib/agents/orchestrator";
 import type { NewCaseFields } from "@/lib/agents/recommendation-routing";
+import type { EvidenceItem } from "@/lib/intelligence/evidence-vault";
 
 function subject(id: string, userId: string): Subject {
   return {
@@ -51,6 +52,7 @@ class MemoryStore implements SchedulerStore {
   domainScans: DomainScanData[] = [];
   createdCases: NewCaseFields[] = [];
   openCaseTitles: string[] = [];
+  evidence: EvidenceItem[] = [];
 
   async listFootprints() {
     return this.footprints;
@@ -101,6 +103,9 @@ class MemoryStore implements SchedulerStore {
   }
   async createCases(_u: string, _s: string, cases: NewCaseFields[]) {
     this.createdCases.push(...cases);
+  }
+  async recordEvidence(_u: string, _s: string, items: EvidenceItem[]) {
+    this.evidence.push(...items);
   }
 }
 
@@ -221,6 +226,11 @@ describe("runScheduledCycle", () => {
     expect(summary.casesOpened).toBe(2);
     expect(store.createdCases).toHaveLength(2);
     expect(store.createdCases[0]).toMatchObject({ type: "breach_response", assignedAgent: "security", riskLevel: "critical" });
+    // Opening each case seals a vault artifact linked back to the case by title.
+    const caseEvidence = store.evidence.filter((e) => /^Opened case:/.test(e.title));
+    expect(caseEvidence.length).toBe(2);
+    expect(caseEvidence[0].caseTitle).toBe("Leak found");
+    expect(caseEvidence[0].hash).toHaveLength(64);
   });
 
   it("executes recorded playbooks under the autonomy gate and records them for the away-feed", async () => {
@@ -241,6 +251,17 @@ describe("runScheduledCycle", () => {
     expect(playbookAction).toBeTruthy();
     expect(playbookAction!.summary).toMatch(/autonomously/);
     expect(playbookAction!.status).toBe("completed");
+
+    // Every autonomous action is sealed into the Evidence Vault as a tamper-
+    // evident case_artifact with a full SHA-256 digest.
+    expect(summary.evidenceSealed).toBeGreaterThan(0);
+    expect(summary.evidenceSealed).toBe(store.evidence.length);
+    const filing = store.evidence.find((e) => /Filed broker opt-out: Spokeo/.test(e.title));
+    expect(filing).toBeTruthy();
+    expect(filing!.kind).toBe("case_artifact");
+    expect(filing!.hash).toHaveLength(64);
+    expect(filing!.collectedBy).toBe("privacy");
+    expect(store.evidence.some((e) => /Executed Data-Broker Removal playbook/.test(e.title))).toBe(true);
   });
 
   it("pauses high-risk playbook steps for sign-off and notifies the customer", async () => {

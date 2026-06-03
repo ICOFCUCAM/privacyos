@@ -19,6 +19,7 @@ import type {
 } from "@/lib/types";
 import type { ProtectOutcome } from "@/lib/agents/orchestrator";
 import type { DiscoveryFinding } from "@/lib/discovery/source";
+import type { EvidenceItem } from "@/lib/intelligence/evidence-vault";
 
 /** Everything the dashboard needs for one subject, in one bundle. */
 export interface PrivacyDataSet {
@@ -62,4 +63,9 @@ export interface DataSource {
   createRemoval(brokerName: string, exposureId?: string): Promise<void>;
   /** Advance a removal request by one workflow tick (process / re-check). */
   recheckRemoval(id: string): Promise<void>;
+
+  /** Sealed evidence the engine has persisted for the primary subject (the live
+   *  ledger of autonomous actions). Empty in demo mode, where the page derives
+   *  evidence from the dataset instead. */
+  listEvidence(): Promise<EvidenceItem[]>;
 }

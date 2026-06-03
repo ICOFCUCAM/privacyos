@@ -8,6 +8,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Exposure, Recommendation, RemovalRequest, Threat } from "@/lib/types";
 import type { ProtectOutcome } from "@/lib/agents/orchestrator";
 import type { NewCaseFields } from "@/lib/agents/recommendation-routing";
+import type { EvidenceItem } from "@/lib/intelligence/evidence-vault";
 import { mapExposure, mapRemoval, mapSubject, mapThreat } from "@/lib/data/mappers";
 import { isRemovalDue } from "@/lib/brokers/removal";
 import type {
@@ -324,6 +325,34 @@ export class SupabaseSchedulerStore implements SchedulerStore {
         status: "open",
         risk_level: c.riskLevel,
         assigned_agent: c.assignedAgent,
+      })),
+    );
+  }
+
+  async recordEvidence(userId: string, subjectId: string, items: EvidenceItem[]): Promise<void> {
+    if (items.length === 0) return;
+    // Link each artifact to its supporting case by title (cases are deduped by
+    // title), so the vault row points back at a real, tracked case.
+    const titles = [...new Set(items.map((i) => i.caseTitle).filter((t): t is string => !!t))];
+    const caseIdByTitle = new Map<string, string>();
+    if (titles.length > 0) {
+      const { data } = await this.db.from("cases").select("id,title").eq("subject_id", subjectId).in("title", titles);
+      for (const row of data ?? []) caseIdByTitle.set(row.title as string, row.id as string);
+    }
+    await this.db.from("evidence_records").insert(
+      items.map((e) => ({
+        user_id: userId,
+        subject_id: subjectId,
+        kind: e.kind,
+        title: e.title,
+        source: e.source,
+        hash: e.hash,
+        risk_level: e.riskLevel,
+        collected_by: e.collectedBy,
+        collected_at: e.collectedAt,
+        case_id: e.caseTitle ? caseIdByTitle.get(e.caseTitle) ?? null : null,
+        case_title: e.caseTitle ?? null,
+        custody: e.custody,
       })),
     );
   }

@@ -25,6 +25,7 @@ import type {
 import type { ProtectOutcome } from "@/lib/agents/orchestrator";
 import type { NewCaseFields } from "@/lib/agents/recommendation-routing";
 import type { AssessedRisk } from "@/lib/domains/dns";
+import type { EvidenceItem } from "@/lib/intelligence/evidence-vault";
 
 export interface Footprint {
   userId: string;
@@ -80,6 +81,8 @@ export interface ScheduledRunSummary {
   playbooksAutoExecuted: number;
   /** Playbooks that ran but paused at least one step for the customer's sign-off. */
   playbooksAwaitingApproval: number;
+  /** Autonomous actions sealed into the Evidence Vault this cycle. */
+  evidenceSealed: number;
   mentionsCollected: number;
   domainRisksFound: number;
   ranAt: string;
@@ -137,4 +140,6 @@ export interface SchedulerStore {
   listOpenCaseTitlesForSubject(subjectId: string): Promise<string[]>;
   /** Open new cases (e.g. auto-raised from high/critical threats). */
   createCases(userId: string, subjectId: string, cases: NewCaseFields[]): Promise<void>;
+  /** Seal autonomous actions as tamper-evident records in the Evidence Vault. */
+  recordEvidence(userId: string, subjectId: string, items: EvidenceItem[]): Promise<void>;
 }

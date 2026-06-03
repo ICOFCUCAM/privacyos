@@ -19,6 +19,7 @@ import { advanceRemoval, shouldReappear } from "@/lib/brokers/removal";
 import { planAutoFilings } from "@/lib/brokers/auto-file";
 import { coerceMode, needsApproval } from "@/lib/home/autonomy";
 import { runPlaybooks, exposureToFinding, threatToFinding } from "@/lib/agents/playbooks";
+import { actionEvidence, type EvidenceItem } from "@/lib/intelligence/evidence-vault";
 import { casesForNewThreats } from "@/lib/agents/threat-cases";
 import { reputationCasesFromMentions } from "@/lib/reputation/os/reputation-cases";
 import { reputationOverview } from "@/lib/reputation/os/analysis";
@@ -70,10 +71,17 @@ export async function runScheduledCycle(
   let attackPathsLive = 0;
   let playbooksAutoExecuted = 0;
   let playbooksAwaitingApproval = 0;
+  let evidenceSealed = 0;
   let mentionsCollected = 0;
   let domainRisksFound = 0;
 
   for (const fp of footprints) {
+    // Every autonomous action this subject's cycle performs is sealed here and
+    // flushed to the Evidence Vault at the end of the loop, so the vault is a
+    // real ledger of what the engine did — not a re-derivation of raw findings.
+    const evidence: EvidenceItem[] = [];
+    const now0 = new Date().toISOString();
+
     // 1. Discover — only genuinely new findings come back (deduped).
     const finding = await runDiscovery(
       { subject: fp.subject, existing: fp.exposures, existingThreats: fp.threats },
@@ -107,6 +115,18 @@ export async function runScheduledCycle(
               status: "completed",
             },
           ]);
+          for (const c of newCases) {
+            evidence.push(actionEvidence({
+              subjectId: fp.subject.id,
+              action: `Opened case: ${c.title}`,
+              detail: c.summary,
+              source: "Incident Agent",
+              riskLevel: c.riskLevel,
+              collectedBy: c.assignedAgent,
+              collectedAt: now0,
+              caseTitle: c.title,
+            }));
+          }
           casesOpened += newCases.length;
         }
       } catch (err) {
@@ -176,6 +196,16 @@ export async function runScheduledCycle(
               status: "completed",
             },
           ]);
+          // Seal the executed plan as a vault artifact — the proof the response ran.
+          evidence.push(actionEvidence({
+            subjectId: fp.subject.id,
+            action: `Executed ${run.playbookName} playbook (${run.autoSteps} step(s))`,
+            detail: `${run.finding.title} — ${run.steps.filter((s) => s.execution === "auto").map((s) => s.label).join("; ")}`,
+            source: "Response Playbook",
+            riskLevel: run.finding.riskLevel,
+            collectedBy: run.owner,
+            collectedAt: now0,
+          }));
         }
         if (run.fullyAutonomous) {
           playbooksAutoExecuted += 1;
@@ -255,6 +285,18 @@ export async function runScheduledCycle(
       await store.recordActions(fp.userId, fp.subject.id, [
         { agent: "executive", kind: "escalate", summary: `Opened ${actorCases.length} protective case(s) for escalating/harassment threat actors.`, status: "completed" },
       ]);
+      for (const c of actorCases) {
+        evidence.push(actionEvidence({
+          subjectId: fp.subject.id,
+          action: `Opened protective case: ${c.title}`,
+          detail: c.summary,
+          source: "Executive Agent",
+          riskLevel: c.riskLevel,
+          collectedBy: "executive",
+          collectedAt: now0,
+          caseTitle: c.title,
+        }));
+      }
       executiveCasesOpened += actorCases.length;
     }
 
@@ -273,6 +315,15 @@ export async function runScheduledCycle(
       await store.recordActions(fp.userId, fp.subject.id, [
         { agent: "executive", kind: "remove", summary: `Routed ${takedowns.length} doxxing takedown(s): ${routes}.`, status: "completed" },
       ]);
+      evidence.push(actionEvidence({
+        subjectId: fp.subject.id,
+        action: `Routed ${takedowns.length} doxxing takedown(s)`,
+        detail: routes,
+        source: "Executive Agent",
+        riskLevel: "high",
+        collectedBy: "executive",
+        collectedAt: now0,
+      }));
       doxxingTakedownsRouted += takedowns.length;
     }
 
@@ -334,6 +385,17 @@ export async function runScheduledCycle(
             status: "completed",
           },
         ]);
+        for (const r of eligible) {
+          evidence.push(actionEvidence({
+            subjectId: fp.subject.id,
+            action: `Filed broker opt-out: ${r.brokerName}`,
+            detail: `status ${r.status}; re-checks scheduled`,
+            source: r.brokerName,
+            riskLevel: riskByExposure.get(r.exposureId ?? "") ?? "medium",
+            collectedBy: "privacy",
+            collectedAt: now0,
+          }));
+        }
         removalsFiled += eligible.length;
       }
     } catch (err) {
@@ -378,6 +440,18 @@ export async function runScheduledCycle(
             status: "completed",
           },
         ]);
+        for (const c of repCases) {
+          evidence.push(actionEvidence({
+            subjectId: fp.subject.id,
+            action: `Opened reputation-recovery case: ${c.title}`,
+            detail: c.summary,
+            source: "Reputation Agent",
+            riskLevel: c.riskLevel,
+            collectedBy: "reputation",
+            collectedAt: now0,
+            caseTitle: c.title,
+          }));
+        }
         reputationCasesOpened += repCases.length;
 
         // Notify on defamatory coverage, mirroring the critical-threat alert.
@@ -418,6 +492,17 @@ export async function runScheduledCycle(
       console.error("[privacyos] domain scan failed:", err);
     }
 
+    // Flush this subject's sealed artifacts to the Evidence Vault in one write.
+    if (evidence.length > 0) {
+      try {
+        await store.recordEvidence(fp.userId, fp.subject.id, evidence);
+        evidenceSealed += evidence.length;
+      } catch (err) {
+        // Vault persistence is best-effort; never fail the whole cycle.
+        console.error("[privacyos] evidence sealing failed:", err);
+      }
+    }
+
     newExposures += finding.exposures.length;
     newThreats += finding.threats.length;
     recommendations += outcome.recommendations.length;
@@ -449,6 +534,7 @@ export async function runScheduledCycle(
     attackPathsLive,
     playbooksAutoExecuted,
     playbooksAwaitingApproval,
+    evidenceSealed,
     mentionsCollected,
     domainRisksFound,
     ranAt: new Date().toISOString(),

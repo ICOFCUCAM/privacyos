@@ -5,9 +5,10 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { RemovalRequest, Subject } from "@/lib/types";
+import type { RemovalRequest, RiskLevel, Subject } from "@/lib/types";
 import type { ProtectOutcome } from "@/lib/agents/orchestrator";
 import type { DiscoveryFinding } from "@/lib/discovery/source";
+import type { CustodyEvent, Custodian, EvidenceItem, EvidenceKind } from "@/lib/intelligence/evidence-vault";
 import { computeRiskScore } from "@/lib/scoring/risk-score";
 import { advanceRemoval, createRemoval, shouldReappear } from "@/lib/brokers/removal";
 import { caseFromRecommendation } from "@/lib/agents/recommendation-routing";
@@ -289,5 +290,29 @@ export class SupabaseDataSource implements DataSource {
     if (data.exposure_id) {
       await this.db.from("exposures").update({ status: next.status }).eq("id", data.exposure_id);
     }
+  }
+
+  async listEvidence(): Promise<EvidenceItem[]> {
+    const subject = await this.getPrimarySubject();
+    if (!subject) return [];
+    const { data, error } = await this.db
+      .from("evidence_records")
+      .select("*")
+      .eq("subject_id", subject.id)
+      .order("collected_at", { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map((row) => ({
+      id: `ev-rec-${row.id}`,
+      kind: row.kind as EvidenceKind,
+      title: row.title as string,
+      source: row.source as string,
+      hash: row.hash as string,
+      riskLevel: row.risk_level as RiskLevel,
+      collectedBy: row.collected_by as Custodian,
+      collectedAt: row.collected_at as string,
+      caseId: (row.case_id as string | null) ?? undefined,
+      caseTitle: (row.case_title as string | null) ?? undefined,
+      custody: (row.custody as CustodyEvent[] | null) ?? [],
+    }));
   }
 }
