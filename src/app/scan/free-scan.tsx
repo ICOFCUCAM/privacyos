@@ -125,7 +125,7 @@ export function FreeScan({ defaultName = "" }: { defaultName?: string }) {
           <Search className="h-4 w-4" /> Scan my exposure — free
         </button>
         <p className="mt-3 text-[11px] text-slate-600">Live check across breach databases, search engines &amp; news · exposure report · protection score · up to 10 free broker removals.</p>
-        <p className="mt-1 text-[11px] text-slate-700">Your email is used only to check breach databases. No signup, no card.</p>
+        <p className="mt-1 text-[11px] text-slate-700">Your email is checked against breach databases via Have I Been Pwned and is never stored. No signup, no card.</p>
       </div>
     );
   }
@@ -330,6 +330,14 @@ export function FreeScan({ defaultName = "" }: { defaultName?: string }) {
           Compare all plans <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
+
+      {/* Source attribution — required by Have I Been Pwned's terms, and honest. */}
+      {liveSet.size > 0 && (
+        <p className="px-1 text-center text-[10px] leading-relaxed text-slate-600">
+          Live sources: breach data from Have I Been Pwned · search results via Google · news via GDELT.
+          Broker listings detected from public search; removal is available on a paid plan. Your email isn&rsquo;t stored.
+        </p>
+      )}
     </div>
   );
 }

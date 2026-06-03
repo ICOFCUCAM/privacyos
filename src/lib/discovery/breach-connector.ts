@@ -22,6 +22,7 @@ export interface BreachRecord {
   dataClasses: string[];
   pwnCount: number;
   isVerified: boolean;
+  isSensitive: boolean;
 }
 
 const CRITICAL_CLASSES = [
@@ -54,11 +55,11 @@ function hash(s: string): number {
 }
 
 const SIM_CATALOG: Omit<BreachRecord, "pwnCount">[] = [
-  { name: "LinkedIn", title: "LinkedIn", breachDate: "2021-06-01", dataClasses: ["Email addresses", "Passwords"], isVerified: true },
-  { name: "Dropbox", title: "Dropbox", breachDate: "2012-07-01", dataClasses: ["Email addresses", "Passwords"], isVerified: true },
-  { name: "Collection1", title: "Collection #1", breachDate: "2019-01-07", dataClasses: ["Email addresses", "Passwords"], isVerified: false },
-  { name: "Canva", title: "Canva", breachDate: "2019-05-24", dataClasses: ["Email addresses", "Names", "Usernames"], isVerified: true },
-  { name: "Adobe", title: "Adobe", breachDate: "2013-10-04", dataClasses: ["Email addresses", "Password hints", "Passwords"], isVerified: true },
+  { name: "LinkedIn", title: "LinkedIn", breachDate: "2021-06-01", dataClasses: ["Email addresses", "Passwords"], isVerified: true, isSensitive: false },
+  { name: "Dropbox", title: "Dropbox", breachDate: "2012-07-01", dataClasses: ["Email addresses", "Passwords"], isVerified: true, isSensitive: false },
+  { name: "Collection1", title: "Collection #1", breachDate: "2019-01-07", dataClasses: ["Email addresses", "Passwords"], isVerified: false, isSensitive: false },
+  { name: "Canva", title: "Canva", breachDate: "2019-05-24", dataClasses: ["Email addresses", "Names", "Usernames"], isVerified: true, isSensitive: false },
+  { name: "Adobe", title: "Adobe", breachDate: "2013-10-04", dataClasses: ["Email addresses", "Password hints", "Passwords"], isVerified: true, isSensitive: false },
 ];
 
 /** Deterministic offline breach lookup keyed on the email string. */
@@ -92,15 +93,21 @@ export class BreachConnector implements DiscoverySource {
       DataClasses: string[];
       PwnCount: number;
       IsVerified: boolean;
+      IsSensitive: boolean;
     }>;
-    return data.map((b) => ({
-      name: b.Name,
-      title: b.Title,
-      breachDate: b.BreachDate,
-      dataClasses: b.DataClasses,
-      pwnCount: b.PwnCount,
-      isVerified: b.IsVerified,
-    }));
+    return data
+      // HIBP's verified-owner rule: never surface sensitive breaches (e.g. those
+      // revealing sexuality/health/affiliation) unless ownership is verified.
+      .filter((b) => !b.IsSensitive)
+      .map((b) => ({
+        name: b.Name,
+        title: b.Title,
+        breachDate: b.BreachDate,
+        dataClasses: b.DataClasses,
+        pwnCount: b.PwnCount,
+        isVerified: b.IsVerified,
+        isSensitive: b.IsSensitive,
+      }));
   }
 
   async scan({ subject }: DiscoveryInput): Promise<DiscoveryFinding> {
