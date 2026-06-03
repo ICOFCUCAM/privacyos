@@ -51,7 +51,7 @@ export function HeroStage({ metrics }: { metrics?: HeroMetrics }) {
         <ProtectionNetwork />
 
         {/* Layer 2 — the dominant floating device, embedded in the globe */}
-        <div className="relative z-10 mx-auto w-full max-w-[24rem] py-6 sm:max-w-[34rem] lg:max-w-[33rem] lg:py-0 xl:max-w-[40rem]">
+        <div className="relative z-10 mx-auto w-full max-w-[24rem] py-6 sm:max-w-[34rem] lg:mt-12 lg:max-w-[33rem] lg:py-0 xl:max-w-[40rem]">
           <ProtectionDashboard metrics={metrics} flat={flat} />
         </div>
       </div>

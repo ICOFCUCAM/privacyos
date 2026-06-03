@@ -5,11 +5,13 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import ThreeGlobe from "three-globe";
 import { feature } from "topojson-client";
-// World land geometry as DATA (not a displayed texture) → procedural dot Earth.
-import landTopo from "world-atlas/land-110m.json";
+// World geography as DATA (not a displayed texture) → procedural dot Earth.
+// `countries` is a GeometryCollection, so feature() yields a FeatureCollection
+// with .features (land is a single MultiPolygon → no .features → black globe).
+import countriesTopo from "world-atlas/countries-110m.json";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const landData = feature(landTopo as any, (landTopo as any).objects.land) as any;
+const landData = feature(countriesTopo as any, (countriesTopo as any).objects.countries) as any;
 
 const HUBS: Record<string, [number, number]> = {
   ny: [40.7, -74], la: [34, -118], sao: [-23.5, -46.6], lon: [51.5, -0.1], mos: [55.7, 37.6],
@@ -33,7 +35,7 @@ function buildGlobe(quality: "high" | "med"): ThreeGlobe {
     // continents as illuminated dots
     .hexPolygonsData(landData.features)
     .hexPolygonResolution(quality === "med" ? 2 : 3)
-    .hexPolygonMargin(0.32)
+    .hexPolygonMargin(0.2)
     .hexPolygonUseDots(true)
     .hexPolygonColor(() => "#8b93f5")
     // intercontinental flowing routes

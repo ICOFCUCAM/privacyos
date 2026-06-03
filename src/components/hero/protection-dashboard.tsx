@@ -122,8 +122,8 @@ export function ProtectionDashboard({ metrics, flat = false }: { metrics?: HeroM
   return (
     <div style={{ perspective: 2200 }} className="w-full">
       <motion.div
-        initial={{ opacity: 0, rotateY: flat ? 0 : -16, rotateX: flat ? 0 : 6, y: 34 }}
-        animate={{ opacity: 1, rotateY: flat ? 0 : -13, rotateX: flat ? 0 : 4, y: 0 }}
+        initial={{ opacity: 0, rotateY: flat ? 0 : -16, rotateX: flat ? 0 : 6, rotateZ: flat ? 0 : 3.5, y: 34 }}
+        animate={{ opacity: 1, rotateY: flat ? 0 : -13, rotateX: flat ? 0 : 4, rotateZ: flat ? 0 : 2.5, y: 0 }}
         transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
         style={{ transformStyle: "preserve-3d", transformOrigin: "left center" }}
         className="relative"
