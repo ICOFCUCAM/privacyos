@@ -210,15 +210,15 @@ export function NavList({
                   onClick={onNavigate}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60",
+                    "relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60",
                     locked
                       ? "text-slate-600 hover:bg-bg-elevated hover:text-slate-400"
                       : active
-                        ? "bg-brand/15 text-white ring-1 ring-brand/30"
+                        ? "bg-gradient-to-r from-brand/20 to-transparent text-white ring-1 ring-brand/25 before:absolute before:left-0 before:top-1/2 before:h-5 before:w-0.5 before:-translate-y-1/2 before:rounded-full before:bg-brand"
                         : "text-slate-400 hover:bg-bg-elevated hover:text-white",
                   )}
                 >
-                  <item.icon className="h-4 w-4" />
+                  <item.icon className={cn("h-4 w-4 shrink-0", active && "text-brand-fg")} />
                   <span className="flex-1">{item.label}</span>
                   {locked && <Lock className="h-3.5 w-3.5" />}
                 </Link>

@@ -41,28 +41,34 @@ export default async function LandingPage() {
   const t = await getT();
   return (
     <main id="content" className="bg-grid min-h-screen">
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-        <div className="flex items-center gap-2">
-          <Shield className="h-6 w-6 text-brand" />
-          <span className="text-lg font-bold text-white">PrivacyOS</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/security"
-            className="hidden rounded-lg px-4 py-2 text-sm font-semibold text-slate-200 transition hover:bg-bg-elevated sm:block"
-          >
-            {t("marketing.security")}
+      <header className="sticky top-0 z-50 border-b border-border/60 bg-bg/70 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
+          <Link href="/" className="group flex items-center gap-2.5">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand to-brand-fg/80 shadow-lg shadow-brand/25 ring-1 ring-white/10 transition group-hover:shadow-brand/40">
+              <Shield className="h-5 w-5 text-white" />
+            </span>
+            <span className="text-lg font-bold tracking-tight text-white">
+              Privacy<span className="bg-gradient-to-r from-brand-fg to-brand bg-clip-text text-transparent">OS</span>
+            </span>
           </Link>
-          <Link
-            href="/pricing"
-            className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-200 transition hover:bg-bg-elevated"
-          >
-            {t("marketing.pricing")}
-          </Link>
-          <LanguageSwitcher compact />
-          <Link href="/dashboard" className={buttonClasses("primary", "md")}>
-            {t("marketing.openDashboard")}
-          </Link>
+          <div className="flex items-center gap-1">
+            <Link
+              href="/security"
+              className="hidden rounded-lg px-3.5 py-2 text-sm font-medium text-slate-300 transition hover:bg-bg-elevated hover:text-white sm:block"
+            >
+              {t("marketing.security")}
+            </Link>
+            <Link
+              href="/pricing"
+              className="rounded-lg px-3.5 py-2 text-sm font-medium text-slate-300 transition hover:bg-bg-elevated hover:text-white"
+            >
+              {t("marketing.pricing")}
+            </Link>
+            <LanguageSwitcher compact />
+            <Link href="/dashboard" className={buttonClasses("primary", "md")}>
+              {t("marketing.openDashboard")}
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -95,8 +101,10 @@ export default async function LandingPage() {
       {/* Capability modules */}
       <section className="mx-auto max-w-6xl px-6 py-24">
         <div className="mx-auto mb-12 max-w-2xl text-center">
-          <span className="text-xs font-semibold uppercase tracking-wider text-brand-fg">Capabilities</span>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-brand-fg">
+            Capabilities
+          </span>
+          <h2 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">
             Everything it takes to defend your digital life.
           </h2>
         </div>
@@ -104,34 +112,41 @@ export default async function LandingPage() {
           {modules.map((m) => (
             <div
               key={m.title}
-              className="rounded-xl border border-border bg-bg-elevated/60 p-5 transition hover:border-brand/40"
+              className="group relative overflow-hidden rounded-2xl border border-border bg-bg-elevated/50 p-5 transition duration-300 hover:-translate-y-1 hover:border-brand/40 hover:bg-bg-elevated/80 hover:shadow-2xl hover:shadow-brand/10"
             >
-              <m.icon className="h-6 w-6 text-brand" />
-              <h3 className="mt-3 font-semibold text-white">{m.title}</h3>
-              <p className="mt-1 text-sm text-slate-400">{m.desc}</p>
+              <div aria-hidden className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-brand/15 opacity-0 blur-2xl transition duration-300 group-hover:opacity-100" />
+              <span className="relative flex h-11 w-11 items-center justify-center rounded-xl bg-brand/10 text-brand ring-1 ring-brand/20 transition group-hover:bg-brand/20 group-hover:ring-brand/40">
+                <m.icon className="h-5 w-5" />
+              </span>
+              <h3 className="relative mt-4 font-semibold text-white">{m.title}</h3>
+              <p className="relative mt-1 text-sm leading-relaxed text-slate-400">{m.desc}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* Final CTA */}
-      <section className="border-t border-border bg-bg-subtle/30">
-        <div className="mx-auto max-w-3xl px-6 py-20 text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            Take control of your digital footprint.
-          </h2>
-          <p className="mx-auto mt-4 max-w-xl text-lg text-slate-400">
-            See what&apos;s exposed, remove it, and let autonomous agents defend you around the clock.
-          </p>
-          <div className="mt-8 flex items-center justify-center gap-3">
-            <Link href="/scan" className={buttonClasses("primary", "lg")}>
-              Run a Free Exposure Scan
-            </Link>
-            <Link href="/pricing" className={buttonClasses("secondary", "lg")}>
-              View Pricing
-            </Link>
+      <section className="mx-auto max-w-5xl px-6 py-24">
+        <div className="relative overflow-hidden rounded-[2rem] border border-brand/25 bg-gradient-to-b from-brand/10 via-bg-elevated/40 to-bg-elevated/20 px-6 py-16 text-center shadow-2xl shadow-brand/10 ring-1 ring-white/5">
+          <div aria-hidden className="pointer-events-none absolute inset-x-0 -top-28 h-56 bg-[radial-gradient(50%_100%_at_50%_0%,rgba(99,102,241,0.28),transparent_70%)]" />
+          <div aria-hidden className="pointer-events-none absolute inset-0 opacity-40 [background:radial-gradient(40%_60%_at_80%_120%,rgba(165,180,252,0.15),transparent_70%)]" />
+          <div className="relative">
+            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              Take control of your digital footprint.
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-lg text-slate-300">
+              See what&apos;s exposed, remove it, and let autonomous agents defend you around the clock.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+              <Link href="/scan" className={buttonClasses("primary", "lg")}>
+                Run a Free Exposure Scan
+              </Link>
+              <Link href="/pricing" className={buttonClasses("secondary", "lg")}>
+                View Pricing
+              </Link>
+            </div>
+            <p className="mt-4 text-xs text-slate-500">Free · no signup · see what&apos;s exposed in seconds.</p>
           </div>
-          <p className="mt-3 text-xs text-slate-500">Free · no signup · see what&apos;s exposed in seconds.</p>
         </div>
       </section>
 
