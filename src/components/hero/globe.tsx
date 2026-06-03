@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import ThreeGlobe from "three-globe";
@@ -25,6 +25,9 @@ const arcs = ROUTE_KEYS.map(([a, b]) => ({
   startLat: HUBS[a][0], startLng: HUBS[a][1], endLat: HUBS[b][0], endLng: HUBS[b][1],
 }));
 const points = Object.values(HUBS).map(([lat, lng]) => ({ lat, lng }));
+// Larger metros get scanning-wave rings (Layer 7).
+const majorPoints = (["ny", "lon", "dxb", "sin", "tok", "lag", "sao", "syd"] as (keyof typeof HUBS)[])
+  .map((k) => ({ lat: HUBS[k][0], lng: HUBS[k][1] }));
 
 function buildGlobe(quality: "high" | "med"): ThreeGlobe {
   const g = new ThreeGlobe({ animateIn: false })
@@ -47,16 +50,43 @@ function buildGlobe(quality: "high" | "med"): ThreeGlobe {
     .arcDashAnimateTime(3000)
     .arcStroke(0.26)
     .arcAltitudeAutoScale(0.16)
-    // city-light clusters
+    // city-light clusters (Layer 2)
     .pointsData(points)
     .pointColor(() => "#dbe3ff")
-    .pointAltitude(0.004)
-    .pointRadius(0.3)
-    .pointsMerge(true);
+    .pointAltitude(0.008)
+    .pointRadius(0.34)
+    .pointsMerge(true)
+    // scanning-wave pulses over major metros (Layer 7)
+    .ringsData(majorPoints)
+    .ringColor(() => (t: number) => `rgba(199,210,254,${Math.sqrt(1 - t) * 0.45})`)
+    .ringMaxRadius(4.5)
+    .ringPropagationSpeed(1.3)
+    .ringRepeatPeriod(2400);
 
   g.rotation.set(0.34, -0.55, 0.06);
   g.scale.setScalar(0.0118);
   return g;
+}
+
+/** Layer 4 — slow, softly-glowing orbital intelligence rings. */
+function OrbitRings({ reduced }: { reduced: boolean }) {
+  const g = useRef<THREE.Group>(null);
+  useFrame((_, d) => { if (!reduced && g.current) g.current.rotation.y += d * 0.02; });
+  const rings = [
+    { r: 1.36, tilt: 1.1, color: "#818cf8", op: 0.16 },
+    { r: 1.46, tilt: -0.75, color: "#6366f1", op: 0.13 },
+    { r: 1.3, tilt: 0.45, color: "#a5b4fc", op: 0.11 },
+  ];
+  return (
+    <group ref={g} rotation={[0.3, 0, 0.08]}>
+      {rings.map((ring, i) => (
+        <mesh key={i} rotation={[ring.tilt, i * 0.7, 0]}>
+          <torusGeometry args={[ring.r, 0.0035, 8, 140]} />
+          <meshBasicMaterial color={ring.color} transparent opacity={ring.op} blending={THREE.AdditiveBlending} depthWrite={false} />
+        </mesh>
+      ))}
+    </group>
+  );
 }
 
 function GlobeObject({ quality, reduced }: { quality: "high" | "med"; reduced: boolean }) {
@@ -84,6 +114,7 @@ export default function Globe({ quality = "high", reduced = false }: { quality?:
       <ambientLight intensity={1.3} />
       <directionalLight position={[3, 1.5, 2.5]} intensity={1.1} color="#bdbaff" />
       <GlobeObject quality={quality} reduced={reduced} />
+      <OrbitRings reduced={reduced} />
     </Canvas>
   );
 }

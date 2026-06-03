@@ -38,10 +38,15 @@ export function HeroStage({ metrics }: { metrics?: HeroMetrics }) {
   return (
     <MotionConfig reducedMotion="user">
       <div className="relative flex w-full items-center justify-center lg:min-h-[540px]">
-        {/* Layer 1 — digital Earth: supports the device (smaller, shifted left) */}
+        {/* Layer 6 — horizon bloom behind the globe (atmospheric depth) */}
+        {showGlobe && (
+          <div aria-hidden className="pointer-events-none absolute right-[2%] top-1/2 z-0 h-[80%] w-[60%] -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(99,102,241,0.16),transparent_62%)] blur-3xl" />
+        )}
+
+        {/* Layer 1 — digital Earth: supports the device (smaller, shifted right) */}
         {showGlobe && (
           <div className="pointer-events-none absolute inset-0 z-0 opacity-90">
-            <div className="absolute left-[46%] top-1/2 h-[110%] w-[110%] -translate-x-1/2 -translate-y-1/2">
+            <div className="absolute left-[58%] top-1/2 h-[110%] w-[110%] -translate-x-1/2 -translate-y-1/2">
               <Globe quality={quality} reduced={reduced} />
             </div>
           </div>
@@ -50,8 +55,8 @@ export function HeroStage({ metrics }: { metrics?: HeroMetrics }) {
         {/* Layer 3 — ambient protection network */}
         <ProtectionNetwork />
 
-        {/* Layer 2 — the dominant floating device, shifted left into the scene */}
-        <div className="relative z-10 mx-auto w-full max-w-[24rem] py-6 sm:max-w-[34rem] lg:mt-12 lg:max-w-[33rem] lg:-translate-x-10 lg:py-0 xl:max-w-[40rem] xl:-translate-x-16">
+        {/* Layer 2 — the floating device, shifted right, embedded in the network */}
+        <div className="relative z-10 mx-auto w-full max-w-[24rem] py-6 sm:max-w-[34rem] lg:mt-12 lg:max-w-[33rem] lg:translate-x-6 lg:py-0 xl:max-w-[40rem] xl:translate-x-12">
           <ProtectionDashboard metrics={metrics} flat={flat} />
         </div>
       </div>
