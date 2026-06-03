@@ -7,7 +7,8 @@ import {
   FreeAssessmentBand,
   ExposureCategories,
   HowProtectionWorks,
-  ProtectionPlansTeaser,
+  PublicFigureProtection,
+  WhyDifferent,
   OutcomeMetricsBand,
 } from "@/components/landing-outcomes";
 import { LanguageSwitcher } from "@/components/language-switcher";
@@ -49,31 +50,34 @@ export default async function LandingPage() {
         </div>
       </header>
 
-      {/* 1 — Protection promise */}
+      {/* 1 — HERO: the protection promise */}
       <Hero />
 
-      {/* outcome metrics — customer outcomes, not platform internals */}
-      <OutcomeMetricsBand />
-
-      {/* 2 — Free exposure assessment (the conversion engine) */}
-      <Reveal><FreeAssessmentBand /></Reveal>
-
-      {/* 3 — Exposure categories discovered */}
-      <Reveal><ExposureCategories /></Reveal>
-
-      {/* 4 — How protection works (autonomous, on your behalf) */}
-      <Reveal><HowProtectionWorks /></Reveal>
-
-      {/* Who it protects */}
+      {/* 2 — WHO WE PROTECT (risk-focused groups, no products/plans) */}
       <Reveal><PersonaBand /></Reveal>
 
-      {/* 5 — Protection plans */}
-      <Reveal><ProtectionPlansTeaser /></Reveal>
+      {/* 3 — DIGITAL EXPOSURE: everywhere your information is exposed */}
+      <Reveal><ExposureCategories /></Reveal>
 
-      {/* 6 — Social proof & trust */}
+      {/* 4 — WHAT PRIVACYOS DOES AUTOMATICALLY (Discover→Remove→Protect→Monitor→Respond) */}
+      <Reveal><HowProtectionWorks /></Reveal>
+
+      {/* 5 — PUBLIC FIGURES & POLITICAL PROTECTION (premium) */}
+      <Reveal><PublicFigureProtection /></Reveal>
+
+      {/* 6 — REAL OUTCOMES (customer outcomes, not engineering metrics) */}
+      <Reveal><OutcomeMetricsBand /></Reveal>
+
+      {/* 7 — WHY PRIVACYOS IS DIFFERENT (we act, not just report) */}
+      <Reveal><WhyDifferent /></Reveal>
+
+      {/* 8 — FREE EXPOSURE SCAN (the conversion engine) */}
+      <Reveal><FreeAssessmentBand /></Reveal>
+
+      {/* 9 — TRUST: security, privacy, encryption, compliance */}
       <Reveal><TrustStrip /></Reveal>
 
-      {/* 7 — Final conversion */}
+      {/* 10 — FINAL CTA */}
       <Reveal className="mx-auto max-w-5xl px-6 py-24">
         <div className="relative overflow-hidden rounded-[2rem] border border-brand/25 bg-gradient-to-b from-brand/10 via-bg-elevated/40 to-bg-elevated/20 px-6 py-16 text-center shadow-2xl shadow-brand/10 ring-1 ring-white/5">
           <div aria-hidden className="pointer-events-none absolute inset-x-0 -top-28 h-56 bg-[radial-gradient(50%_100%_at_50%_0%,rgba(99,102,241,0.28),transparent_70%)]" />

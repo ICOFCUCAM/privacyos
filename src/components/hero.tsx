@@ -74,33 +74,8 @@ export function Hero() {
         </div>
       </div>
 
-      {/* Soft transition into the social-proof bar */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-[88px] h-32 bg-gradient-to-b from-transparent to-bg"
-      />
-
-      {/* Gradient section divider */}
+      {/* Gradient section divider into the page */}
       <div aria-hidden className="h-px w-full bg-gradient-to-r from-transparent via-brand/45 to-transparent" />
-
-      {/* Social proof bar */}
-      <div className="relative border-b border-border bg-bg-subtle/40">
-        <div className="mx-auto grid max-w-6xl grid-cols-2 gap-6 px-6 py-8 sm:grid-cols-4">
-          {[
-            { v: "8", l: "Autonomous AI Agents" },
-            { v: "29", l: "Security Data Models" },
-            { v: "24/7", l: "Continuous Monitoring" },
-            { v: "Multi-Layer", l: "Risk Intelligence" },
-          ].map((s) => (
-            <div key={s.l} className="text-center">
-              <p className="bg-gradient-to-b from-white to-slate-400 bg-clip-text text-2xl font-bold text-transparent sm:text-3xl">
-                {s.v}
-              </p>
-              <p className="mt-1 text-xs text-slate-400 sm:text-sm">{s.l}</p>
-            </div>
-          ))}
-        </div>
-      </div>
     </section>
   );
 }

@@ -2,7 +2,7 @@ import Link from "next/link";
 import {
   BadgeCheck, Lock, Server, KeyRound, ShieldCheck,
   Search, Trash2, Star, ShieldAlert, ScanFace, Crown, Scale, Building2,
-  Radar, Eye, Sparkles, ArrowRight, Network, Zap, Boxes, Users,
+  Radar, Eye, Sparkles, ArrowRight, Network, Zap, Boxes, Users, Landmark,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { buttonClasses } from "@/components/ui";
@@ -256,39 +256,43 @@ export function EnterpriseSection() {
   );
 }
 
-const personas: { icon: LucideIcon; who: string; q: string; outcome: string }[] = [
-  { icon: ShieldCheck, who: "For you", q: "Protect me", outcome: "Find and remove your exposed personal data, stop identity theft, and watch the dark web for your details." },
-  { icon: Users, who: "For families", q: "Protect my family", outcome: "One shield for everyone at home — opt relatives out of people-search and keep your kids’ information offline." },
-  { icon: Star, who: "For creators", q: "Protect my reputation", outcome: "Monitor your name across search, news and social — and push down what shouldn’t be there." },
-  { icon: Crown, who: "For executives", q: "Protect me & my family", outcome: "VIP-grade defense: residence, travel, doxxing and impersonation protection for you and the people close to you." },
-  { icon: Building2, who: "For companies", q: "Protect my company", outcome: "Executive, employee, vendor and brand risk — with compliance and takedowns handled automatically." },
+/* ── Who we protect (risk-focused — no products, no plans) ───────────────── */
+const protectedGroups: { icon: LucideIcon; who: string; risk: string }[] = [
+  { icon: ShieldCheck, who: "Individuals", risk: "Your home address, phone, identity and accounts are being sold and leaked. We find what's exposed about you and take it down." },
+  { icon: Users, who: "Families", risk: "Your spouse, parents and children are listed on the same broker sites you are. We protect everyone under one roof — including kids' information." },
+  { icon: Crown, who: "Executives", risk: "Leadership is targeted for doxxing, impersonation and home-address exposure. We shield you and your family from threats that follow real power." },
+  { icon: Star, who: "Public figures", risk: "Visibility invites harassment, fake profiles and deepfakes. We monitor your name everywhere and remove the impersonations and attacks." },
+  { icon: Landmark, who: "Politicians & candidates", risk: "Campaigns and office attract coordinated doxxing, disinformation and threats against you and your family. We defend your exposure in real time." },
+  { icon: Building2, who: "Businesses", risk: "Your people, brand and domains are attack surface. We protect employees, executives and reputation across the whole organization." },
 ];
 
 export function PersonaBand() {
   return (
-    <section className="mx-auto max-w-6xl px-6 py-20">
+    <section className="mx-auto max-w-6xl px-6 py-24">
       <div className="mx-auto max-w-2xl text-center">
-        <span className="text-xs font-semibold uppercase tracking-wider text-brand-fg">What it does for you</span>
-        <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">
-          Tell us who to protect. We handle the rest.
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-brand-fg">
+          Who we protect
+        </span>
+        <h2 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+          Built for everyone with something to lose.
         </h2>
+        <p className="mt-4 text-lg text-slate-400">
+          Whoever you are, your private information is already out there. Here&rsquo;s what we stand between you and harm.
+        </p>
       </div>
-      <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {personas.map((p) => (
-          <Link
-            key={p.q}
-            href="/pricing"
-            className="group flex flex-col rounded-2xl border border-border bg-bg-elevated/50 p-6 transition hover:border-brand/40 hover:bg-bg-elevated"
+      <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {protectedGroups.map((p) => (
+          <div
+            key={p.who}
+            className="group relative overflow-hidden rounded-2xl border border-border bg-bg-elevated/50 p-6 transition duration-300 hover:-translate-y-1 hover:border-brand/40 hover:bg-bg-elevated/80"
           >
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-brand/25 to-brand/5">
+            <div aria-hidden className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-brand/15 opacity-0 blur-2xl transition duration-300 group-hover:opacity-100" />
+            <span className="relative flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-brand/25 to-brand/5 ring-1 ring-brand/20">
               <p.icon className="h-5 w-5 text-brand-fg" />
             </span>
-            <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{p.who}</p>
-            <h3 className="mt-1 flex items-center gap-1.5 text-lg font-semibold text-white">
-              “{p.q}” <ArrowRight className="h-4 w-4 text-brand-fg opacity-0 transition group-hover:opacity-100" />
-            </h3>
-            <p className="mt-2 text-sm leading-relaxed text-slate-400">{p.outcome}</p>
-          </Link>
+            <h3 className="relative mt-4 text-lg font-semibold text-white">{p.who}</h3>
+            <p className="relative mt-2 text-sm leading-relaxed text-slate-400">{p.risk}</p>
+          </div>
         ))}
       </div>
     </section>
