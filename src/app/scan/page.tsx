@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import { BrandMark } from "@/components/brand-mark";
 import { FreeScan } from "./free-scan";
 
 export const metadata = {
@@ -11,10 +11,7 @@ export default function FreeScanPage() {
   return (
     <main id="content" className="bg-grid min-h-screen">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-        <Link href="/" className="flex items-center gap-2">
-          <Image src="/PrivacyLogo.png" alt="" width={28} height={28} className="h-7 w-7" />
-          <span className="text-lg font-bold text-white">PrivacyOS</span>
-        </Link>
+        <BrandMark size={32} wordmarkClass="text-xl" />
         <Link href="/pricing" className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-200 transition hover:bg-bg-elevated">
           Pricing
         </Link>

@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
-import { LogOut, Shield } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { signOut } from "@/app/auth/actions";
 import type { Feature } from "@/lib/billing/entitlements";
 import { NavList } from "@/components/nav";
+import { BrandMark } from "@/components/brand-mark";
 
 function initialsOf(name: string) {
   return (
@@ -32,14 +32,9 @@ export function Sidebar({
   const name = subjectName ?? "Demo Subject";
   return (
     <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-gradient-to-b from-bg-subtle/80 to-bg-subtle/40 lg:flex">
-      <Link href="/" className="group flex items-center gap-2.5 border-b border-border/60 px-5 py-4">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-brand to-brand-fg/80 shadow-md shadow-brand/20 ring-1 ring-white/10 transition group-hover:shadow-brand/40">
-          <Shield className="h-4 w-4 text-white" />
-        </span>
-        <span className="text-lg font-bold tracking-tight text-white">
-          Privacy<span className="text-brand-fg">OS</span>
-        </span>
-      </Link>
+      <div className="border-b border-border/60 px-5 py-4">
+        <BrandMark size={30} />
+      </div>
 
       <NavList lockedFeatures={lockedFeatures} isOperator={isOperator} />
 

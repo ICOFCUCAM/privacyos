@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Shield, Menu, X, LogOut } from "lucide-react";
+import { Menu, X, LogOut } from "lucide-react";
 import { signOut } from "@/app/auth/actions";
 import { cn } from "@/lib/ui";
 import type { Feature } from "@/lib/billing/entitlements";
 import { NavList } from "@/components/nav";
+import { BrandMark } from "@/components/brand-mark";
 
 /** Top bar + slide-over drawer for navigation on screens below lg. */
 export function MobileNav({
@@ -40,10 +40,7 @@ export function MobileNav({
     <div className="lg:hidden">
       {/* Top bar */}
       <div className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-bg/80 px-4 py-3 backdrop-blur">
-        <Link href="/" className="flex items-center gap-2">
-          <Shield className="h-5 w-5 text-brand" />
-          <span className="text-base font-bold text-white">PrivacyOS</span>
-        </Link>
+        <BrandMark size={26} wordmarkClass="text-base" />
         <button
           type="button"
           onClick={() => setOpen(true)}
@@ -75,10 +72,7 @@ export function MobileNav({
         )}
       >
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <Link href="/" className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-brand" />
-            <span className="text-base font-bold text-white">PrivacyOS</span>
-          </Link>
+          <BrandMark size={26} wordmarkClass="text-base" />
           <button
             type="button"
             onClick={() => setOpen(false)}

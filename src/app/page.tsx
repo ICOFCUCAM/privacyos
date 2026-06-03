@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import { BrandMark } from "@/components/brand-mark";
 import {
   Shield,
   Search,
@@ -43,14 +43,7 @@ export default async function LandingPage() {
     <main id="content" className="bg-grid min-h-screen">
       <header className="sticky top-0 z-50 border-b border-border/60 bg-bg/70 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
-          <Link href="/" className="group flex items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand to-brand-fg/80 shadow-lg shadow-brand/25 ring-1 ring-white/10 transition group-hover:shadow-brand/40">
-              <Shield className="h-5 w-5 text-white" />
-            </span>
-            <span className="text-lg font-bold tracking-tight text-white">
-              Privacy<span className="bg-gradient-to-r from-brand-fg to-brand bg-clip-text text-transparent">OS</span>
-            </span>
-          </Link>
+          <BrandMark size={34} wordmarkClass="text-xl" />
           <div className="flex items-center gap-1">
             <Link
               href="/security"
@@ -154,10 +147,7 @@ export default async function LandingPage() {
         <div className="mx-auto max-w-6xl px-6 py-12">
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-4 lg:grid-cols-5">
             <div className="col-span-2 lg:col-span-1">
-              <div className="flex items-center gap-2">
-                <Image src="/PrivacyLogo.png" alt="" width={24} height={24} className="h-6 w-6" />
-                <span className="text-base font-bold text-white">PrivacyOS</span>
-              </div>
+              <BrandMark size={26} wordmarkClass="text-base" href={null} />
               <p className="mt-3 max-w-xs text-sm text-slate-400">
                 The Digital Risk Operating System — autonomous privacy, reputation, identity and enterprise protection.
               </p>

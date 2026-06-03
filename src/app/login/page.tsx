@@ -1,7 +1,6 @@
-import Link from "next/link";
-import Image from "next/image";
 import { ShieldCheck, Bot, Scale, Radar } from "lucide-react";
 import { LoginForm } from "@/components/login-form";
+import { BrandMark } from "@/components/brand-mark";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 
 const highlights: { icon: typeof ShieldCheck; title: string; desc: string }[] = [
@@ -28,9 +27,8 @@ export default async function LoginPage({
         <div className="bg-grid pointer-events-none absolute inset-0 opacity-40" />
 
         <div className="relative">
-          <Link href="/" className="inline-flex">
-            <Image src="/privacylogo2.png" alt="PrivacyOS — Protect what matters" width={320} height={150} priority className="h-auto w-56" />
-          </Link>
+          <BrandMark size={48} wordmarkClass="text-3xl" className="gap-3" />
+          <p className="mt-3 text-sm tracking-[0.2em] text-slate-500">PROTECT WHAT MATTERS</p>
         </div>
 
         <div className="relative space-y-6">
@@ -61,10 +59,9 @@ export default async function LoginPage({
       <div className="bg-grid flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-sm">
           {/* compact logo for mobile (brand panel hidden) */}
-          <Link href="/" className="mb-8 flex items-center justify-center gap-2 lg:hidden">
-            <ShieldCheck className="h-6 w-6 text-brand" />
-            <span className="text-lg font-bold text-white">PrivacyOS</span>
-          </Link>
+          <div className="mb-8 flex justify-center lg:hidden">
+            <BrandMark size={32} wordmarkClass="text-xl" />
+          </div>
           <div className="rounded-2xl border border-border bg-bg-elevated/60 p-7 shadow-2xl shadow-black/30 backdrop-blur">
             <h1 className="mb-1 text-xl font-semibold text-white">Welcome back</h1>
             <p className="mb-6 text-sm text-slate-400">

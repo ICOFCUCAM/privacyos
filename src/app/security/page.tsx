@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Shield, BadgeCheck, FileCheck2, Server } from "lucide-react";
+import { BadgeCheck, FileCheck2, Server } from "lucide-react";
+import { BrandMark } from "@/components/brand-mark";
 import { SecurityArchitecture } from "@/components/security-architecture";
 import { buttonClasses } from "@/components/ui";
 
@@ -30,10 +31,7 @@ export default function SecurityPage() {
   return (
     <main className="bg-grid min-h-screen">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-        <Link href="/" className="flex items-center gap-2">
-          <Shield className="h-6 w-6 text-brand" />
-          <span className="text-lg font-bold text-white">PrivacyOS</span>
-        </Link>
+        <BrandMark size={32} wordmarkClass="text-xl" />
         <div className="flex items-center gap-2">
           <Link href="/pricing" className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-200 transition hover:bg-bg-elevated">
             Pricing

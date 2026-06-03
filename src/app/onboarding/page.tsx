@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { Shield } from "lucide-react";
+import { BrandMark } from "@/components/brand-mark";
 import { OnboardingForm } from "@/components/onboarding-form";
 import { getSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { decodeIntent, INTENT_COOKIE, profileToSubjectType } from "@/lib/home/scan-intent";
@@ -27,9 +27,8 @@ export default async function OnboardingPage() {
   return (
     <main className="bg-grid flex min-h-screen items-center justify-center px-6 py-12">
       <div className="w-full max-w-xl">
-        <div className="mb-8 flex items-center justify-center gap-2">
-          <Shield className="h-6 w-6 text-brand" />
-          <span className="text-lg font-bold text-white">PrivacyOS</span>
+        <div className="mb-8 flex justify-center">
+          <BrandMark size={34} wordmarkClass="text-xl" />
         </div>
         <div className="rounded-2xl border border-border bg-bg-elevated/60 p-7 backdrop-blur">
           <h1 className="text-xl font-semibold text-white">Set up your protection</h1>

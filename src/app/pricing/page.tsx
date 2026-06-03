@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Shield } from "lucide-react";
+import { BrandMark } from "@/components/brand-mark";
 import { PricingTable } from "@/components/pricing";
 import { TrustStrip } from "@/components/landing-sections";
 import { buttonClasses } from "@/components/ui";
@@ -48,10 +48,7 @@ export default async function PricingPage({
   return (
     <main className="bg-grid min-h-screen">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-        <Link href="/" className="flex items-center gap-2">
-          <Shield className="h-6 w-6 text-brand" />
-          <span className="text-lg font-bold text-white">PrivacyOS</span>
-        </Link>
+        <BrandMark size={32} wordmarkClass="text-xl" />
         <Link href="/dashboard" className={buttonClasses("primary", "md")}>
           Open Dashboard
         </Link>
