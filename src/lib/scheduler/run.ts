@@ -20,7 +20,10 @@ import { planAutoFilings } from "@/lib/brokers/auto-file";
 import { coerceMode, needsApproval } from "@/lib/home/autonomy";
 import { runPlaybooks, exposureToFinding, threatToFinding } from "@/lib/agents/playbooks";
 import { actionEvidence, type EvidenceItem } from "@/lib/intelligence/evidence-vault";
+import { planCaseActions } from "@/lib/cases/case-actions";
+import { LEGAL_TYPE_LABELS } from "@/lib/legal/engine";
 import { casesForNewThreats } from "@/lib/agents/threat-cases";
+import type { NewCaseFields } from "@/lib/agents/recommendation-routing";
 import { reputationCasesFromMentions } from "@/lib/reputation/os/reputation-cases";
 import { reputationOverview } from "@/lib/reputation/os/analysis";
 import { executiveRiskIndices } from "@/lib/executive/os/risk-indices";
@@ -35,6 +38,7 @@ import { scanDomain } from "@/lib/domains/scan";
 import { DohClient } from "@/lib/domains/dns";
 import type {
   NewAgentAction,
+  NewLegalDraft,
   NewNotification,
   ScheduledRunSummary,
   SchedulerStore,
@@ -72,6 +76,7 @@ export async function runScheduledCycle(
   let playbooksAutoExecuted = 0;
   let playbooksAwaitingApproval = 0;
   let evidenceSealed = 0;
+  let legalDrafted = 0;
   let mentionsCollected = 0;
   let domainRisksFound = 0;
 
@@ -80,6 +85,9 @@ export async function runScheduledCycle(
     // flushed to the Evidence Vault at the end of the loop, so the vault is a
     // real ledger of what the engine did — not a re-derivation of raw findings.
     const evidence: EvidenceItem[] = [];
+    // Cases opened anywhere in this subject's cycle — drafted into legal
+    // instruments in one pass below (the Case → Legal cascade).
+    const openedCases: NewCaseFields[] = [];
     const now0 = new Date().toISOString();
 
     // 1. Discover — only genuinely new findings come back (deduped).
@@ -115,6 +123,7 @@ export async function runScheduledCycle(
               status: "completed",
             },
           ]);
+          openedCases.push(...newCases);
           for (const c of newCases) {
             evidence.push(actionEvidence({
               subjectId: fp.subject.id,
@@ -285,6 +294,7 @@ export async function runScheduledCycle(
       await store.recordActions(fp.userId, fp.subject.id, [
         { agent: "executive", kind: "escalate", summary: `Opened ${actorCases.length} protective case(s) for escalating/harassment threat actors.`, status: "completed" },
       ]);
+      openedCases.push(...actorCases);
       for (const c of actorCases) {
         evidence.push(actionEvidence({
           subjectId: fp.subject.id,
@@ -440,6 +450,7 @@ export async function runScheduledCycle(
             status: "completed",
           },
         ]);
+        openedCases.push(...repCases);
         for (const c of repCases) {
           evidence.push(actionEvidence({
             subjectId: fp.subject.id,
@@ -492,6 +503,51 @@ export async function runScheduledCycle(
       console.error("[privacyos] domain scan failed:", err);
     }
 
+    // 6g. Case → Legal cascade. Each newly-opened case with a legal dimension
+    // auto-drafts its instrument from real case facts (a reputation-recovery
+    // case → a defamation/takedown demand; an executive-protection case → a
+    // privacy-violation notice), persists it as a reviewable draft, and seals it
+    // into the vault. Broker opt-outs a case implies are filed by step 6f, so
+    // only the legal artifact is taken here (plan.removals is ignored).
+    if (openedCases.length > 0) {
+      const drafts: NewLegalDraft[] = [];
+      for (const c of openedCases) {
+        const plan = planCaseActions(
+          { type: c.type, title: c.title, subjectId: fp.subject.id },
+          { subjectName: fp.subject.displayName ?? "the data subject", exposures, existingRemovals: [] },
+        );
+        if (!plan.legal) continue;
+        drafts.push({ type: plan.legal.type, recipient: plan.legal.recipient, body: plan.legal.body, caseTitle: c.title });
+        evidence.push(actionEvidence({
+          subjectId: fp.subject.id,
+          action: `Drafted ${LEGAL_TYPE_LABELS[plan.legal.type]}`,
+          detail: `Recipient: ${plan.legal.recipient} — for case "${c.title}"`,
+          source: "Legal Agent",
+          riskLevel: c.riskLevel,
+          collectedBy: "legal",
+          collectedAt: now0,
+          caseTitle: c.title,
+        }));
+      }
+      if (drafts.length > 0) {
+        try {
+          await store.createLegalDrafts(fp.userId, fp.subject.id, drafts);
+          await store.recordActions(fp.userId, fp.subject.id, [
+            {
+              agent: "legal",
+              kind: "draft_legal",
+              summary: `Drafted ${drafts.length} legal document(s) from newly-opened case(s) — ready for your review.`,
+              status: "completed",
+            },
+          ]);
+          legalDrafted += drafts.length;
+        } catch (err) {
+          // Legal drafting is best-effort; never fail the whole cycle.
+          console.error("[privacyos] legal drafting failed:", err);
+        }
+      }
+    }
+
     // Flush this subject's sealed artifacts to the Evidence Vault in one write.
     if (evidence.length > 0) {
       try {
@@ -535,6 +591,7 @@ export async function runScheduledCycle(
     playbooksAutoExecuted,
     playbooksAwaitingApproval,
     evidenceSealed,
+    legalDrafted,
     mentionsCollected,
     domainRisksFound,
     ranAt: new Date().toISOString(),

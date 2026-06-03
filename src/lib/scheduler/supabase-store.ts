@@ -15,6 +15,7 @@ import type {
   DomainScanData,
   Footprint,
   NewAgentAction,
+  NewLegalDraft,
   NewNotification,
   OwnedRemoval,
   ReputationData,
@@ -353,6 +354,20 @@ export class SupabaseSchedulerStore implements SchedulerStore {
         case_id: e.caseTitle ? caseIdByTitle.get(e.caseTitle) ?? null : null,
         case_title: e.caseTitle ?? null,
         custody: e.custody,
+      })),
+    );
+  }
+
+  async createLegalDrafts(userId: string, subjectId: string, drafts: NewLegalDraft[]): Promise<void> {
+    if (drafts.length === 0) return;
+    await this.db.from("legal_requests").insert(
+      drafts.map((d) => ({
+        user_id: userId,
+        subject_id: subjectId,
+        type: d.type,
+        recipient: d.recipient,
+        status: "draft",
+        body: d.body,
       })),
     );
   }

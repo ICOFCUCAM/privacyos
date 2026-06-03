@@ -9,6 +9,7 @@
 
 import type {
   AgentActionKind,
+  LegalRequestType,
   Mention,
   NotificationKind,
   ScoreKind,
@@ -53,6 +54,15 @@ export interface ScoreEntry {
   value: number;
 }
 
+/** A legal instrument auto-drafted from a newly-opened case, ready to persist. */
+export interface NewLegalDraft {
+  type: LegalRequestType;
+  recipient: string;
+  body: string;
+  /** The case this draft was generated for (for the audit trail). */
+  caseTitle?: string;
+}
+
 export interface ScheduledRunSummary {
   subjectsProcessed: number;
   newExposures: number;
@@ -83,6 +93,8 @@ export interface ScheduledRunSummary {
   playbooksAwaitingApproval: number;
   /** Autonomous actions sealed into the Evidence Vault this cycle. */
   evidenceSealed: number;
+  /** Legal instruments auto-drafted from newly-opened cases this cycle. */
+  legalDrafted: number;
   mentionsCollected: number;
   domainRisksFound: number;
   ranAt: string;
@@ -142,4 +154,6 @@ export interface SchedulerStore {
   createCases(userId: string, subjectId: string, cases: NewCaseFields[]): Promise<void>;
   /** Seal autonomous actions as tamper-evident records in the Evidence Vault. */
   recordEvidence(userId: string, subjectId: string, items: EvidenceItem[]): Promise<void>;
+  /** Persist legal instruments auto-drafted from cases (left in 'draft' for review). */
+  createLegalDrafts(userId: string, subjectId: string, drafts: NewLegalDraft[]): Promise<void>;
 }

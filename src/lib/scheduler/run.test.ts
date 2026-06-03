@@ -5,6 +5,7 @@ import type {
   DomainScanData,
   Footprint,
   NewAgentAction,
+  NewLegalDraft,
   NewNotification,
   OwnedRemoval,
   ReputationData,
@@ -53,6 +54,7 @@ class MemoryStore implements SchedulerStore {
   createdCases: NewCaseFields[] = [];
   openCaseTitles: string[] = [];
   evidence: EvidenceItem[] = [];
+  legalDrafts: NewLegalDraft[] = [];
 
   async listFootprints() {
     return this.footprints;
@@ -106,6 +108,9 @@ class MemoryStore implements SchedulerStore {
   }
   async recordEvidence(_u: string, _s: string, items: EvidenceItem[]) {
     this.evidence.push(...items);
+  }
+  async createLegalDrafts(_u: string, _s: string, drafts: NewLegalDraft[]) {
+    this.legalDrafts.push(...drafts);
   }
 }
 
@@ -317,6 +322,16 @@ describe("runScheduledCycle", () => {
     const notif = store.notifications.flat().find((n) => /Defamatory content detected/.test(n.title));
     expect(notif).toBeTruthy();
     expect(notif!.riskLevel).toBe("high");
+
+    // Case → Legal cascade: opening the reputation-recovery case auto-drafts the
+    // defamation/takedown demand, persists it as a draft, and seals it.
+    expect(summary.legalDrafted).toBeGreaterThanOrEqual(1);
+    const draft = store.legalDrafts.find((d) => d.type === "defamation_complaint");
+    expect(draft).toBeTruthy();
+    expect(draft!.body.length).toBeGreaterThan(0);
+    expect(store.evidence.some((e) => /Drafted .*Defamation/i.test(e.title))).toBe(true);
+    const draftAction = store.actions.flat().find((a) => a.kind === "draft_legal");
+    expect(draftAction).toBeTruthy();
   });
 
   it("escalates the principal to critical executive risk on critical physical threats", async () => {
