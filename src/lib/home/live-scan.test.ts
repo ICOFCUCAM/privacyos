@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { isValidEmail, serpToExposures, mentionsToExposures, liveExposureScan } from "./live-scan";
+import { isValidEmail, splitSerpResults, mentionsToExposures, liveExposureScan } from "./live-scan";
+import { brokerForDomain } from "./data-brokers";
 
 describe("isValidEmail", () => {
   it("accepts plausible emails and rejects junk", () => {
@@ -11,21 +12,30 @@ describe("isValidEmail", () => {
   });
 });
 
-describe("serpToExposures", () => {
-  it("maps page-one results to search exposures, weighting the top spots higher", () => {
-    const ex = serpToExposures(
+describe("brokerForDomain", () => {
+  it("matches known broker domains (incl. www. and subdomains), else null", () => {
+    expect(brokerForDomain("spokeo.com")).toBe("Spokeo");
+    expect(brokerForDomain("www.whitepages.com")).toBe("Whitepages");
+    expect(brokerForDomain("results.beenverified.com")).toBe("BeenVerified");
+    expect(brokerForDomain("techcrunch.com")).toBeNull();
+  });
+});
+
+describe("splitSerpResults", () => {
+  it("routes broker-domain hits to the brokers layer and the rest to search", () => {
+    const { brokers, search } = splitSerpResults(
       [
         { position: 1, title: "Jordan on Spokeo", url: "https://spokeo.com/jordan", domain: "spokeo.com" },
-        { position: 7, title: "Old forum post", url: "https://forum.example/x", domain: "forum.example" },
+        { position: 2, title: "Jordan — Whitepages", url: "https://www.whitepages.com/j", domain: "www.whitepages.com" },
+        { position: 5, title: "Jordan's blog", url: "https://jordan.blog/x", domain: "jordan.blog" },
       ],
       "s1",
       "2026-01-01T00:00:00Z",
     );
-    expect(ex).toHaveLength(2);
-    expect(ex[0].source).toBe("search_engine");
-    expect(ex[0].sourceName).toBe("spokeo.com");
-    expect(ex[0].riskLevel).toBe("medium"); // position <= 3
-    expect(ex[1].riskLevel).toBe("low");
+    expect(brokers.map((b) => b.sourceName)).toEqual(["Spokeo", "Whitepages"]);
+    expect(brokers.every((b) => b.source === "data_broker" && b.riskLevel === "high")).toBe(true);
+    expect(search).toHaveLength(1);
+    expect(search[0].source).toBe("search_engine");
   });
 });
 
@@ -64,15 +74,23 @@ describe("liveExposureScan", () => {
     expect(r.exposures).toHaveLength(1);
   });
 
-  it("runs SERP when a key is present and marks the reputation layer live", async () => {
+  it("runs SERP and marks both brokers and reputation live when results include a broker", async () => {
     const serp = {
-      search: async () => ({ live: true, provider: "serper" as const, results: [{ position: 1, title: "Result", url: "https://x.com", domain: "x.com" }] }),
+      search: async () => ({
+        live: true,
+        provider: "serper" as const,
+        results: [
+          { position: 1, title: "Jordan — Spokeo", url: "https://spokeo.com/j", domain: "spokeo.com" },
+          { position: 2, title: "Jordan's site", url: "https://x.com", domain: "x.com" },
+        ],
+      }),
     };
     const r = await liveExposureScan(
       { name: "Jordan", subjectId: "s1" },
       { ...baseDeps, serp, env: { SERPER_API_KEY: "x" } },
     );
     expect(r.keysConfigured).toBe(true);
+    expect(r.liveLayers).toContain("brokers");
     expect(r.liveLayers).toContain("reputation");
   });
 

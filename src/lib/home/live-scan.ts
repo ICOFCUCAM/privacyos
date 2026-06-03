@@ -20,6 +20,7 @@ import type { DiscoverySource } from "@/lib/discovery/source";
 import { BreachConnector } from "@/lib/discovery/breach-connector";
 import { resolveSerpSource, type SerpResult, type SerpSource } from "@/lib/reputation/os/serp-connector";
 import { NewsMentionSource, type RawMention } from "@/lib/reputation/news-connector";
+import { brokerForDomain } from "@/lib/home/data-brokers";
 
 const RISK_SCORE: Record<RiskLevel, number> = { low: 8, medium: 20, high: 38, critical: 60 };
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
@@ -40,25 +41,58 @@ function adhocSubject(name: string, email: string | undefined, id: string): Subj
   };
 }
 
-/** Page-one Google results about the person → search-engine exposures. */
-export function serpToExposures(results: SerpResult[], subjectId: string, now = new Date().toISOString()): Exposure[] {
-  return results.map((r) => {
-    const level: RiskLevel = r.position <= 3 ? "medium" : "low";
-    return {
-      id: `serp-${subjectId}-${r.position}`,
-      subjectId,
-      category: "name",
-      source: "search_engine",
-      sourceName: r.domain || r.url,
-      url: r.url,
-      snippet: r.title,
-      riskLevel: level,
-      riskScore: RISK_SCORE[level],
-      status: "discovered",
-      discoveredAt: now,
-      lastSeenAt: now,
-    };
-  });
+export interface SplitSerp {
+  /** Results on known data-broker / people-search domains → broker exposures. */
+  brokers: Exposure[];
+  /** Everything else on page one → general search-engine exposures. */
+  search: Exposure[];
+}
+
+/**
+ * Classify live Google results: a hit on a known broker domain is a real
+ * people-search listing (high-value, the brokers layer); the rest are general
+ * page-one search exposure. This is how broker detection stays live without
+ * scraping the brokers themselves.
+ */
+export function splitSerpResults(results: SerpResult[], subjectId: string, now = new Date().toISOString()): SplitSerp {
+  const brokers: Exposure[] = [];
+  const search: Exposure[] = [];
+  for (const r of results) {
+    const broker = brokerForDomain(r.domain || r.url);
+    if (broker) {
+      brokers.push({
+        id: `broker-${subjectId}-${r.position}`,
+        subjectId,
+        category: "name",
+        source: "data_broker",
+        sourceName: broker,
+        url: r.url,
+        snippet: r.title,
+        riskLevel: "high", // people-search listings sell address/phone/relatives
+        riskScore: RISK_SCORE.high,
+        status: "discovered",
+        discoveredAt: now,
+        lastSeenAt: now,
+      });
+    } else {
+      const level: RiskLevel = r.position <= 3 ? "medium" : "low";
+      search.push({
+        id: `serp-${subjectId}-${r.position}`,
+        subjectId,
+        category: "name",
+        source: "search_engine",
+        sourceName: r.domain || r.url,
+        url: r.url,
+        snippet: r.title,
+        riskLevel: level,
+        riskScore: RISK_SCORE[level],
+        status: "discovered",
+        discoveredAt: now,
+        lastSeenAt: now,
+      });
+    }
+  }
+  return { brokers, search };
 }
 
 /** Real news mentions → news exposures. */
@@ -135,14 +169,22 @@ export async function liveExposureScan(
     }
   }
 
-  // Search results — Google SERP (Olostep → Serper), by name.
+  // Search results — Google SERP (Olostep → Serper), by name. Broker listings in
+  // the results become live broker detections; the rest are search exposure.
   if (serpReady || deps.serp) {
     try {
       const serp = deps.serp ?? resolveSerpSource(env);
-      const r = await serp.search(input.name, 6);
+      const r = await serp.search(input.name, 10);
       if (r.live && r.results.length) {
-        exposures.push(...serpToExposures(r.results, input.subjectId));
-        liveLayers.add("reputation");
+        const { brokers, search } = splitSerpResults(r.results, input.subjectId);
+        if (brokers.length) {
+          exposures.push(...brokers);
+          liveLayers.add("brokers");
+        }
+        if (search.length) {
+          exposures.push(...search);
+          liveLayers.add("reputation");
+        }
       }
     } catch {
       /* ignore */
