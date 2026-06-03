@@ -35,7 +35,7 @@ export function Hero() {
         <div className="relative z-10 lg:col-span-5">
           <span className="inline-flex items-center gap-2 rounded-full border border-border bg-bg-elevated/70 px-3 py-1 text-xs font-medium text-brand-fg backdrop-blur">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand" />
-            The Operating System for Digital Privacy
+            Autonomous protection for your digital life
           </span>
 
           <h1 className="mt-6 text-4xl font-bold leading-[1.06] tracking-tight text-white sm:text-5xl xl:text-[3.75rem]">
@@ -46,9 +46,9 @@ export function Hero() {
           </h1>
 
           <p className="mt-5 max-w-xl text-lg leading-relaxed text-slate-400">
-            PrivacyOS discovers, monitors, analyzes, and continuously defends your digital
-            presence across search engines, data brokers, social media, dark web sources,
-            and AI-generated threats.
+            We find what&rsquo;s exposed about you across data brokers, breaches, the dark web,
+            search and social — then remove it and keep watching, automatically. You get peace
+            of mind; we do the work.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -59,13 +59,13 @@ export function Hero() {
               <ShieldCheck className="h-4 w-4" /> Run a Free Exposure Scan
             </Link>
             <Link
-              href="/dashboard"
+              href="/pricing"
               className="inline-flex items-center gap-2 rounded-lg border border-border bg-bg-elevated/40 px-6 py-3 text-sm font-semibold text-slate-200 backdrop-blur transition hover:bg-bg-elevated"
             >
-              <PlayCircle className="h-4 w-4" /> Explore the Demo
+              <PlayCircle className="h-4 w-4" /> See protection plans
             </Link>
           </div>
-          <p className="mt-3 text-xs text-slate-500">No signup, no card — see what&rsquo;s exposed in seconds.</p>
+          <p className="mt-3 text-xs text-slate-500">No signup, no card — see what&rsquo;s exposed in under a minute.</p>
 
           <ul className="mt-9 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
             {trust.map((t) => (
