@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useInView, useMotionValue, animate as animateMv } from "framer-motion";
 import {
-  ShieldCheck, Radar, Fingerprint, Users, Star, EyeOff, FileText, Activity,
+  ShieldCheck, Radar, Fingerprint, Users, Star, EyeOff, Trash2, Activity,
   Search, Bell, CheckCircle2, ChevronDown,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -19,7 +19,7 @@ const NAV: { icon: LucideIcon; label: string; active?: boolean }[] = [
   { icon: Star, label: "Reputation" },
   { icon: EyeOff, label: "Dark Web" },
   { icon: Activity, label: "Monitoring" },
-  { icon: FileText, label: "Reports" },
+  { icon: Trash2, label: "Removals" },
 ];
 
 /* ── animated number ──────────────────────────────────────────────────────── */
@@ -122,18 +122,20 @@ export function ProtectionDashboard({ metrics, flat = false }: { metrics?: HeroM
   return (
     <div style={{ perspective: 2200 }} className="w-full">
       <motion.div
-        initial={{ opacity: 0, rotateY: flat ? 0 : -15, rotateX: flat ? 0 : 5, y: 34 }}
-        animate={{ opacity: 1, rotateY: flat ? 0 : -11, rotateX: flat ? 0 : 3, y: 0 }}
+        initial={{ opacity: 0, rotateY: flat ? 0 : -16, rotateX: flat ? 0 : 6, y: 34 }}
+        animate={{ opacity: 1, rotateY: flat ? 0 : -13, rotateX: flat ? 0 : 4, y: 0 }}
         transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
         style={{ transformStyle: "preserve-3d", transformOrigin: "left center" }}
         className="relative"
       >
+        {/* premium border glow */}
+        <div aria-hidden className="absolute -inset-3 rounded-[2.1rem] bg-indigo-500/10 blur-2xl" />
         {/* thickness / drop layers → physical depth */}
-        <div aria-hidden className="absolute -inset-1 translate-x-2.5 translate-y-4 rounded-[1.8rem] bg-black/60 blur-[4px]" />
-        <div aria-hidden className="absolute -inset-px translate-x-1 translate-y-1.5 rounded-[1.7rem] bg-black/40" />
+        <div aria-hidden className="absolute -inset-1 translate-x-2.5 translate-y-4 rounded-[1.9rem] bg-black/60 blur-[5px]" />
+        <div aria-hidden className="absolute -inset-px translate-x-1 translate-y-1.5 rounded-[1.8rem] bg-black/45" />
 
         {/* device bezel */}
-        <div className="relative rounded-[1.7rem] bg-gradient-to-b from-white/[0.16] to-white/[0.04] p-[3px] shadow-[0_45px_110px_-25px_rgba(0,0,0,0.92)] ring-1 ring-white/10">
+        <div className="relative rounded-[1.8rem] bg-gradient-to-b from-white/[0.18] to-white/[0.04] p-[4px] shadow-[0_50px_120px_-25px_rgba(0,0,0,0.95)] ring-1 ring-white/14">
           {/* screen */}
           <div className="relative overflow-hidden rounded-[1.5rem] bg-gradient-to-br from-[#0d1124] via-[#0b0e1c] to-[#080a14]">
             {/* top edge highlight + reflection sheen */}
@@ -169,7 +171,7 @@ export function ProtectionDashboard({ metrics, flat = false }: { metrics?: HeroM
               </motion.aside>
 
               {/* main */}
-              <div className="min-w-0 flex-1 p-3">
+              <div className="min-w-0 flex-1 p-3.5">
                 {/* header */}
                 <motion.div variants={fade} className="flex items-center justify-between">
                   <div>
@@ -197,17 +199,17 @@ export function ProtectionDashboard({ metrics, flat = false }: { metrics?: HeroM
                   </StatCard>
                   <StatCard>
                     <p className="text-[8px] font-medium uppercase tracking-wide text-slate-400">Exposures removed</p>
-                    <p className="mt-1 text-xl font-black leading-none text-white"><AnimatedNumber value={m.exposuresRemoved} /></p>
+                    <p className="mt-1.5 text-2xl font-black leading-none text-white"><AnimatedNumber value={m.exposuresRemoved} /></p>
                     <p className="mt-0.5 text-[7px] text-emerald-300">↑ 23 this week</p>
                   </StatCard>
                   <StatCard>
                     <p className="text-[8px] font-medium uppercase tracking-wide text-slate-400">Threats blocked</p>
-                    <p className="mt-1 text-xl font-black leading-none text-white"><AnimatedNumber value={m.threatsBlocked} /></p>
+                    <p className="mt-1.5 text-2xl font-black leading-none text-white"><AnimatedNumber value={m.threatsBlocked} /></p>
                     <p className="mt-0.5 text-[7px] text-emerald-300">↑ 11 this week</p>
                   </StatCard>
                   <StatCard>
                     <p className="text-[8px] font-medium uppercase tracking-wide text-slate-400">Threat level</p>
-                    <p className="mt-1 text-lg font-black leading-none text-emerald-400">Low</p>
+                    <p className="mt-1.5 text-xl font-black leading-none text-emerald-400">Low</p>
                     <p className="mt-0.5 text-[7px] text-slate-500">All clear</p>
                   </StatCard>
                 </motion.div>
@@ -219,7 +221,7 @@ export function ProtectionDashboard({ metrics, flat = false }: { metrics?: HeroM
                       <p className="text-[9px] font-semibold text-white">Protection activity</p>
                       <span className="text-[8px] font-semibold text-emerald-300">↑ {trendPct}% this week</span>
                     </div>
-                    <div className="mt-1.5 h-14"><FlowLine values={m.chart} /></div>
+                    <div className="mt-2 h-[72px]"><FlowLine values={m.chart} /></div>
                   </div>
                   <div className="col-span-2 rounded-xl border border-white/8 bg-white/[0.03] p-2.5">
                     <p className="text-[9px] font-semibold text-white">Recent actions</p>
@@ -236,8 +238,27 @@ export function ProtectionDashboard({ metrics, flat = false }: { metrics?: HeroM
                   </div>
                 </motion.div>
 
+                {/* protection coverage */}
+                <motion.div variants={fade} className="mt-2 rounded-xl border border-white/8 bg-white/[0.03] p-2.5">
+                  <p className="text-[9px] font-semibold text-white">Protection coverage</p>
+                  <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2">
+                    {([["Identity", 96], ["Family", 88], ["Devices", 92], ["Accounts", 84]] as [string, number][]).map(([label, pct]) => (
+                      <div key={label} className="flex items-center gap-2">
+                        <span className="w-12 shrink-0 text-[8px] text-slate-400">{label}</span>
+                        <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/8">
+                          <motion.span
+                            className="block h-full rounded-full bg-gradient-to-r from-indigo-500 to-emerald-400"
+                            initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ delay: 0.8, duration: 1, ease: "easeOut" }}
+                          />
+                        </span>
+                        <span className="w-6 shrink-0 text-right text-[8px] font-semibold text-slate-300">{pct}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+
                 {/* protection status row */}
-                <motion.div variants={fade} className="mt-1.5 grid grid-cols-4 gap-1.5">
+                <motion.div variants={fade} className="mt-2 grid grid-cols-4 gap-1.5">
                   {["Monitoring Active", "Auto Removals", "Identity Secured", "Family Protected"].map((s) => (
                     <div key={s} className="flex items-center gap-1.5 rounded-lg border border-white/8 bg-white/[0.02] px-2 py-1.5">
                       <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" />

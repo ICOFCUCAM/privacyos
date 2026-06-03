@@ -38,10 +38,10 @@ export function HeroStage({ metrics }: { metrics?: HeroMetrics }) {
   return (
     <MotionConfig reducedMotion="user">
       <div className="relative flex w-full items-center justify-center lg:min-h-[540px]">
-        {/* Layer 1 — digital Earth: large, wrapping the device (extends beyond it) */}
+        {/* Layer 1 — digital Earth: supports the device (slightly right, smaller) */}
         {showGlobe && (
           <div className="pointer-events-none absolute inset-0 z-0 opacity-90">
-            <div className="absolute left-1/2 top-1/2 h-[152%] w-[152%] -translate-x-1/2 -translate-y-1/2">
+            <div className="absolute left-[58%] top-1/2 h-[128%] w-[128%] -translate-x-1/2 -translate-y-1/2">
               <Globe quality={quality} reduced={reduced} />
             </div>
           </div>
