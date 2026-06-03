@@ -3,7 +3,7 @@
 import { cookies } from "next/headers";
 import { recordAudit } from "@/lib/audit/audit";
 import { getDataSource } from "@/lib/data";
-import { buildScaryMirror } from "@/lib/home/scary-mirror";
+import { buildScaryMirror, type MirrorFinding } from "@/lib/home/scary-mirror";
 import { freeAssessment, type FreeAssessment } from "@/lib/home/free-assessment";
 import { classifyProtection, type ProtectionRecommendation } from "@/lib/home/protection-profile";
 import { encodeIntent, INTENT_COOKIE } from "@/lib/home/scan-intent";
@@ -16,6 +16,10 @@ export interface FreeScanResult {
   assessment?: FreeAssessment;
   /** Silent profiling → the single most appropriate plan + remaining-risk math. */
   recommendation?: ProtectionRecommendation;
+  /** Per-section detail (label, count, severity, sample sources) for the staged reveal. */
+  findings?: MirrorFinding[];
+  /** How many sources the scan swept (for the scanning UI). */
+  sourcesScanned?: number;
 }
 
 /**
@@ -58,5 +62,5 @@ export async function runFreeAssessmentAction(name: string): Promise<FreeScanRes
     metadata: { exposures: assessment.totalExposures, protectionScore: assessment.protectionScore },
   });
 
-  return { locked: false, assessment, recommendation };
+  return { locked: false, assessment, recommendation, findings: report.findings, sourcesScanned: report.sourcesScanned };
 }
