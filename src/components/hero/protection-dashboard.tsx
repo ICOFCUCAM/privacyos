@@ -93,23 +93,22 @@ export function ProtectionDashboard({ metrics, flat = false }: { metrics?: HeroM
                 <p className="mt-0.5 text-[8px] text-slate-400">PrivacyOS is working for you</p>
               </div>
             </div>
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-400/10 px-1.5 py-0.5 text-[8px] font-semibold text-emerald-300 ring-1 ring-emerald-400/20">
-              <span className="relative flex h-1.5 w-1.5"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/70" /><span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" /></span>
-              LIVE
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="hidden text-[8px] font-semibold text-emerald-300 sm:inline">All clear</span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-400/10 px-1.5 py-0.5 text-[8px] font-semibold text-emerald-300 ring-1 ring-emerald-400/20">
+                <span className="relative flex h-1.5 w-1.5"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/70" /><span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" /></span>
+                LIVE
+              </span>
+            </div>
           </motion.div>
 
-          {/* outcome cards */}
-          <motion.div variants={card} className="mt-3 grid grid-cols-3 gap-1.5">
+          {/* outcome cards — single landscape row */}
+          <motion.div variants={card} className="mt-3 grid grid-cols-5 gap-1.5">
             <StatCard icon={ShieldCheck} label="Protection" value={m.protectionScore} format="score" accent />
             <StatCard icon={Trash2} label="Exposures removed" value={m.exposuresRemoved} />
             <StatCard icon={Crosshair} label="Threats prevented" value={m.threatsPrevented} />
             <StatCard icon={Users} label="Family protected" value={m.familyProtected} />
             <StatCard icon={Bot} label="AI agents active" value={m.agentsActive} />
-            <div className="flex flex-col justify-center rounded-xl border border-white/10 bg-white/[0.03] p-2.5">
-              <p className="text-[9px] font-medium uppercase tracking-wide text-slate-400">Status</p>
-              <p className="mt-1 text-[11px] font-bold text-emerald-300">All clear</p>
-            </div>
           </motion.div>
 
           {/* activity chart */}

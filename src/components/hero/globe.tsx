@@ -83,7 +83,7 @@ function ParticleGlobe({ count, reduced }: { count: number; reduced: boolean }) 
         <bufferGeometry>
           <bufferAttribute attach="attributes-position" args={[positions, 3]} />
         </bufferGeometry>
-        <pointsMaterial color="#a78bfa" size={0.022} sizeAttenuation transparent opacity={0.9} depthWrite={false} blending={THREE.AdditiveBlending} />
+        <pointsMaterial color="#b9a4fb" size={0.026} sizeAttenuation transparent opacity={1} depthWrite={false} blending={THREE.AdditiveBlending} />
       </points>
 
       {/* connection lines */}
@@ -92,7 +92,7 @@ function ParticleGlobe({ count, reduced }: { count: number; reduced: boolean }) 
           <bufferGeometry>
             <bufferAttribute attach="attributes-position" args={[lines, 3]} />
           </bufferGeometry>
-          <lineBasicMaterial color="#7c3aed" transparent opacity={0.28} depthWrite={false} blending={THREE.AdditiveBlending} />
+          <lineBasicMaterial color="#7c3aed" transparent opacity={0.36} depthWrite={false} blending={THREE.AdditiveBlending} />
         </lineSegments>
       )}
 
