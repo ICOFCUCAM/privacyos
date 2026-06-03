@@ -1,134 +1,232 @@
 "use client";
 
-import { useMemo, useRef } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
-import * as THREE from "three";
-import ThreeGlobe from "three-globe";
-import { feature } from "topojson-client";
-// Higher-resolution country geometry as DATA (not a texture) → real coastlines.
-import countriesTopo from "world-atlas/countries-50m.json";
+import { useEffect, useRef } from "react";
+import { LAND_DOTS, CITY_DOTS } from "./globe-dots";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-const landData = feature(countriesTopo as any, (countriesTopo as any).objects.countries) as any;
+/* ── Precompute geo points once (module scope) — never recomputed at runtime ─ */
+const DEG = Math.PI / 180;
+type Geo = { lat: number; lng: number };
+const LAND: Geo[] = [];
+for (let i = 0; i < LAND_DOTS.length; i += 2) LAND.push({ lat: LAND_DOTS[i], lng: LAND_DOTS[i + 1] });
+const CITIES: Geo[] = CITY_DOTS.map(([lat, lng]) => ({ lat, lng }));
 
-const HUBS: Record<string, [number, number]> = {
-  ny: [40.7, -74], la: [34, -118], sao: [-23.5, -46.6], lon: [51.5, -0.1], mos: [55.7, 37.6],
-  lag: [6.5, 3.4], nai: [-1.3, 36.8], dxb: [25, 55], mum: [19, 72.8], sin: [1.3, 103.8], tok: [35.7, 139.7], syd: [-33.9, 151],
-};
-// Intercontinental routes — purposeful coverage, not random lines.
-const ROUTE_KEYS: [keyof typeof HUBS, keyof typeof HUBS][] = [
-  ["ny", "lon"], ["lon", "lag"], ["lag", "dxb"], ["dxb", "sin"], ["sin", "tok"], ["ny", "sao"],
-  ["lon", "mos"], ["dxb", "mum"], ["mum", "sin"], ["tok", "syd"], ["la", "tok"], ["nai", "dxb"], ["la", "ny"], ["mos", "tok"],
+// Intercontinental arc routes (indices into CITIES) — purposeful, not random.
+const ROUTES: [number, number][] = [
+  [0, 5], [5, 11], [11, 15], [15, 18], [18, 19], [0, 3],
+  [5, 9], [16, 17], [17, 18], [19, 25], [1, 19], [14, 15],
 ];
-const arcs = ROUTE_KEYS.map(([a, b]) => ({ startLat: HUBS[a][0], startLng: HUBS[a][1], endLat: HUBS[b][0], endLng: HUBS[b][1] }));
+const PULSE_HUBS = [0, 5, 19, 16]; // NY, London, Tokyo, Mumbai
 
-// Dense city-lights layer (NASA night-earth feel): [lat, lng, brightness].
-const CITIES: [number, number, number][] = [
-  [40.7, -74, 0.6], [34, -118, 0.5], [41.9, -87.6, 0.4], [43.7, -79.4, 0.4], [19.4, -99.1, 0.5], [25.8, -80.2, 0.35], [29.8, -95.4, 0.35],
-  [-23.5, -46.6, 0.5], [-34.6, -58.4, 0.45], [-22.9, -43.2, 0.35], [4.7, -74, 0.35], [-12, -77, 0.3],
-  [51.5, -0.1, 0.55], [48.9, 2.35, 0.5], [40.4, -3.7, 0.4], [52.5, 13.4, 0.4], [55.7, 37.6, 0.45], [41.9, 12.5, 0.35], [41, 28.9, 0.45], [52.2, 21, 0.3],
-  [6.5, 3.4, 0.5], [30, 31.2, 0.45], [-26.2, 28, 0.4], [-1.3, 36.8, 0.35], [33.6, -7.6, 0.3], [9, 7.4, 0.3],
-  [25, 55, 0.45], [19, 72.8, 0.55], [28.6, 77.2, 0.55], [1.3, 103.8, 0.5], [35.7, 139.7, 0.6], [31.2, 121.5, 0.55], [39.9, 116.4, 0.5],
-  [37.6, 127, 0.45], [13.7, 100.5, 0.4], [-6.2, 106.8, 0.45], [22.3, 114.2, 0.45], [24.7, 46.7, 0.35], [14.6, 121, 0.4],
-  [-33.9, 151, 0.45], [-37.8, 145, 0.35],
-];
-const cities = CITIES; // base metros (drives routes/rings)
-const ringPoints = CITIES.filter(([, , s]) => s >= 0.5).map(([lat, lng]) => ({ lat, lng }));
+const AXIS = -0.34; // axial tilt (radians) for a natural lean
+const sinT = Math.sin(AXIS);
+const cosT = Math.cos(AXIS);
 
-// Clustered city-light field: each metro + jittered satellites (metro sprawl),
-// so populated regions glow with density — NASA night-earth, not a GIS map.
-type Light = { lat: number; lng: number; size: number; core: boolean };
-const lights: Light[] = [];
-for (const [lat, lng, size] of cities) {
-  lights.push({ lat, lng, size, core: true });
-  const sats = Math.round(size * 7);
-  for (let i = 0; i < sats; i++) {
-    const a = (i / sats) * Math.PI * 2;
-    const rad = size * (1.6 + (i % 3) * 0.9);
-    lights.push({ lat: lat + Math.sin(a) * rad * 0.6, lng: lng + Math.cos(a) * rad, size: size * 0.4, core: false });
+/** Project a lat/lng (with current rotation) to screen space + visibility. */
+function project(lat: number, lng: number, rot: number, cx: number, cy: number, R: number, lift = 0) {
+  const la = lat * DEG;
+  const lo = (lng + rot) * DEG;
+  const cphi = Math.cos(la);
+  const x0 = cphi * Math.sin(lo);
+  const y0 = Math.sin(la);
+  const z0 = cphi * Math.cos(lo);
+  // tilt about the X axis
+  const y = y0 * cosT - z0 * sinT;
+  const z = y0 * sinT + z0 * cosT;
+  const r = R * (1 + lift);
+  return { x: cx + x0 * r, y: cy - y * r, z };
+}
+
+type Mode = { reduced: boolean; quality: "high" | "med" };
+
+function paint(ctx: CanvasRenderingContext2D, w: number, h: number, rot: number, time: number, q: "high" | "med") {
+  const cx = w / 2;
+  const cy = h / 2;
+  const R = Math.min(w, h) * 0.46;
+  ctx.clearRect(0, 0, w, h);
+
+  // Sphere body — lit from the upper-left for depth.
+  const body = ctx.createRadialGradient(cx - R * 0.35, cy - R * 0.4, R * 0.1, cx, cy, R);
+  body.addColorStop(0, "#141c44");
+  body.addColorStop(0.55, "#0b1030");
+  body.addColorStop(1, "#05070f");
+  ctx.beginPath();
+  ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.fillStyle = body;
+  ctx.fill();
+
+  // Atmosphere rim.
+  const atmo = ctx.createRadialGradient(cx, cy, R * 0.82, cx, cy, R * 1.14);
+  atmo.addColorStop(0, "rgba(111,106,214,0)");
+  atmo.addColorStop(0.7, "rgba(111,106,214,0.14)");
+  atmo.addColorStop(1, "rgba(111,106,214,0)");
+  ctx.beginPath();
+  ctx.arc(cx, cy, R * 1.14, 0, Math.PI * 2);
+  ctx.fillStyle = atmo;
+  ctx.fill();
+
+  // Land dots (precomputed) — LOD via stride; limb-fade via depth.
+  const stride = q === "med" || w < 440 ? 2 : 1;
+  const dotR = R * 0.0125;
+  ctx.fillStyle = "#7c87e8";
+  for (let i = 0; i < LAND.length; i += stride) {
+    const d = LAND[i];
+    const p = project(d.lat, d.lng, rot, cx, cy, R);
+    if (p.z <= 0.02) continue;
+    ctx.globalAlpha = 0.16 + 0.7 * p.z;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, dotR * (0.55 + 0.45 * p.z), 0, Math.PI * 2);
+    ctx.fill();
   }
-}
+  ctx.globalAlpha = 1;
 
-function buildGlobe(quality: "high" | "med"): ThreeGlobe {
-  const g = new ThreeGlobe({ animateIn: false })
-    .globeMaterial(new THREE.MeshPhongMaterial({ color: new THREE.Color("#070a16"), transparent: true, opacity: 0.98, shininess: 8 }))
-    .showAtmosphere(true)
-    .atmosphereColor("#6f6ad6")
-    .atmosphereAltitude(0.19)
-    // Continents: dark, subtle landmasses — perceptible but not a bright map.
-    .polygonsData(landData.features)
-    .polygonCapColor(() => "rgba(54,62,138,0.16)")
-    .polygonSideColor(() => "rgba(40,46,110,0.05)")
-    .polygonStrokeColor(() => "rgba(116,128,220,0.14)")
-    .polygonAltitude(() => 0.006)
-    // Intercontinental routes with flowing signals.
-    .arcsData(arcs)
-    .arcColor(() => ["rgba(165,180,252,0)", "rgba(214,222,255,0.95)", "rgba(165,180,252,0)"])
-    .arcDashLength(0.45).arcDashGap(1.4).arcDashInitialGap(() => Math.random() * 2).arcDashAnimateTime(3000)
-    .arcStroke(0.26).arcAltitudeAutoScale(0.16)
-    // City lights — bright metro cores + dim sprawl (clustered density).
-    .pointsData(lights)
-    .pointColor((d: any) => (d.core ? "#eef2ff" : "#8f9cf2"))
-    .pointAltitude((d: any) => (d.core ? 0.012 : 0.006))
-    .pointRadius((d: any) => (d.core ? 0.16 + d.size * 0.5 : 0.07 + d.size * 0.25))
-    // Scanning-wave pulses over the largest metros.
-    .ringsData(ringPoints)
-    .ringColor(() => (t: number) => `rgba(199,210,254,${Math.sqrt(1 - t) * 0.4})`)
-    .ringMaxRadius(4.5).ringPropagationSpeed(1.3).ringRepeatPeriod(2600);
+  // City lights — brighter cores with a soft glow.
+  for (const c of CITIES) {
+    const p = project(c.lat, c.lng, rot, cx, cy, R);
+    if (p.z <= 0.04) continue;
+    const a = 0.35 + 0.65 * p.z;
+    ctx.shadowColor = "rgba(199,210,254,0.9)";
+    ctx.shadowBlur = 8 * p.z;
+    ctx.fillStyle = `rgba(238,242,255,${a})`;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, dotR * 1.7, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.shadowBlur = 0;
 
-  if (quality === "med") g.pointsMerge(true);
-  g.rotation.set(0.34, -0.55, 0.06);
-  g.scale.setScalar(0.0118);
-  return g;
-}
+  // Arcs — great-circle-ish routes with a travelling signal.
+  const segs = q === "med" ? 18 : 26;
+  for (let ri = 0; ri < ROUTES.length; ri++) {
+    const a = CITIES[ROUTES[ri][0]];
+    const b = CITIES[ROUTES[ri][1]];
+    ctx.beginPath();
+    let drawing = false;
+    for (let s = 0; s <= segs; s++) {
+      const f = s / segs;
+      const lat = a.lat + (b.lat - a.lat) * f;
+      const lng = a.lng + (b.lng - a.lng) * f;
+      const lift = 0.18 * Math.sin(Math.PI * f);
+      const p = project(lat, lng, rot, cx, cy, R, lift);
+      if (p.z <= 0) { drawing = false; continue; }
+      if (!drawing) { ctx.moveTo(p.x, p.y); drawing = true; }
+      else ctx.lineTo(p.x, p.y);
+    }
+    ctx.strokeStyle = "rgba(165,180,252,0.22)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    // travelling signal dot
+    const head = (time * 0.18 + ri * 0.37) % 1;
+    const lat = a.lat + (b.lat - a.lat) * head;
+    const lng = a.lng + (b.lng - a.lng) * head;
+    const lift = 0.18 * Math.sin(Math.PI * head);
+    const ph = project(lat, lng, rot, cx, cy, R, lift);
+    if (ph.z > 0) {
+      ctx.shadowColor = "rgba(214,222,255,0.9)";
+      ctx.shadowBlur = 8;
+      ctx.fillStyle = "rgba(224,231,255,0.95)";
+      ctx.beginPath();
+      ctx.arc(ph.x, ph.y, dotR * 1.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+  }
 
-/** Layer 4 — slow, softly-glowing orbital intelligence rings. */
-function OrbitRings({ reduced }: { reduced: boolean }) {
-  const g = useRef<THREE.Group>(null);
-  useFrame((_, d) => { if (!reduced && g.current) g.current.rotation.y += d * 0.02; });
-  const rings = [
-    { r: 1.36, tilt: 1.1, color: "#818cf8", op: 0.16 },
-    { r: 1.46, tilt: -0.75, color: "#6366f1", op: 0.13 },
-    { r: 1.3, tilt: 0.45, color: "#a5b4fc", op: 0.1 },
-  ];
-  return (
-    <group ref={g} rotation={[0.3, 0, 0.08]}>
-      {rings.map((ring, i) => (
-        <mesh key={i} rotation={[ring.tilt, i * 0.7, 0]}>
-          <torusGeometry args={[ring.r, 0.0035, 8, 140]} />
-          <meshBasicMaterial color={ring.color} transparent opacity={ring.op} blending={THREE.AdditiveBlending} depthWrite={false} />
-        </mesh>
-      ))}
-    </group>
-  );
-}
-
-function GlobeObject({ quality, reduced }: { quality: "high" | "med"; reduced: boolean }) {
-  const globe = useMemo(() => buildGlobe(quality), [quality]);
-  useFrame((_, delta) => { if (!reduced) globe.rotation.y += delta * 0.028; });
-  return <primitive object={globe} />;
+  // Scan pulses over major hubs.
+  for (let i = 0; i < PULSE_HUBS.length; i++) {
+    const c = CITIES[PULSE_HUBS[i]];
+    const p = project(c.lat, c.lng, rot, cx, cy, R);
+    if (p.z <= 0.06) continue;
+    const phase = (time * 0.4 + i * 0.25) % 1;
+    const rad = R * 0.13 * phase;
+    ctx.globalAlpha = (1 - phase) * 0.5 * p.z;
+    ctx.strokeStyle = "rgba(199,210,254,1)";
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, rad, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
 }
 
 /**
- * Layer 1 — the digital Earth. Solid, illuminated continents with real
- * coastlines (50m country geometry as data, not a texture), a dense city-lights
- * layer (NASA night-earth feel), intercontinental routes + flowing signals,
- * orbital rings, scan pulses and atmospheric rim glow. Lazy + client-only;
- * reduced motion freezes; resolution eases on tablet.
+ * The hero digital Earth — a precomputed dot-globe rendered on a 2D canvas.
+ *
+ * Replaces the former WebGL (three.js / three-globe) implementation: no 3D
+ * dependencies, no runtime topojson parse/triangulation, a single
+ * requestAnimationFrame loop that PAUSES when scrolled offscreen or when the
+ * tab is hidden, LOD + DPR scaling per quality, and a static frame under
+ * reduced-motion. Decorative only (aria-hidden).
  */
-export default function Globe({ quality = "high", reduced = false }: { quality?: "high" | "med"; reduced?: boolean }) {
-  return (
-    <Canvas
-      dpr={[1, 1.7]}
-      camera={{ position: [0, 0, 3], fov: 42 }}
-      gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
-      style={{ background: "transparent" }}
-      frameloop={reduced ? "demand" : "always"}
-    >
-      <ambientLight intensity={0.9} />
-      <directionalLight position={[3, 1.5, 2.5]} intensity={1.3} color="#cdd2ff" />
-      <GlobeObject quality={quality} reduced={reduced} />
-      <OrbitRings reduced={reduced} />
-    </Canvas>
-  );
+export default function Globe({ quality = "high", reduced = false }: Partial<Mode>) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d", { alpha: true });
+    if (!ctx) return;
+
+    const dprCap = quality === "med" ? 1.25 : 1.5;
+    let w = 0;
+    let h = 0;
+    const resize = () => {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1, dprCap);
+      w = rect.width;
+      h = rect.height;
+      canvas.width = Math.max(1, Math.round(w * dpr));
+      canvas.height = Math.max(1, Math.round(h * dpr));
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    resize();
+    const ro = new ResizeObserver(resize);
+    ro.observe(canvas);
+
+    let rot = -20;
+    let raf = 0;
+    let last = 0;
+    let running = false;
+
+    const frame = (now: number) => {
+      if (!running) return;
+      const dt = last ? Math.min(0.05, (now - last) / 1000) : 0;
+      last = now;
+      rot += dt * 3.2; // deg/sec — calm rotation
+      paint(ctx, w, h, rot, now / 1000, quality);
+      raf = requestAnimationFrame(frame);
+    };
+
+    const start = () => {
+      if (running || reduced) return;
+      running = true;
+      last = 0;
+      raf = requestAnimationFrame(frame);
+    };
+    const stop = () => {
+      running = false;
+      cancelAnimationFrame(raf);
+    };
+
+    if (reduced) {
+      // Static premium frame — no animation loop at all.
+      paint(ctx, w, h, rot, 0, quality);
+      return () => ro.disconnect();
+    }
+
+    // Only animate while the hero is actually on screen.
+    const io = new IntersectionObserver(
+      (entries) => entries.forEach((e) => (e.isIntersecting ? start() : stop())),
+      { threshold: 0.05 },
+    );
+    io.observe(canvas);
+    const onVis = () => (document.hidden ? stop() : start());
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      stop();
+      io.disconnect();
+      ro.disconnect();
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, [quality, reduced]);
+
+  return <canvas ref={canvasRef} aria-hidden className="h-full w-full" />;
 }

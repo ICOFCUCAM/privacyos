@@ -7,8 +7,9 @@ import { ProtectionDashboard } from "./protection-dashboard";
 import { ProtectionNetwork } from "./protection-network";
 import type { HeroMetrics } from "./metrics";
 
-// Three.js is heavy — load it only on the client, and only mount it on
-// tablet/desktop (mobile shows the dashboard alone, per the brief).
+// Canvas dot-globe — client-only (needs the DOM canvas), code-split out of the
+// initial bundle, and mounted only on tablet/desktop (mobile shows the
+// dashboard alone, per the brief).
 const Globe = dynamic(() => import("./globe"), { ssr: false, loading: () => null });
 
 type Mode = "mobile" | "tablet" | "desktop";
