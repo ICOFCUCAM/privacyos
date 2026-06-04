@@ -10,12 +10,11 @@ import {
 } from "@/components/landing-outcomes";
 import {
   OnePlatformReplacesStack,
-  PlatformLayers,
   HighStakesBuyers,
   DetectionIsNotProtection,
-  ThreatResponseFlow,
   CapabilityMatrix,
 } from "@/components/landing-platform";
+import { ArchitectureEngine, ThreatSimulation } from "@/components/landing-cinematic";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { Reveal } from "@/components/reveal";
 import { getT } from "@/lib/i18n/server";
@@ -64,14 +63,14 @@ export default async function LandingPage() {
       {/* 3 — WHO WE PROTECT (buyer categories, not products) */}
       <Reveal><PersonaBand /></Reveal>
 
-      {/* 3 — ONE PLATFORM, EVERY LAYER (the category architecture) */}
-      <Reveal><PlatformLayers /></Reveal>
+      {/* 4 — THE OPERATING SYSTEM (cinematic architecture: domains → one engine) */}
+      <ArchitectureEngine />
 
-      {/* 4 — DETECTION IS NOT PROTECTION (the outcome thesis: we act) */}
+      {/* 5 — DETECTION IS NOT PROTECTION (the outcome thesis: we act) */}
       <Reveal><DetectionIsNotProtection /></Reveal>
 
-      {/* 5 — WHAT HAPPENS WHEN A THREAT IS FOUND (the cascade — proof of the thesis) */}
-      <Reveal><ThreatResponseFlow /></Reveal>
+      {/* 6 — WATCH THE PLATFORM WORK (live, animated threat-response cascade) */}
+      <ThreatSimulation />
 
       {/* 6 — BUILT FOR PEOPLE WHO CANNOT AFFORD EXPOSURE (high-stakes buyers) */}
       <Reveal><HighStakesBuyers /></Reveal>

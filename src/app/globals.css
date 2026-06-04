@@ -106,6 +106,41 @@ body::after {
 @keyframes radarSweep { to { transform: rotate(360deg); } }
 .radar-sweep { animation: radarSweep 7s linear infinite; }
 
+/* ── Cinematic sections: architecture engine + threat simulation ──────────── */
+
+/* Light trails flowing along SVG connector paths toward the engine core.
+   A short bright dash travels the path; each trail offsets via animation-delay. */
+@keyframes trailFlow { to { stroke-dashoffset: -340; } }
+.trail-flow {
+  stroke-dasharray: 16 324;
+  animation: trailFlow 2.8s linear infinite;
+}
+/* The engine core: a slow breathing glow. */
+@keyframes corePulse {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+.core-pulse { animation: corePulse 3.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+
+/* Threat-response simulation: a beam descends the spine, lighting each node in
+   turn (per-node animation-delay gives the travelling, real-time feel). */
+@keyframes simBeam {
+  0% { transform: scaleY(0); opacity: 0.9; }
+  70% { transform: scaleY(1); opacity: 0.9; }
+  100% { transform: scaleY(1); opacity: 0; }
+}
+.sim-beam { transform-origin: top; animation: simBeam 5.6s ease-in-out infinite; }
+@keyframes simNode {
+  0%, 100% { opacity: 0.4; }
+  8%, 40% { opacity: 1; }
+}
+.sim-node { animation: simNode 5.6s ease-in-out infinite both; }
+@keyframes simCheck {
+  0%, 100% { opacity: 0; transform: scale(0.6); }
+  12%, 50% { opacity: 1; transform: scale(1); }
+}
+.sim-check { animation: simCheck 5.6s ease-in-out infinite both; }
+
 @media (prefers-reduced-motion: reduce) {
   .hero-float, .callout-float, .animate-spin-slow, .animate-spin-slow-rev, .animate-pulse-glow { animation: none; }
 }
