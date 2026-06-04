@@ -62,6 +62,15 @@ export function OnboardingForm({
               <input name="organization" placeholder="Vance Capital" className={field} />
             </div>
           </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-slate-400">Photo URLs (one per line)</label>
+            <textarea name="photos" rows={2} placeholder="https://…/your-photo.jpg" className={field} />
+            <p className="text-[11px] text-slate-500">
+              Public links to photos of the person. We reverse-image search these to
+              detect impersonation and unauthorized use of their likeness.
+            </p>
+          </div>
         </div>
       </details>
 

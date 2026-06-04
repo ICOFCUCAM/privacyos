@@ -59,6 +59,7 @@ export async function createSubject(
       emails: parseList(formData.get("emails")),
       phones: parseList(formData.get("phones")),
       usernames: parseList(formData.get("usernames")),
+      photos: parseList(formData.get("photos")),
       organization,
     })
     .select("*")
