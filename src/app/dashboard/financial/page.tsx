@@ -6,13 +6,18 @@ import { Card, PageHeader, SectionTitle } from "@/components/ui";
 import { getDataSource } from "@/lib/data";
 import { getModuleData } from "@/lib/data/modules";
 import { financialOverview, type FinancialFinding } from "@/lib/financial/os/financial-os";
-import { cn } from "@/lib/ui";
+import { creditOverview, CREDIT_ALERT_LABEL, isFraudIndicator, type CreditBand } from "@/lib/credit/credit-os";
+import { resolveCreditSource } from "@/lib/credit/source";
+import { cn, timeAgo, titleCase } from "@/lib/ui";
 import type { RiskLevel } from "@/lib/types";
 
 export const metadata = { title: "Financial Exposure" };
 
 const BAND_TONE: Record<string, string> = {
   low: "text-risk-low", elevated: "text-risk-medium", high: "text-risk-high", critical: "text-risk-critical",
+};
+const CREDIT_TONE: Record<CreditBand, string> = {
+  excellent: "text-risk-low", good: "text-risk-low", fair: "text-risk-medium", poor: "text-risk-high",
 };
 const RISK_CLS: Record<RiskLevel, string> = {
   low: "text-risk-low ring-risk-low/30", medium: "text-risk-medium ring-risk-medium/30",
@@ -24,9 +29,15 @@ const FINDING_ICON: Record<FinancialFinding["kind"], LucideIcon> = {
 
 export default async function FinancialPage() {
   const ds = await getDataSource();
-  const { exposures, threats } = await ds.getDataset();
+  const data = await ds.getDataset();
+  const { exposures, threats } = data;
   const { credentialLeaks } = await getModuleData();
   const fin = financialOverview({ exposures, credentialLeaks, threats });
+
+  // Credit monitoring — connector-driven (live behind a bureau/aggregator key,
+  // deterministic demo otherwise; never claims live data it does not have).
+  const { profile, live: creditLive } = await resolveCreditSource().fetch(data.subject.id);
+  const credit = creditOverview(profile, { live: creditLive });
 
   const indices: { label: string; value: number }[] = [
     { label: "Identity theft", value: fin.identityTheft },
@@ -64,6 +75,63 @@ export default async function FinancialPage() {
           High financial exposure detected — a protection case is being opened and money-account remediation prioritized.
         </div>
       )}
+
+      {/* Credit monitoring — across the three bureaus */}
+      <Card className="p-4">
+        <SectionTitle
+          title="Credit monitoring"
+          subtitle="Continuous watch on your credit file for the events that signal identity theft"
+          action={
+            <span className={cn(
+              "inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ring-1",
+              credit.live ? "text-risk-low ring-risk-low/30" : "text-slate-400 ring-border",
+            )}>
+              <span className={cn("h-1.5 w-1.5 rounded-full", credit.live ? "bg-risk-low" : "bg-slate-500")} />
+              {credit.live ? "Live" : "Demo"}
+            </span>
+          }
+        />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="rounded-lg border border-border bg-bg-subtle/40 p-3">
+            <span className="text-[11px] uppercase tracking-wide text-slate-400">Credit score</span>
+            <p className={cn("mt-0.5 text-2xl font-bold", CREDIT_TONE[credit.band])}>
+              {credit.score}
+              {credit.scoreDelta !== 0 && (
+                <span className={cn("ml-1.5 align-middle text-xs font-semibold", credit.scoreDelta > 0 ? "text-risk-low" : "text-risk-high")}>
+                  {credit.scoreDelta > 0 ? "+" : ""}{credit.scoreDelta}
+                </span>
+              )}
+            </p>
+            <p className="text-[11px] capitalize text-slate-500">{credit.band}</p>
+          </div>
+          <Stat label="Active alerts" value={credit.alertCount} />
+          <Stat label="Fraud indicators" value={credit.fraudIndicators} tone={credit.fraudIndicators > 0 ? "text-risk-high" : "text-risk-low"} />
+          <Stat label="Bureaus reporting" value={`${credit.bureausReporting}/3`} />
+        </div>
+
+        {credit.alerts.length > 0 && (
+          <ul className="mt-3 space-y-2">
+            {credit.alerts.slice(0, 5).map((a) => (
+              <li key={a.id} className="flex items-center gap-3 rounded-lg border border-border bg-bg-subtle/40 p-3">
+                <span className={cn("shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ring-1", RISK_CLS[a.riskLevel])}>{a.riskLevel}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-white">
+                    {CREDIT_ALERT_LABEL[a.kind]}
+                    {isFraudIndicator(a.kind) && <span className="ml-2 rounded bg-risk-high/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-risk-high">Possible fraud</span>}
+                  </p>
+                  <p className="truncate text-[11px] text-slate-500">{a.detail} · {titleCase(a.bureau)}</p>
+                </div>
+                <span className="shrink-0 text-[10px] text-slate-600">{timeAgo(a.detectedAt)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        {!credit.live && (
+          <p className="mt-3 text-[11px] text-slate-500">
+            Demo data — bureau monitoring activates with a connected credit partner (FCRA-compliant feed, with your consent).
+          </p>
+        )}
+      </Card>
 
       {/* What we found */}
       <Card className="p-4">
@@ -107,6 +175,15 @@ export default async function FinancialPage() {
           </ul>
         </Card>
       )}
+    </div>
+  );
+}
+
+function Stat({ label, value, tone }: { label: string; value: string | number; tone?: string }) {
+  return (
+    <div className="rounded-lg border border-border bg-bg-subtle/40 p-3">
+      <span className="text-[11px] uppercase tracking-wide text-slate-400">{label}</span>
+      <p className={cn("mt-0.5 text-2xl font-bold", tone ?? "text-white")}>{value}</p>
     </div>
   );
 }
