@@ -19,8 +19,8 @@ const Eyebrow = ({ children }: { children: React.ReactNode }) => (
    all of them — and connects them. Designed to land in the first 30 seconds. */
 
 const pointTools: { category: string; examples: string; does: string; icon: LucideIcon }[] = [
-  { category: "Data-broker removal", examples: "DeleteMe · Incogni", does: "Files opt-outs with people-search sites", icon: Trash2 },
-  { category: "Identity protection", examples: "Aura · LifeLock", does: "Credit & identity-theft monitoring", icon: Fingerprint },
+  { category: "Data-broker removal", examples: "Opt-out subscriptions", does: "Files opt-outs with people-search sites", icon: Trash2 },
+  { category: "Identity protection", examples: "Credit-monitoring services", does: "Credit & identity-theft monitoring", icon: Fingerprint },
   { category: "Dark-web monitoring", examples: "Breach-alert tools", does: "Pings you when a credential leaks", icon: Eye },
   { category: "Reputation management", examples: "PR & SEO agencies", does: "Cleans search results by hand, per retainer", icon: Star },
   { category: "Executive protection", examples: "Risk & security firms", does: "Doxxing & physical-threat response", icon: Crown },
