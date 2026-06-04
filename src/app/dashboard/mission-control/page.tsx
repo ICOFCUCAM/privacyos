@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Card, PageHeader, SectionTitle } from "@/components/ui";
+import { CommandTabs } from "@/components/command-tabs";
 import { LiveRefresh } from "@/components/live-refresh";
 import { getDataSource } from "@/lib/data";
 import { exposureToFinding, runPlaybooks, threatToFinding } from "@/lib/agents/playbooks";
@@ -137,6 +138,7 @@ export default async function MissionControlPage() {
 
   return (
     <div className="space-y-5">
+      <CommandTabs />
       <PageHeader
         icon={Gauge}
         title="Mission Control"
@@ -166,7 +168,7 @@ export default async function MissionControlPage() {
       </div>
 
       {/* Top metrics */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <Metric label="Risk score" value={String(posture.riskScore)} tone={posture.riskScore >= 80 ? "text-risk-high" : posture.riskScore >= 55 ? "text-risk-medium" : "text-risk-low"} icon={Gauge} href="/dashboard" />
         <Metric label="Executive risk" value={String(execRisk.overall)} sub={`${titleCase(execRisk.band)} · ${posture.executiveRisk >= 75 ? "action now" : "principal"}`} tone={execRisk.overall >= 75 ? "text-risk-critical" : execRisk.overall >= 50 ? "text-risk-high" : execRisk.overall >= 25 ? "text-risk-medium" : "text-risk-low"} icon={Crown} href="/dashboard/executive" />
         <Metric label="Attack paths" value={String(surface.enabledPaths)} sub={surface.chokepoint ? `top score ${surface.topScore}` : "none live"} tone={surface.topScore >= 70 ? "text-risk-critical" : surface.enabledPaths > 0 ? "text-risk-high" : "text-risk-low"} icon={Target} href="/dashboard/executive/attack-paths" />

@@ -54,6 +54,29 @@ describe("evaluatePlaybook", () => {
     expect(run.approvalSteps).toBe(0);
     expect(run.fullyAutonomous).toBe(true);
   });
+
+  it("autopilot leaves the routine plan fully autonomous", () => {
+    const run = evaluatePlaybook(broker, finding({ source: "data_broker", riskLevel: "medium" }), "autopilot");
+    // Floor is critical → a medium plan still runs end-to-end.
+    expect(run.fullyAutonomous).toBe(true);
+  });
+
+  it("advisor mode gates every acting step but leaves observation auto", () => {
+    const run = evaluatePlaybook(broker, finding({ source: "data_broker", riskLevel: "medium" }), "advisor");
+    const acting = run.steps.filter((s) => s.kind === "act" || s.kind === "escalate");
+    const observation = run.steps.filter((s) => s.kind === "detect" || s.kind === "decide" || s.kind === "monitor");
+    expect(acting.every((s) => s.execution === "approval")).toBe(true);
+    expect(observation.every((s) => s.execution === "auto")).toBe(true);
+    expect(run.fullyAutonomous).toBe(false);
+  });
+
+  it("hybrid runs the routine but defers the high-risk acting steps", () => {
+    const routine = evaluatePlaybook(broker, finding({ source: "data_broker", riskLevel: "medium" }), "hybrid");
+    expect(routine.fullyAutonomous).toBe(true); // medium < high floor
+    const big = evaluatePlaybook(broker, finding({ source: "data_broker", riskLevel: "high" }), "hybrid");
+    expect(big.fullyAutonomous).toBe(false); // high ≥ floor → acting steps gate
+    expect(big.steps.filter((s) => s.kind === "act").every((s) => s.execution === "approval")).toBe(true);
+  });
 });
 
 describe("runPlaybooks & summarizeRuns", () => {

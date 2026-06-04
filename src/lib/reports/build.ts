@@ -22,6 +22,8 @@ import { tripPhase, destinationIntel, travelReadiness, travelOverview } from "@/
 import { brandRiskIndices, brandImpersonation, BRAND_INDEX_META } from "@/lib/business/os/brand-os";
 import { buildAccounts, passwordHygiene, identityRisk, restorationPlaybook } from "@/lib/identity/os/identity-os";
 import { protectionSuite, summarizeSuite } from "@/lib/suite/protection-suite";
+import { buildEvidence } from "@/lib/intelligence/evidence-vault";
+import { remediationLedger, remediationSection, evidenceSection } from "./remediation";
 import { titleCase } from "@/lib/ui";
 import type { ReportContext } from "./engine";
 import type { ReportType } from "@/lib/suite-types";
@@ -30,6 +32,24 @@ export async function buildReportContext(type: ReportType): Promise<ReportContex
   const ds = await getDataSource();
   const data = await ds.getDataset();
   const mod = await getModuleData();
+
+  // The real ledgers the engine writes — sealed evidence + filed removals — so
+  // reports cite proof of work, not just risk state. Persisted vault records lead
+  // (the autonomous actions taken); the derived exposure/threat records back-fill
+  // so the section is meaningful in demo mode too. Best-effort: never break a report.
+  const [persistedEvidence, removals] = await Promise.all([
+    ds.listEvidence().catch(() => []),
+    ds.listRemovals().catch(() => []),
+  ]);
+  const evidence = [...persistedEvidence, ...buildEvidence(data.exposures, data.threats, data.cases)]
+    .sort((a, b) => b.collectedAt.localeCompare(a.collectedAt));
+  const ledger = remediationLedger({
+    evidence,
+    legalRequests: mod.legalRequests,
+    removals,
+    agentActions: mod.agentActions,
+    cases: data.cases,
+  });
 
   const scores = computeScoreSet({
     risk: data.riskScore,
@@ -86,7 +106,7 @@ export async function buildReportContext(type: ReportType): Promise<ReportContex
           { label: "Active threats", value: activeThreats.length },
           { label: "Open cases", value: openCases.length },
         ],
-        sections: [topExposures, threatRows],
+        sections: [topExposures, threatRows, remediationSection(ledger)],
       };
     case "executive": {
       const indices = executiveRiskIndices({ exposures: data.exposures, threats: data.threats, family: mod.familyMembers, travel: mod.travelAlerts, credentialLeaks: mod.credentialLeaks });
@@ -124,6 +144,8 @@ export async function buildReportContext(type: ReportType): Promise<ReportContex
           ] },
           { heading: "Threat actors", rows: actors.length ? actors.map((a) => ({ label: a.label, value: `${titleCase(a.escalation)} · ${a.threatCount} threat(s) · ${titleCase(a.highestRisk)}${a.harassment ? " · harassment" : ""}` })) : [{ label: "None tracked", value: "No active threat actors" }] },
           { heading: "Family exposure", rows: mod.familyMembers.map((f) => ({ label: `${f.displayName} (${f.relation})`, value: `${f.exposuresCount} exposures · ${titleCase(f.riskLevel)}` })) },
+          remediationSection(ledger),
+          evidenceSection(evidence),
         ],
       };
     }
@@ -235,10 +257,14 @@ export async function buildReportContext(type: ReportType): Promise<ReportContex
           { label: "Legal requests", value: mod.legalRequests.length },
           { label: "Completed", value: mod.legalRequests.filter((l) => l.status === "completed").length },
           { label: "Submitted", value: mod.legalRequests.filter((l) => l.status === "submitted").length },
-          { label: "Escalated", value: mod.legalRequests.filter((l) => l.status === "escalated").length },
+          { label: "Evidence sealed", value: ledger.evidenceSealed },
         ],
         sections: [
-          { heading: "Legal & privacy requests", rows: mod.legalRequests.map((l) => ({ label: `${titleCase(l.type)} → ${l.recipient}`, value: titleCase(l.status) })) },
+          { heading: "Legal & privacy requests", rows: mod.legalRequests.length
+            ? mod.legalRequests.map((l) => ({ label: `${titleCase(l.type)} → ${l.recipient}`, value: titleCase(l.status) }))
+            : [{ label: "No legal requests on file", value: "—" }] },
+          remediationSection(ledger),
+          evidenceSection(evidence),
         ],
       };
     case "risk":
@@ -250,7 +276,7 @@ export async function buildReportContext(type: ReportType): Promise<ReportContex
           { label: "Reputation", value: scores.reputation },
           { label: "Business", value: scores.business },
         ],
-        sections: [topExposures, threatRows, incidentRows],
+        sections: [topExposures, threatRows, incidentRows, remediationSection(ledger)],
       };
     case "board":
     default: {
@@ -273,9 +299,10 @@ export async function buildReportContext(type: ReportType): Promise<ReportContex
             { label: "Overall posture", value: `${scores.overall}/100 risk` },
             { label: "Worst domain", value: suiteSummary.worst ? `${suiteSummary.worst.label} — ${suiteSummary.worst.score}/100 (${suiteSummary.worst.band})` : "None" },
             { label: "Top concern", value: activeThreats[0]?.title ?? "None active" },
-            { label: "Remediation in flight", value: `${openCases.length} cases, ${mod.legalRequests.filter((l) => l.status !== "completed").length} legal requests` },
+            { label: "Remediation in flight", value: `${ledger.casesOpen} cases · ${ledger.removalsFiled} removals · ${ledger.legalDrafted + ledger.legalSubmitted} legal · ${ledger.evidenceSealed} evidence sealed` },
           ] },
           { heading: "Protection posture (all domains)", rows: suite.map((d) => ({ label: d.label, value: `${d.score}/100 ${d.higherIsWorse ? "risk" : "health"} · ${titleCase(d.band)}` })) },
+          remediationSection(ledger),
           topExposures,
         ],
       };

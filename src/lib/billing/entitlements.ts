@@ -35,6 +35,7 @@ export type Feature =
   | "deep_web"
   | "priority_support"
   | "financial"
+  | "credit"
   | "automation";
 
 export interface Entitlements {
@@ -55,7 +56,7 @@ const NONE: Entitlements = {
   entitled: false,
   features: {
     reputation: false, executive: false, business: false, family: false,
-    ai_agent: false, deep_web: false, priority_support: false, financial: false, automation: false,
+    ai_agent: false, deep_web: false, priority_support: false, financial: false, credit: false, automation: false,
   },
   brokerRemovalLimit: 0,
   familySeats: 0,
@@ -74,7 +75,7 @@ export const FREE_ENTITLEMENTS: Entitlements = {
   entitled: true,
   features: {
     reputation: false, executive: false, business: false, family: false,
-    ai_agent: false, deep_web: false, priority_support: false, financial: false, automation: false,
+    ai_agent: false, deep_web: false, priority_support: false, financial: false, credit: false, automation: false,
   },
   brokerRemovalLimit: 10,
   familySeats: 0,
@@ -105,7 +106,7 @@ export const DEMO_ENTITLEMENTS: Entitlements = {
   entitled: true,
   features: {
     reputation: true, executive: true, business: true, family: true,
-    ai_agent: true, deep_web: true, priority_support: true, financial: true, automation: true,
+    ai_agent: true, deep_web: true, priority_support: true, financial: true, credit: true, automation: true,
   },
   brokerRemovalLimit: Infinity,
   familySeats: 6,
@@ -122,7 +123,7 @@ export const ADMIN_ENTITLEMENTS: Entitlements = {
   entitled: true,
   features: {
     reputation: true, executive: true, business: true, family: true,
-    ai_agent: true, deep_web: true, priority_support: true, financial: true, automation: true,
+    ai_agent: true, deep_web: true, priority_support: true, financial: true, credit: true, automation: true,
   },
   brokerRemovalLimit: Infinity,
   familySeats: 6,
@@ -185,6 +186,10 @@ export function entitlementsFor(sub: Subscription | null): Entitlements {
       // Financial Exposure Protection: full for executive/business; monitoring
       // for the personal tiers that advertise "Identity Theft Monitoring".
       financial: cat === "executive" || cat === "business" ||
+        (cat === "personal" && ["premium", "family"].includes(sub.planId)),
+      // Credit-bureau monitoring is a premium identity perk — Premium/Family on
+      // the personal tiers, and standard on executive & business.
+      credit: cat === "executive" || cat === "business" ||
         (cat === "personal" && ["premium", "family"].includes(sub.planId)),
       // Automation is an OPERATOR capability (Workflow Builder, templates,
       // playbooks, agent orchestration) — reserved for power-user/enterprise

@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Card, PageHeader, SectionTitle } from "@/components/ui";
+import { AutomationTabs } from "@/components/automation-tabs";
 import { cn, titleCase } from "@/lib/ui";
 import {
   AUTOMATION_TEMPLATES, groupTemplates, templateAgents, templateStats,
@@ -26,6 +27,7 @@ export default function AutomationTemplatesPage() {
 
   return (
     <div className="space-y-5">
+      <AutomationTabs />
       <PageHeader
         icon={LayoutTemplate}
         title="Automation Templates"

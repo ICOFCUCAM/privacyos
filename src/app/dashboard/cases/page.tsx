@@ -64,7 +64,7 @@ export default async function CasesPage({
       />
 
       {/* Summary */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <Kpi label="Open" value={String(summary.open)} />
         <Kpi label="Critical" value={String(summary.critical)} tone={summary.critical ? "text-risk-critical" : undefined} />
         <Kpi label="Resolved today" value={String(summary.resolvedToday)} tone="text-risk-low" />

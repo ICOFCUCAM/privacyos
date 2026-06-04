@@ -1,5 +1,6 @@
 import { Brain, Zap, Search } from "lucide-react";
 import { Card, PageHeader, Pill, SectionTitle, StatCard } from "@/components/ui";
+import { AutomationTabs } from "@/components/automation-tabs";
 import { getDataSource } from "@/lib/data";
 import { getModuleData } from "@/lib/data/modules";
 import { buildFleetTraces, summarizeTraces, type TraceVerdict } from "@/lib/agents/decision-trace";
@@ -34,12 +35,13 @@ export default async function AgentsPage() {
 
   return (
     <div className="space-y-6">
+      <AutomationTabs />
       <PageHeader
         title="Agent Dashboard"
         subtitle={`${agents.length} specialized agents defend you continuously. You see outcomes, not complexity.`}
       />
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         <StatCard label="Agents online" value={`${agents.filter((a) => a.status === "running").length}/${agents.length}`} accent="text-risk-low" />
         <StatCard label="Discoveries" value={data.exposures.length + data.threats.length} />
         <StatCard label="Actions completed" value={completed} />

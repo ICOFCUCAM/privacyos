@@ -2,7 +2,7 @@ import Link from "next/link";
 import {
   BadgeCheck, Lock, Server, KeyRound, ShieldCheck,
   Search, Trash2, Star, ShieldAlert, ScanFace, Crown, Scale, Building2,
-  Radar, Eye, Sparkles, ArrowRight, Network, Zap, Boxes, Users,
+  Radar, Eye, Sparkles, ArrowRight, Network, Zap, Boxes, Users, Landmark,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { buttonClasses } from "@/components/ui";
@@ -256,38 +256,61 @@ export function EnterpriseSection() {
   );
 }
 
-const personas: { icon: LucideIcon; who: string; q: string; outcome: string }[] = [
-  { icon: ShieldCheck, who: "For you", q: "Protect me", outcome: "Find and remove your exposed personal data, stop identity theft, and watch the dark web for your details." },
-  { icon: Users, who: "For families", q: "Protect my family", outcome: "One shield for everyone at home — opt relatives out of people-search and keep your kids’ information offline." },
-  { icon: Star, who: "For creators", q: "Protect my reputation", outcome: "Monitor your name across search, news and social — and push down what shouldn’t be there." },
-  { icon: Crown, who: "For executives", q: "Protect me & my family", outcome: "VIP-grade defense: residence, travel, doxxing and impersonation protection for you and the people close to you." },
-  { icon: Building2, who: "For companies", q: "Protect my company", outcome: "Executive, employee, vendor and brand risk — with compliance and takedowns handled automatically." },
+/* ── Who we protect — each card is a mini product: the live risk "signals" we
+   watch for that audience, linking to the matching plan. ──────────────────── */
+const protectedGroups: { icon: LucideIcon; who: string; risk: string; plan: string; signals: string[] }[] = [
+  { icon: ShieldCheck, who: "Individuals", risk: "Your home address, phone, identity and accounts are being sold and leaked — found and taken down.", plan: "plus", signals: ["Identity theft", "Data brokers", "Dark web", "Account takeover"] },
+  { icon: Users, who: "Families", risk: "Everyone under one roof — spouse, parents and children — protected from the same broker sites and leaks.", plan: "family", signals: ["Children's data", "Household exposure", "Relatives", "Location"] },
+  { icon: Crown, who: "Executives", risk: "Leadership is targeted for doxxing, impersonation and home-address exposure — shielded at principal grade.", plan: "exec-essential", signals: ["Doxxing", "Impersonation", "Threat actors", "Residence"] },
+  { icon: Star, who: "Public figures", risk: "Visibility invites harassment, fake profiles and deepfakes — monitored everywhere and removed.", plan: "rep-public-figure", signals: ["Fake profiles", "Deepfakes", "Reputation", "Harassment"] },
+  { icon: Landmark, who: "Politicians & candidates", risk: "Office attracts coordinated doxxing, disinformation and threats to you and your family — defended in real time.", plan: "exec-pro", signals: ["Threat network", "Public exposure", "Disinformation", "Family risk"] },
+  { icon: Building2, who: "Businesses", risk: "Your people, brand and domains are attack surface — protected across the whole organization.", plan: "biz-startup", signals: ["Employees", "Domains", "Vendors", "Brand abuse"] },
 ];
+
+const SIGNAL_DOT = ["bg-risk-high", "bg-risk-medium", "bg-brand", "bg-risk-low"];
 
 export function PersonaBand() {
   return (
-    <section className="mx-auto max-w-6xl px-6 py-20">
+    <section className="mx-auto max-w-6xl px-6 py-24">
       <div className="mx-auto max-w-2xl text-center">
-        <span className="text-xs font-semibold uppercase tracking-wider text-brand-fg">What it does for you</span>
-        <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">
-          Tell us who to protect. We handle the rest.
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-brand-fg">
+          Who we protect
+        </span>
+        <h2 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+          Built for everyone with something to lose.
         </h2>
+        <p className="mt-4 text-lg text-slate-400">
+          Whoever you are, your private information is already out there. Here&rsquo;s what we stand between you and harm.
+        </p>
       </div>
-      <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {personas.map((p) => (
+      <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {protectedGroups.map((p) => (
           <Link
-            key={p.q}
-            href="/pricing"
-            className="group flex flex-col rounded-2xl border border-border bg-bg-elevated/50 p-6 transition hover:border-brand/40 hover:bg-bg-elevated"
+            key={p.who}
+            href={`/pricing?plan=${p.plan}`}
+            className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-bg-elevated/50 p-6 transition duration-300 hover:-translate-y-1 hover:border-brand/40 hover:bg-bg-elevated/80"
           >
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-brand/25 to-brand/5">
+            <div aria-hidden className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-brand/15 opacity-0 blur-2xl transition duration-300 group-hover:opacity-100" />
+            <span className="relative flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-brand/25 to-brand/5 ring-1 ring-brand/20">
               <p.icon className="h-5 w-5 text-brand-fg" />
             </span>
-            <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{p.who}</p>
-            <h3 className="mt-1 flex items-center gap-1.5 text-lg font-semibold text-white">
-              “{p.q}” <ArrowRight className="h-4 w-4 text-brand-fg opacity-0 transition group-hover:opacity-100" />
-            </h3>
-            <p className="mt-2 text-sm leading-relaxed text-slate-400">{p.outcome}</p>
+            <h3 className="relative mt-4 text-lg font-semibold text-white">{p.who}</h3>
+            <p className="relative mt-2 text-sm leading-relaxed text-slate-400">{p.risk}</p>
+            {/* live risk "signals" we watch for this audience — the product preview */}
+            <div className="relative mt-4 flex-1">
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Signals monitored</p>
+              <div className="grid grid-cols-2 gap-1.5">
+                {p.signals.map((s, i) => (
+                  <span key={s} className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-bg-subtle/40 px-2 py-1.5 text-[11px] font-medium text-slate-300">
+                    <span className={cn("live-ping h-1.5 w-1.5 shrink-0 rounded-full", SIGNAL_DOT[i % SIGNAL_DOT.length])} style={{ animationDelay: `${i * 0.4}s` }} />
+                    <span className="truncate">{s}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+            <span className="relative mt-4 inline-flex items-center gap-1 text-xs font-semibold text-brand-fg opacity-80 transition group-hover:opacity-100">
+              See {p.who.toLowerCase()} plans <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
+            </span>
           </Link>
         ))}
       </div>

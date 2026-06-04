@@ -59,7 +59,7 @@ export default async function CommandPage() {
           title="Protection coverage"
           subtitle={`${coverageSummary.secure}/${coverageSummary.pillars} pillars secure · ${coverageSummary.needingAction} need action`}
         />
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 lg:grid-cols-7">
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7">
           {coverage.map((p) => {
             const ok = p.status === "secure";
             return (

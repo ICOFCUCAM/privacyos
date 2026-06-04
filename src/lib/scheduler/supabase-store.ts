@@ -8,12 +8,17 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Exposure, Recommendation, RemovalRequest, Threat } from "@/lib/types";
 import type { ProtectOutcome } from "@/lib/agents/orchestrator";
 import type { NewCaseFields } from "@/lib/agents/recommendation-routing";
-import { mapExposure, mapRemoval, mapSubject, mapThreat } from "@/lib/data/mappers";
+import type { EvidenceItem } from "@/lib/intelligence/evidence-vault";
+import { mapCase, mapExposure, mapRemoval, mapSubject, mapThreat } from "@/lib/data/mappers";
+import { mapCredentialLeak, mapDomainRisk, mapEmployeeExposure, mapFamilyMember, mapIncident, mapTravelAlert } from "@/lib/data/module-mappers";
+import { entitlementsFor } from "@/lib/billing/entitlements";
+import { creditPlanFor, creditCheckDue } from "@/lib/credit/plans";
 import { isRemovalDue } from "@/lib/brokers/removal";
 import type {
   DomainScanData,
   Footprint,
   NewAgentAction,
+  NewLegalDraft,
   NewNotification,
   OwnedRemoval,
   ReputationData,
@@ -25,10 +30,23 @@ export class SupabaseSchedulerStore implements SchedulerStore {
   constructor(private db: SupabaseClient) {}
 
   async listFootprints(): Promise<Footprint[]> {
-    const [{ data: subjects }, { data: exposures }, { data: threats }] = await Promise.all([
+    const [
+      { data: subjects }, { data: exposures }, { data: threats }, { data: family }, { data: travel },
+      { data: credentials }, { data: incidents }, { data: employees }, { data: domains }, { data: domainRisks },
+      { data: cases }, { data: subscriptions },
+    ] = await Promise.all([
       this.db.from("subjects").select("*"),
       this.db.from("exposures").select("*"),
       this.db.from("threats").select("*"),
+      this.db.from("family_profiles").select("*"),
+      this.db.from("travel_alerts").select("*"),
+      this.db.from("credential_leaks").select("*"),
+      this.db.from("incidents").select("*"),
+      this.db.from("employee_exposures").select("*"),
+      this.db.from("domains").select("*"),
+      this.db.from("domain_risks").select("*"),
+      this.db.from("cases").select("*").neq("status", "resolved"),
+      this.db.from("subscriptions").select("user_id,plan_id,status"),
     ]);
 
     const expBySubject = new Map<string, Exposure[]>();
@@ -43,12 +61,85 @@ export class SupabaseSchedulerStore implements SchedulerStore {
       list.push(mapThreat(row));
       thrBySubject.set(row.subject_id, list);
     }
+    const famBySubject = new Map<string, ReturnType<typeof mapFamilyMember>[]>();
+    for (const row of family ?? []) {
+      if (!row.subject_id) continue;
+      const list = famBySubject.get(row.subject_id) ?? [];
+      list.push(mapFamilyMember(row));
+      famBySubject.set(row.subject_id, list);
+    }
+    const travelBySubject = new Map<string, ReturnType<typeof mapTravelAlert>[]>();
+    for (const row of travel ?? []) {
+      if (!row.subject_id) continue;
+      const list = travelBySubject.get(row.subject_id) ?? [];
+      list.push(mapTravelAlert(row));
+      travelBySubject.set(row.subject_id, list);
+    }
+    // Subject-scoped feeds: credential leaks + incidents.
+    const credBySubject = new Map<string, ReturnType<typeof mapCredentialLeak>[]>();
+    for (const row of credentials ?? []) {
+      if (!row.subject_id) continue;
+      const list = credBySubject.get(row.subject_id) ?? [];
+      list.push(mapCredentialLeak(row));
+      credBySubject.set(row.subject_id, list);
+    }
+    const incBySubject = new Map<string, ReturnType<typeof mapIncident>[]>();
+    for (const row of incidents ?? []) {
+      if (!row.subject_id) continue;
+      const list = incBySubject.get(row.subject_id) ?? [];
+      list.push(mapIncident(row));
+      incBySubject.set(row.subject_id, list);
+    }
+    // Org-scoped feeds (no subject_id): employee exposure + domain risk. Keyed by
+    // user, attached to each of that user's subjects — org risk applies to every
+    // principal in the org.
+    const empByUser = new Map<string, ReturnType<typeof mapEmployeeExposure>[]>();
+    for (const row of employees ?? []) {
+      const list = empByUser.get(row.user_id) ?? [];
+      list.push(mapEmployeeExposure(row));
+      empByUser.set(row.user_id, list);
+    }
+    const domainsById = new Map<string, string>((domains ?? []).map((d) => [d.id, d.domain as string]));
+    const domainUserById = new Map<string, string>((domains ?? []).map((d) => [d.id, d.user_id as string]));
+    const domByUser = new Map<string, ReturnType<typeof mapDomainRisk>[]>();
+    for (const row of domainRisks ?? []) {
+      const userId = domainUserById.get(row.domain_id);
+      if (!userId) continue;
+      const list = domByUser.get(userId) ?? [];
+      list.push(mapDomainRisk(row, domainsById));
+      domByUser.set(userId, list);
+    }
+    const casesBySubject = new Map<string, ReturnType<typeof mapCase>[]>();
+    for (const row of cases ?? []) {
+      const list = casesBySubject.get(row.subject_id) ?? [];
+      list.push(mapCase(row));
+      casesBySubject.set(row.subject_id, list);
+    }
+    // Resolve per-user plan entitlements + credit tier, so paid features run only
+    // for subjects whose plan includes them, at the plan's cadence.
+    const creditByUser = new Map<string, boolean>();
+    const creditPlanByUser = new Map<string, ReturnType<typeof creditPlanFor>>();
+    for (const row of subscriptions ?? []) {
+      const ent = entitlementsFor({ planId: row.plan_id, status: row.status });
+      creditByUser.set(row.user_id, ent.features.credit);
+      creditPlanByUser.set(row.user_id, creditPlanFor(row.plan_id));
+    }
 
     return (subjects ?? []).map((row) => ({
       userId: row.user_id,
       subject: mapSubject(row),
       exposures: expBySubject.get(row.id) ?? [],
       threats: thrBySubject.get(row.id) ?? [],
+      family: famBySubject.get(row.id) ?? [],
+      travel: travelBySubject.get(row.id) ?? [],
+      credentialLeaks: credBySubject.get(row.id) ?? [],
+      incidents: incBySubject.get(row.id) ?? [],
+      employeeExposures: empByUser.get(row.user_id) ?? [],
+      domainRisks: domByUser.get(row.user_id) ?? [],
+      cases: casesBySubject.get(row.id) ?? [],
+      creditEnabled: creditByUser.get(row.user_id) ?? false,
+      creditAuto: row.credit_auto ?? false,
+      creditDue: creditCheckDue(creditPlanByUser.get(row.user_id) ?? creditPlanFor(null), row.credit_checked_at),
     }));
   }
 
@@ -326,5 +417,55 @@ export class SupabaseSchedulerStore implements SchedulerStore {
         assigned_agent: c.assignedAgent,
       })),
     );
+  }
+
+  async recordEvidence(userId: string, subjectId: string, items: EvidenceItem[]): Promise<void> {
+    if (items.length === 0) return;
+    // Link each artifact to its supporting case by title (cases are deduped by
+    // title), so the vault row points back at a real, tracked case.
+    const titles = [...new Set(items.map((i) => i.caseTitle).filter((t): t is string => !!t))];
+    const caseIdByTitle = new Map<string, string>();
+    if (titles.length > 0) {
+      const { data } = await this.db.from("cases").select("id,title").eq("subject_id", subjectId).in("title", titles);
+      for (const row of data ?? []) caseIdByTitle.set(row.title as string, row.id as string);
+    }
+    await this.db.from("evidence_records").insert(
+      items.map((e) => ({
+        user_id: userId,
+        subject_id: subjectId,
+        kind: e.kind,
+        title: e.title,
+        source: e.source,
+        hash: e.hash,
+        risk_level: e.riskLevel,
+        collected_by: e.collectedBy,
+        collected_at: e.collectedAt,
+        case_id: e.caseTitle ? caseIdByTitle.get(e.caseTitle) ?? null : null,
+        case_title: e.caseTitle ?? null,
+        custody: e.custody,
+      })),
+    );
+  }
+
+  async createLegalDrafts(userId: string, subjectId: string, drafts: NewLegalDraft[]): Promise<void> {
+    if (drafts.length === 0) return;
+    await this.db.from("legal_requests").insert(
+      drafts.map((d) => ({
+        user_id: userId,
+        subject_id: subjectId,
+        type: d.type,
+        recipient: d.recipient,
+        status: "draft",
+        body: d.body,
+      })),
+    );
+  }
+
+  async markCaseEscalated(caseId: string): Promise<void> {
+    await this.db.from("cases").update({ status: "escalated" }).eq("id", caseId);
+  }
+
+  async markCreditChecked(subjectId: string): Promise<void> {
+    await this.db.from("subjects").update({ credit_checked_at: new Date().toISOString() }).eq("id", subjectId);
   }
 }

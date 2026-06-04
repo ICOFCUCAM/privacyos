@@ -35,6 +35,19 @@ describe("buildReportContext — board", () => {
     const posture = ctx.sections.find((s) => s.heading === "Protection posture (all domains)")!;
     expect(posture.rows).toHaveLength(7);
     expect(posture.rows.some((r) => r.label === "Financial")).toBe(true);
+    // proof-of-work section sourced from the real ledgers
+    expect(headings).toContain("Remediation performed");
+  });
+});
+
+describe("buildReportContext — compliance", () => {
+  it("cites the remediation ledger and sealed evidence (the regulator/insurer export)", async () => {
+    const ctx = await buildReportContext("compliance");
+    const headings = ctx.sections.map((s) => s.heading);
+    expect(headings).toContain("Legal & privacy requests");
+    expect(headings).toContain("Remediation performed");
+    expect(headings).toContain("Sealed evidence (chain of custody)");
+    expect(ctx.stats.map((s) => s.label)).toContain("Evidence sealed");
   });
 });
 

@@ -6,6 +6,7 @@
 
 import type { RemovalRequest, Subject } from "@/lib/types";
 import type { DataSource, PrivacyDataSet } from "./source";
+import type { EvidenceItem } from "@/lib/intelligence/evidence-vault";
 import {
   demoAgents,
   demoCases,
@@ -66,5 +67,10 @@ export class DemoDataSource implements DataSource {
 
   async setAutonomyMode(): Promise<void> {
     // no-op in demo mode (the cookie still drives the demo UI)
+  }
+
+  async listEvidence(): Promise<EvidenceItem[]> {
+    // No persisted ledger in demo mode — the page derives evidence from the dataset.
+    return [];
   }
 }

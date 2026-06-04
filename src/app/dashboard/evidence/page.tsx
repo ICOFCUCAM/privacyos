@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Card, PageHeader, SectionTitle, RiskBadge } from "@/components/ui";
+import { LedgerTabs } from "@/components/ledger-tabs";
 import { getDataSource } from "@/lib/data";
 import {
   buildEvidence, evidenceStats, filterEvidence, shortHash,
@@ -34,17 +35,23 @@ export default async function EvidencePage({
 }: {
   searchParams: Promise<{ filter?: string }>;
 }) {
-  const [data, params] = await Promise.all([
-    (await getDataSource()).getDataset(),
+  const ds = await getDataSource();
+  const [data, persisted, params] = await Promise.all([
+    ds.getDataset(),
+    ds.listEvidence().catch(() => []),
     searchParams,
   ]);
-  const all = buildEvidence(data.exposures, data.threats, data.cases);
+  // Sealed ledger first (the autonomous actions the engine actually performed),
+  // then the derived exposure/threat records — one newest-first catalog.
+  const all = [...persisted, ...buildEvidence(data.exposures, data.threats, data.cases)]
+    .sort((a, b) => b.collectedAt.localeCompare(a.collectedAt));
   const stats = evidenceStats(all);
   const filter = (params.filter ?? "all") as EvidenceFilter;
   const items = filterEvidence(all, filter);
 
   return (
     <div className="space-y-5">
+      <LedgerTabs />
       <PageHeader
         icon={FileLock2}
         title="Evidence Vault"

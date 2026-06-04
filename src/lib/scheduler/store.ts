@@ -9,12 +9,20 @@
 
 import type {
   AgentActionKind,
+  CredentialLeak,
+  DomainRisk,
+  EmployeeExposure,
+  FamilyMember,
+  Incident,
+  LegalRequestType,
   Mention,
   NotificationKind,
   ScoreKind,
   SentimentDay,
+  TravelAlert,
 } from "@/lib/suite-types";
 import type {
+  Case,
   Exposure,
   Recommendation,
   RemovalRequest,
@@ -25,12 +33,35 @@ import type {
 import type { ProtectOutcome } from "@/lib/agents/orchestrator";
 import type { NewCaseFields } from "@/lib/agents/recommendation-routing";
 import type { AssessedRisk } from "@/lib/domains/dns";
+import type { EvidenceItem } from "@/lib/intelligence/evidence-vault";
 
 export interface Footprint {
   userId: string;
   subject: Subject;
   exposures: Exposure[];
   threats: Threat[];
+  /** The principal's family roster — feeds executive family/physical risk and
+   *  the family-protection cascade. Optional so callers can omit when absent. */
+  family?: FamilyMember[];
+  /** The principal's travel itinerary — feeds executive travel risk. */
+  travel?: TravelAlert[];
+  /** Leaked credentials (dark-web/breach feed) — drives ATO breach cases and the
+   *  digital/dark-web indices. */
+  credentialLeaks?: CredentialLeak[];
+  /** Workforce exposure (org-scoped) — drives doxxing + employee breach cases. */
+  employeeExposures?: EmployeeExposure[];
+  /** Open incidents — feeds the impersonation/deepfake correlation. */
+  incidents?: Incident[];
+  /** Domain risks (org-scoped) — feeds lookalike/phishing impersonation signals. */
+  domainRisks?: DomainRisk[];
+  /** The subject's currently-open cases — drives the response-SLA clock. */
+  cases?: Case[];
+  /** Whether the owning plan includes credit monitoring (the `credit` feature). */
+  creditEnabled?: boolean;
+  /** Whether the customer opted into automated credit checks (default false). */
+  creditAuto?: boolean;
+  /** Whether an automated pull is due per the plan's cadence (cost throttle). */
+  creditDue?: boolean;
 }
 
 export interface NewAgentAction {
@@ -50,6 +81,15 @@ export interface NewNotification {
 export interface ScoreEntry {
   kind: ScoreKind;
   value: number;
+}
+
+/** A legal instrument auto-drafted from a newly-opened case, ready to persist. */
+export interface NewLegalDraft {
+  type: LegalRequestType;
+  recipient: string;
+  body: string;
+  /** The case this draft was generated for (for the audit trail). */
+  caseTitle?: string;
 }
 
 export interface ScheduledRunSummary {
@@ -76,6 +116,28 @@ export interface ScheduledRunSummary {
   darkWebSignals: number;
   /** Live (chainable) attack paths detected this cycle. */
   attackPathsLive: number;
+  /** Response playbooks executed end-to-end (no step needed a human) this cycle. */
+  playbooksAutoExecuted: number;
+  /** Playbooks that ran but paused at least one step for the customer's sign-off. */
+  playbooksAwaitingApproval: number;
+  /** Autonomous actions sealed into the Evidence Vault this cycle. */
+  evidenceSealed: number;
+  /** Legal instruments auto-drafted from newly-opened cases this cycle. */
+  legalDrafted: number;
+  /** Family-protection cases auto-opened from household risk this cycle. */
+  familyCasesOpened: number;
+  /** Elevated/high-posture upcoming trips flagged this cycle. */
+  travelRisksFlagged: number;
+  /** Breach cases auto-opened from leaked credentials this cycle. */
+  credentialCasesOpened: number;
+  /** Cases auto-opened from high-risk employee/workforce exposure this cycle. */
+  employeeCasesOpened: number;
+  /** Impersonation/lookalike takedown cases auto-opened this cycle. */
+  impersonationCasesOpened: number;
+  /** Open cases that breached their response SLA and were auto-escalated. */
+  slaBreachesEscalated: number;
+  /** Credit-file identity-theft cases opened from live bureau alerts this cycle. */
+  creditCasesOpened: number;
   mentionsCollected: number;
   domainRisksFound: number;
   ranAt: string;
@@ -133,4 +195,12 @@ export interface SchedulerStore {
   listOpenCaseTitlesForSubject(subjectId: string): Promise<string[]>;
   /** Open new cases (e.g. auto-raised from high/critical threats). */
   createCases(userId: string, subjectId: string, cases: NewCaseFields[]): Promise<void>;
+  /** Seal autonomous actions as tamper-evident records in the Evidence Vault. */
+  recordEvidence(userId: string, subjectId: string, items: EvidenceItem[]): Promise<void>;
+  /** Persist legal instruments auto-drafted from cases (left in 'draft' for review). */
+  createLegalDrafts(userId: string, subjectId: string, drafts: NewLegalDraft[]): Promise<void>;
+  /** Escalate a case that breached its response SLA (idempotent: sets 'escalated'). */
+  markCaseEscalated(caseId: string): Promise<void>;
+  /** Record a credit pull (sets credit_checked_at) so auto pulls stay throttled. */
+  markCreditChecked(subjectId: string): Promise<void>;
 }

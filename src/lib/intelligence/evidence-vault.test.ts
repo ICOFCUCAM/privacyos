@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  buildEvidence, evidenceStats, filterEvidence, sealHash, shortHash,
+  actionEvidence, buildEvidence, evidenceStats, filterEvidence, sealHash, shortHash,
 } from "./evidence-vault";
 import type { Case, Exposure, Threat } from "@/lib/types";
 
@@ -56,6 +56,35 @@ describe("buildEvidence", () => {
   it("assigns the right analysing custodian per threat kind", () => {
     const [d] = buildEvidence([], [threat({ kind: "deepfake" })], []);
     expect(d.custody.some((c) => c.actor === "deepfake")).toBe(true);
+  });
+});
+
+describe("actionEvidence", () => {
+  const base = {
+    subjectId: "s", action: "Filed broker opt-out: Spokeo", detail: "status removal_requested",
+    source: "Spokeo", riskLevel: "medium" as const, collectedBy: "privacy" as const,
+    collectedAt: "2026-05-04T00:00:00Z",
+  };
+
+  it("seals an autonomous action into a case_artifact with custody", () => {
+    const ev = actionEvidence(base);
+    expect(ev.kind).toBe("case_artifact");
+    expect(ev.title).toBe("Filed broker opt-out: Spokeo");
+    expect(ev.hash).toHaveLength(64);
+    expect(ev.collectedBy).toBe("privacy");
+    // collector step + system seal
+    expect(ev.custody).toHaveLength(2);
+    expect(ev.custody[1].actor).toBe("system");
+  });
+
+  it("is deterministic and content-sensitive (id derives from the seal)", () => {
+    expect(actionEvidence(base).id).toBe(actionEvidence(base).id);
+    expect(actionEvidence({ ...base, detail: "changed" }).hash).not.toBe(actionEvidence(base).hash);
+  });
+
+  it("carries the supporting case link when given one", () => {
+    const ev = actionEvidence({ ...base, action: "Opened case: Leak", caseTitle: "Leak" });
+    expect(ev.caseTitle).toBe("Leak");
   });
 });
 

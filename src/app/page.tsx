@@ -5,11 +5,17 @@ import { BrandMark } from "@/components/brand-mark";
 import { TrustStrip, PersonaBand } from "@/components/landing-sections";
 import {
   FreeAssessmentBand,
-  ExposureCategories,
-  HowProtectionWorks,
-  ProtectionPlansTeaser,
+  PublicFigureProtection,
   OutcomeMetricsBand,
 } from "@/components/landing-outcomes";
+import {
+  HighStakesBuyers,
+  DetectionIsNotProtection,
+  CapabilityMatrix,
+} from "@/components/landing-platform";
+import {
+  ArchitectureEngine, ThreatSimulation, MissionControlShowcase, OneEngineNotTenTools,
+} from "@/components/landing-cinematic";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { Reveal } from "@/components/reveal";
 import { getT } from "@/lib/i18n/server";
@@ -49,31 +55,46 @@ export default async function LandingPage() {
         </div>
       </header>
 
-      {/* 1 — Protection promise */}
+      {/* 1 — HERO: the protection promise */}
       <Hero />
 
-      {/* outcome metrics — customer outcomes, not platform internals */}
-      <OutcomeMetricsBand />
+      {/* 2 — ONE ENGINE, NOT TEN TOOLS (cinematic: fragmented silos vs one engine) */}
+      <Reveal><OneEngineNotTenTools /></Reveal>
 
-      {/* 2 — Free exposure assessment (the conversion engine) */}
-      <Reveal><FreeAssessmentBand /></Reveal>
-
-      {/* 3 — Exposure categories discovered */}
-      <Reveal><ExposureCategories /></Reveal>
-
-      {/* 4 — How protection works (autonomous, on your behalf) */}
-      <Reveal><HowProtectionWorks /></Reveal>
-
-      {/* Who it protects */}
+      {/* 3 — WHO WE PROTECT (buyer categories, not products) */}
       <Reveal><PersonaBand /></Reveal>
 
-      {/* 5 — Protection plans */}
-      <Reveal><ProtectionPlansTeaser /></Reveal>
+      {/* 4 — THE OPERATING SYSTEM (cinematic architecture: domains → one engine) */}
+      <ArchitectureEngine />
 
-      {/* 6 — Social proof & trust */}
+      {/* 5 — DETECTION IS NOT PROTECTION (the outcome thesis: we act) */}
+      <Reveal><DetectionIsNotProtection /></Reveal>
+
+      {/* 6 — WATCH THE PLATFORM WORK (live, animated threat-response cascade) */}
+      <ThreatSimulation />
+
+      {/* 6 — BUILT FOR PEOPLE WHO CANNOT AFFORD EXPOSURE (high-stakes buyers) */}
+      <Reveal><HighStakesBuyers /></Reveal>
+
+      {/* 7 — PUBLIC FIGURES & POLITICAL PROTECTION (executive depth) */}
+      <Reveal><PublicFigureProtection /></Reveal>
+
+      {/* 8 — HEAD-TO-HEAD CAPABILITY MATRIX (the category, proven row by row) */}
+      <Reveal><CapabilityMatrix /></Reveal>
+
+      {/* 9 — MISSION CONTROL (cinematic: the living command center, in action) */}
+      <MissionControlShowcase />
+
+      {/* 10 — REAL OUTCOMES (customer outcomes, not engineering metrics) */}
+      <Reveal><OutcomeMetricsBand /></Reveal>
+
+      {/* 9 — FREE EXPOSURE SCAN (the conversion engine) */}
+      <Reveal><FreeAssessmentBand /></Reveal>
+
+      {/* 9 — TRUST: security, privacy, encryption, compliance */}
       <Reveal><TrustStrip /></Reveal>
 
-      {/* 7 — Final conversion */}
+      {/* 10 — FINAL CTA */}
       <Reveal className="mx-auto max-w-5xl px-6 py-24">
         <div className="relative overflow-hidden rounded-[2rem] border border-brand/25 bg-gradient-to-b from-brand/10 via-bg-elevated/40 to-bg-elevated/20 px-6 py-16 text-center shadow-2xl shadow-brand/10 ring-1 ring-white/5">
           <div aria-hidden className="pointer-events-none absolute inset-x-0 -top-28 h-56 bg-[radial-gradient(50%_100%_at_50%_0%,rgba(99,102,241,0.28),transparent_70%)]" />

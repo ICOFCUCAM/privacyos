@@ -10,8 +10,19 @@
  */
 
 import type { AgentKind, Exposure, ExposureSource, RiskLevel, Threat, ThreatKind } from "@/lib/types";
+import { needsApproval, type AutonomyMode } from "@/lib/home/autonomy";
 
 export type StepKind = "detect" | "decide" | "act" | "escalate" | "monitor";
+
+/**
+ * Steps that take a real-world action (and so are subject to the consent dial).
+ * Observation steps — detect/decide/monitor — never need sign-off: the platform
+ * always watches and recommends, regardless of how hands-on the customer chose
+ * to be. Only acting steps run through the autonomy gate.
+ */
+function isActingStep(kind: StepKind): boolean {
+  return kind === "act" || kind === "escalate";
+}
 
 /** How a step is carried out. */
 export type Execution = "auto" | "approval" | "skipped";
@@ -180,19 +191,26 @@ export interface PlaybookRun {
  * auto-executes or pauses for approval. Irreversible/legal steps and steps whose
  * approval threshold is met by the finding's risk require human sign-off; all
  * others run autonomously.
+ *
+ * When a `mode` is supplied, the customer's autonomy dial gates acting steps on
+ * top of the playbook's own thresholds: in "advisor" mode nothing acts without
+ * sign-off, "hybrid" still acts on the routine but defers the high-risk calls,
+ * and "autopilot" only pauses on critical. Observation steps always auto-run.
+ * Omit `mode` to evaluate the catalog's static gates alone.
  */
-export function evaluatePlaybook(playbook: Playbook, finding: FindingRef): PlaybookRun {
+export function evaluatePlaybook(playbook: Playbook, finding: FindingRef, mode?: AutonomyMode): PlaybookRun {
   const steps: ExecutedStep[] = playbook.steps.map((step) => {
-    const needsApproval =
+    const staticGate =
       step.approvalAtOrAbove !== undefined && meetsRisk(finding.riskLevel, step.approvalAtOrAbove);
-    if (needsApproval) {
-      return {
-        ...step,
-        execution: "approval",
-        reason: step.irreversible
-          ? "Irreversible legal action — awaiting approval"
-          : `Risk ${finding.riskLevel} ≥ ${step.approvalAtOrAbove} — awaiting approval`,
-      };
+    const autonomyGate =
+      mode !== undefined && isActingStep(step.kind) && needsApproval(finding.riskLevel, mode);
+    if (staticGate || autonomyGate) {
+      const reason = step.irreversible
+        ? "Irreversible legal action — awaiting approval"
+        : staticGate
+          ? `Risk ${finding.riskLevel} ≥ ${step.approvalAtOrAbove} — awaiting approval`
+          : `${finding.riskLevel} risk needs your sign-off in this mode — awaiting approval`;
+      return { ...step, execution: "approval", reason };
     }
     return { ...step, execution: "auto", reason: "Auto-executed by agent" };
   });
@@ -212,14 +230,16 @@ export function evaluatePlaybook(playbook: Playbook, finding: FindingRef): Playb
 
 /**
  * Run the whole catalog over a set of findings, returning one run per
- * (playbook, matching finding). Highest-risk findings first.
+ * (playbook, matching finding). Highest-risk findings first. When `mode` is
+ * given, every run is gated by the customer's autonomy dial (see
+ * `evaluatePlaybook`).
  */
-export function runPlaybooks(findings: FindingRef[]): PlaybookRun[] {
+export function runPlaybooks(findings: FindingRef[], mode?: AutonomyMode): PlaybookRun[] {
   const runs: PlaybookRun[] = [];
   const ordered = [...findings].sort((a, b) => RISK_RANK[b.riskLevel] - RISK_RANK[a.riskLevel]);
   for (const playbook of PLAYBOOKS) {
     for (const f of ordered) {
-      if (matches(playbook, f)) runs.push(evaluatePlaybook(playbook, f));
+      if (matches(playbook, f)) runs.push(evaluatePlaybook(playbook, f, mode));
     }
   }
   return runs;

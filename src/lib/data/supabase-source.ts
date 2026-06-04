@@ -5,12 +5,14 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { RemovalRequest, Subject } from "@/lib/types";
+import type { RemovalRequest, RiskLevel, Subject } from "@/lib/types";
 import type { ProtectOutcome } from "@/lib/agents/orchestrator";
 import type { DiscoveryFinding } from "@/lib/discovery/source";
+import type { CustodyEvent, Custodian, EvidenceItem, EvidenceKind } from "@/lib/intelligence/evidence-vault";
 import { computeRiskScore } from "@/lib/scoring/risk-score";
 import { advanceRemoval, createRemoval, shouldReappear } from "@/lib/brokers/removal";
 import { caseFromRecommendation } from "@/lib/agents/recommendation-routing";
+import { planCaseActions } from "@/lib/cases/case-actions";
 import type { DataSource, PrivacyDataSet } from "./source";
 import {
   aggregateAgentStates,
@@ -70,8 +72,11 @@ export class SupabaseDataSource implements DataSource {
 
   async approveRecommendation(id: string): Promise<void> {
     // Approving a recommendation opens a real, tracked Case assigned to the
-    // owning agent, then marks the recommendation approved (so it leaves the
-    // queue). This turns approval into actual remediation work, not just a flag.
+    // owning agent — and that case then SPAWNS THE WORK IT IMPLIES: a removal
+    // case files the broker opt-outs, a legal/reputation/impersonation case
+    // drafts the matching legal instrument. This turns approval into actual
+    // remediation, not just a flag, and links the exposures it acts on so the
+    // Evidence Vault picks them up.
     const { data: rec, error: recErr } = await this.db
       .from("recommendations")
       .select("id,subject_id,agent,title,rationale,risk_level")
@@ -87,6 +92,22 @@ export class SupabaseDataSource implements DataSource {
         rationale: rec.rationale ?? "",
         riskLevel: rec.risk_level,
       });
+
+      // Gather the subject's footprint to decide the downstream work.
+      const [subjRes, expRes, remRes] = await Promise.all([
+        this.db.from("subjects").select("display_name").eq("id", rec.subject_id).maybeSingle(),
+        this.db.from("exposures").select("*").eq("subject_id", rec.subject_id),
+        this.db.from("removal_requests").select("*").eq("subject_id", rec.subject_id),
+      ]);
+      const plan = planCaseActions(
+        { type: fields.type, title: fields.title, subjectId: rec.subject_id },
+        {
+          subjectName: subjRes.data?.display_name ?? "the data subject",
+          exposures: (expRes.data ?? []).map(mapExposure),
+          existingRemovals: (remRes.data ?? []).map(mapRemoval),
+        },
+      );
+
       const { error: caseErr } = await this.db.from("cases").insert({
         subject_id: rec.subject_id,
         type: fields.type,
@@ -95,8 +116,42 @@ export class SupabaseDataSource implements DataSource {
         status: "in_progress",
         risk_level: fields.riskLevel,
         assigned_agent: fields.assignedAgent,
+        related_exposure_ids: plan.relatedExposureIds,
       });
       if (caseErr) throw caseErr;
+
+      // File the broker opt-outs the case implies, and keep the linked
+      // exposures' status in lockstep so the risk score reflects the work.
+      if (plan.removals.length > 0) {
+        const removalRows = plan.removals.map((r) => ({
+          subject_id: r.subjectId,
+          exposure_id: r.exposureId ?? null,
+          broker_name: r.brokerName,
+          status: r.status,
+          submitted_at: r.submittedAt,
+          next_check_at: r.nextCheckAt ?? null,
+          history: r.history,
+        }));
+        const { error: remErr } = await this.db.from("removal_requests").insert(removalRows);
+        if (remErr) throw remErr;
+        for (const r of plan.removals) {
+          if (r.exposureId) {
+            await this.db.from("exposures").update({ status: r.status }).eq("id", r.exposureId);
+          }
+        }
+      }
+
+      // Draft the legal instrument the case implies (left in 'draft' for review).
+      if (plan.legal) {
+        const { error: legalErr } = await this.db.from("legal_requests").insert({
+          subject_id: rec.subject_id,
+          type: plan.legal.type,
+          recipient: plan.legal.recipient,
+          status: "draft",
+          body: plan.legal.body,
+        });
+        if (legalErr) throw legalErr;
+      }
     }
 
     const { error } = await this.db.from("recommendations").update({ approved: true }).eq("id", id);
@@ -235,5 +290,29 @@ export class SupabaseDataSource implements DataSource {
     if (data.exposure_id) {
       await this.db.from("exposures").update({ status: next.status }).eq("id", data.exposure_id);
     }
+  }
+
+  async listEvidence(): Promise<EvidenceItem[]> {
+    const subject = await this.getPrimarySubject();
+    if (!subject) return [];
+    const { data, error } = await this.db
+      .from("evidence_records")
+      .select("*")
+      .eq("subject_id", subject.id)
+      .order("collected_at", { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map((row) => ({
+      id: `ev-rec-${row.id}`,
+      kind: row.kind as EvidenceKind,
+      title: row.title as string,
+      source: row.source as string,
+      hash: row.hash as string,
+      riskLevel: row.risk_level as RiskLevel,
+      collectedBy: row.collected_by as Custodian,
+      collectedAt: row.collected_at as string,
+      caseId: (row.case_id as string | null) ?? undefined,
+      caseTitle: (row.case_title as string | null) ?? undefined,
+      custody: (row.custody as CustodyEvent[] | null) ?? [],
+    }));
   }
 }

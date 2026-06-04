@@ -24,6 +24,11 @@ export interface Subject {
   /** How hands-on the customer chose to be — persisted so the background cycle
    *  honors it (advisor/hybrid/autopilot). Inline union avoids an import cycle. */
   autonomyMode?: "autopilot" | "hybrid" | "advisor";
+  /** Whether the customer opted into automated credit checks (default false =
+   *  manual). A credit pull costs money, so the engine never pulls until opt-in. */
+  creditAuto?: boolean;
+  /** Last credit pull, used with the plan's cadence to throttle auto checks. */
+  creditCheckedAt?: string;
 }
 
 export type ExposureCategory =

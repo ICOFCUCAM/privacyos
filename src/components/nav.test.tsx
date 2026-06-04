@@ -17,8 +17,8 @@ describe("<NavList> progressive disclosure", () => {
     expect(screen.getByText("Broker Removals")).toBeTruthy();
     expect(screen.getByText("Reports")).toBeTruthy();
     // operator/advanced hidden by default
-    expect(screen.queryByText("Mission Control")).toBeNull();
-    expect(screen.queryByText("Workflow Builder")).toBeNull();
+    expect(screen.queryByText("Command Center")).toBeNull();
+    expect(screen.queryByText("AI Agents")).toBeNull();
     // the toggle is present
     expect(screen.getByText("Advanced tools")).toBeTruthy();
   });
@@ -26,8 +26,8 @@ describe("<NavList> progressive disclosure", () => {
   it("reveals operator surfaces when Advanced is toggled on", () => {
     render(<NavList />);
     fireEvent.click(screen.getByText("Advanced tools"));
-    expect(screen.getByText("Mission Control")).toBeTruthy();
-    expect(screen.getByText("Workflow Builder")).toBeTruthy();
+    expect(screen.getByText("Command Center")).toBeTruthy();
+    expect(screen.getByText("AI Agents")).toBeTruthy();
     // the toggle flips its label
     expect(screen.getByText("Hide advanced tools")).toBeTruthy();
   });

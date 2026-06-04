@@ -1,0 +1,11 @@
+-- Add the `executive_protection` case type.
+--
+-- The application has long created cases of this type (ExecutiveOS threat-actor
+-- escalation, doxxing response), and the TypeScript `CaseType` union already
+-- includes it — but the Postgres enum defined in 0001_init.sql never did, so
+-- those inserts would fail against a live database. This closes the gap.
+--
+-- ALTER TYPE ... ADD VALUE cannot run inside a transaction in some Postgres
+-- versions; Supabase applies each migration statement on its own, and
+-- IF NOT EXISTS makes this safe to re-run.
+alter type case_type add value if not exists 'executive_protection';

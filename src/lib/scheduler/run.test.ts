@@ -5,6 +5,7 @@ import type {
   DomainScanData,
   Footprint,
   NewAgentAction,
+  NewLegalDraft,
   NewNotification,
   OwnedRemoval,
   ReputationData,
@@ -20,6 +21,8 @@ import type { DiscoverySource } from "@/lib/discovery/source";
 import type { Exposure, Recommendation, Subject, Threat } from "@/lib/types";
 import type { ProtectOutcome } from "@/lib/agents/orchestrator";
 import type { NewCaseFields } from "@/lib/agents/recommendation-routing";
+import type { EvidenceItem } from "@/lib/intelligence/evidence-vault";
+import type { CreditSource } from "@/lib/credit/source";
 
 function subject(id: string, userId: string): Subject {
   return {
@@ -51,6 +54,10 @@ class MemoryStore implements SchedulerStore {
   domainScans: DomainScanData[] = [];
   createdCases: NewCaseFields[] = [];
   openCaseTitles: string[] = [];
+  evidence: EvidenceItem[] = [];
+  legalDrafts: NewLegalDraft[] = [];
+  escalatedCaseIds: string[] = [];
+  creditCheckedIds: string[] = [];
 
   async listFootprints() {
     return this.footprints;
@@ -101,6 +108,18 @@ class MemoryStore implements SchedulerStore {
   }
   async createCases(_u: string, _s: string, cases: NewCaseFields[]) {
     this.createdCases.push(...cases);
+  }
+  async recordEvidence(_u: string, _s: string, items: EvidenceItem[]) {
+    this.evidence.push(...items);
+  }
+  async createLegalDrafts(_u: string, _s: string, drafts: NewLegalDraft[]) {
+    this.legalDrafts.push(...drafts);
+  }
+  async markCaseEscalated(caseId: string) {
+    this.escalatedCaseIds.push(caseId);
+  }
+  async markCreditChecked(subjectId: string) {
+    this.creditCheckedIds.push(subjectId);
   }
 }
 
@@ -166,6 +185,35 @@ const critSource: DiscoverySource = {
   },
 };
 
+// A source that yields one medium-risk data-broker listing — triggers the
+// Data-Broker Removal playbook, which runs end-to-end under autopilot.
+const brokerSource: DiscoverySource = {
+  id: "broker", name: "Broker",
+  async scan({ subject }) {
+    const ts = new Date().toISOString();
+    return {
+      exposures: [
+        { id: `bx-${subject.id}`, subjectId: subject.id, category: "address", source: "data_broker", sourceName: "Spokeo", snippet: "listing", riskLevel: "medium", riskScore: 20, status: "discovered", discoveredAt: ts, lastSeenAt: ts },
+      ],
+      threats: [],
+      log: ["found broker listing"],
+    };
+  },
+};
+
+// A live credit source carrying a fraud-indicative alert (the real-partner path).
+const liveCreditSource: CreditSource = {
+  async fetch() {
+    return {
+      live: true,
+      profile: {
+        score: 640, scoreDelta: -40,
+        alerts: [{ id: "x1", kind: "new_account", bureau: "transunion", detail: "card you may not recognize", riskLevel: "high", detectedAt: new Date().toISOString() }],
+      },
+    };
+  },
+};
+
 // Deterministic DNS client (no network) — fetch always fails → sample assessment.
 const domClient = new DohClient((async () => {
   throw new Error("blocked");
@@ -205,6 +253,61 @@ describe("runScheduledCycle", () => {
     expect(summary.casesOpened).toBe(2);
     expect(store.createdCases).toHaveLength(2);
     expect(store.createdCases[0]).toMatchObject({ type: "breach_response", assignedAgent: "security", riskLevel: "critical" });
+    // Opening each case seals a vault artifact linked back to the case by title.
+    const caseEvidence = store.evidence.filter((e) => /^Opened case:/.test(e.title));
+    expect(caseEvidence.length).toBe(2);
+    expect(caseEvidence[0].caseTitle).toBe("Leak found");
+    expect(caseEvidence[0].hash).toHaveLength(64);
+  });
+
+  it("executes recorded playbooks under the autonomy gate and records them for the away-feed", async () => {
+    const store = new MemoryStore([
+      { userId: "u1", subject: { ...subject("a", "u1"), autonomyMode: "autopilot" }, exposures: [], threats: [] },
+    ]);
+    const summary = await runScheduledCycle(store, {
+      sources: [brokerSource],
+      provider: new MockProvider(),
+      reputationSource: cleanRepSource,
+      domainClient: domClient,
+    });
+    // Autopilot + a medium-risk listing → the Data-Broker Removal plan runs end-to-end.
+    expect(summary.playbooksAutoExecuted).toBe(1);
+    expect(summary.playbooksAwaitingApproval).toBe(0);
+    // …and it's recorded as a completed agent action, so it surfaces in "While you were away".
+    const playbookAction = store.actions.flat().find((a) => a.kind === "report" && /Data-Broker Removal/.test(a.summary));
+    expect(playbookAction).toBeTruthy();
+    expect(playbookAction!.summary).toMatch(/autonomously/);
+    expect(playbookAction!.status).toBe("completed");
+
+    // Every autonomous action is sealed into the Evidence Vault as a tamper-
+    // evident case_artifact with a full SHA-256 digest.
+    expect(summary.evidenceSealed).toBeGreaterThan(0);
+    expect(summary.evidenceSealed).toBe(store.evidence.length);
+    const filing = store.evidence.find((e) => /Filed broker opt-out: Spokeo/.test(e.title));
+    expect(filing).toBeTruthy();
+    expect(filing!.kind).toBe("case_artifact");
+    expect(filing!.hash).toHaveLength(64);
+    expect(filing!.collectedBy).toBe("privacy");
+    expect(store.evidence.some((e) => /Executed Data-Broker Removal playbook/.test(e.title))).toBe(true);
+  });
+
+  it("pauses high-risk playbook steps for sign-off and notifies the customer", async () => {
+    const store = new MemoryStore([
+      { userId: "u1", subject: { ...subject("a", "u1"), autonomyMode: "autopilot" }, exposures: [], threats: [] },
+    ]);
+    const summary = await runScheduledCycle(store, {
+      sources: [critSource],
+      provider: new MockProvider(),
+      reputationSource: cleanRepSource,
+      domainClient: domClient,
+    });
+    // The critical credential leak triggers the breach playbook; its acting steps
+    // need sign-off (critical ≥ the autopilot floor and the escalation gate).
+    expect(summary.playbooksAwaitingApproval).toBe(1);
+    expect(summary.playbooksAutoExecuted).toBe(0);
+    const notif = store.notifications.flat().find((n) => /Approval needed: Credential Breach Response/.test(n.title));
+    expect(notif).toBeTruthy();
+    expect(notif!.riskLevel).toBe("critical");
   });
 
   it("does not re-open a case when one already exists for the threat", async () => {
@@ -241,6 +344,155 @@ describe("runScheduledCycle", () => {
     const notif = store.notifications.flat().find((n) => /Defamatory content detected/.test(n.title));
     expect(notif).toBeTruthy();
     expect(notif!.riskLevel).toBe("high");
+
+    // Case → Legal cascade: opening the reputation-recovery case auto-drafts the
+    // defamation/takedown demand, persists it as a draft, and seals it.
+    expect(summary.legalDrafted).toBeGreaterThanOrEqual(1);
+    const draft = store.legalDrafts.find((d) => d.type === "defamation_complaint");
+    expect(draft).toBeTruthy();
+    expect(draft!.body.length).toBeGreaterThan(0);
+    expect(store.evidence.some((e) => /Drafted .*Defamation/i.test(e.title))).toBe(true);
+    const draftAction = store.actions.flat().find((a) => a.kind === "draft_legal");
+    expect(draftAction).toBeTruthy();
+  });
+
+  it("cascades family and travel risk into protective cases, legal drafts and sealed evidence", async () => {
+    const future = new Date(Date.now() + 14 * 86_400_000).toISOString().slice(0, 10);
+    const store = new MemoryStore([
+      {
+        userId: "u1",
+        subject: subject("a", "u1"),
+        exposures: [],
+        threats: [],
+        family: [{ id: "m1", displayName: "Kid A", relation: "child", isMinor: true, riskLevel: "high", exposuresCount: 3 }],
+        travel: [{ id: "tr1", subjectId: "a", destination: "Bogotá", travelDate: future, riskLevel: "critical", advisory: "Elevated personal-security risk" }],
+      },
+    ]);
+    const summary = await runScheduledCycle(store, {
+      sources: [],
+      provider: new MockProvider(),
+      reputationSource: cleanRepSource,
+      domainClient: domClient,
+    });
+
+    // Family roster → protective case → legal draft + sealed evidence (full cascade).
+    expect(summary.familyCasesOpened).toBe(1);
+    expect(store.createdCases.some((c) => c.type === "executive_protection" && /Family protection/.test(c.title))).toBe(true);
+    expect(store.legalDrafts.some((d) => d.type === "privacy_violation")).toBe(true);
+    expect(store.evidence.some((e) => /family-protection case/i.test(e.title))).toBe(true);
+
+    // Travel itinerary → elevated-trip flag + notification + sealed evidence.
+    expect(summary.travelRisksFlagged).toBeGreaterThanOrEqual(1);
+    expect(store.notifications.flat().some((n) => /Travel risk: Bogotá/.test(n.title))).toBe(true);
+    expect(store.evidence.some((e) => /elevated-risk trip/i.test(e.title))).toBe(true);
+  });
+
+  it("wires credential, employee and impersonation feeds into cases, legal drafts and evidence", async () => {
+    const ts = new Date().toISOString();
+    const store = new MemoryStore([
+      {
+        userId: "u1",
+        subject: subject("a", "u1"),
+        exposures: [],
+        threats: [],
+        credentialLeaks: [
+          { id: "cl1", account: "ceo@acme.com", breachName: "MegaBreach", dataClasses: ["passwords"], pwnCount: 50000, riskLevel: "critical" },
+        ],
+        employeeExposures: [
+          { id: "ee1", employeeEmail: "staff@acme.com", exposureType: "credential", riskLevel: "high", source: "breach", detectedAt: ts },
+        ],
+        incidents: [
+          { id: "in1", subjectId: "a", kind: "impersonation", title: "Fake CEO profile", detail: "lookalike account", riskLevel: "high", status: "open", evidenceCount: 1, detectedAt: ts, updatedAt: ts },
+        ],
+      },
+    ]);
+    const summary = await runScheduledCycle(store, {
+      sources: [],
+      provider: new MockProvider(),
+      reputationSource: cleanRepSource,
+      domainClient: domClient,
+    });
+
+    // Credential leak → account-takeover breach case + sealed evidence + critical alert.
+    expect(summary.credentialCasesOpened).toBe(1);
+    expect(store.createdCases.some((c) => c.type === "breach_response" && /Credential breach: MegaBreach/.test(c.title))).toBe(true);
+    expect(store.evidence.some((e) => /Credential breach: MegaBreach/.test(e.title))).toBe(true);
+    expect(store.notifications.flat().some((n) => /Critical credential breach/.test(n.title))).toBe(true);
+
+    // Employee exposure → org breach-review case.
+    expect(summary.employeeCasesOpened).toBe(1);
+    expect(store.createdCases.some((c) => c.title === "Employee exposure review")).toBe(true);
+
+    // Impersonation incident → takedown case → platform-abuse legal draft + evidence.
+    expect(summary.impersonationCasesOpened).toBe(1);
+    expect(store.createdCases.some((c) => c.type === "impersonation_takedown")).toBe(true);
+    expect(store.legalDrafts.some((d) => d.type === "platform_abuse")).toBe(true);
+  });
+
+  it("auto-escalates an open case that breached its response-SLA deadline", async () => {
+    const old = new Date(Date.now() - 3 * 86_400_000).toISOString(); // 3 days ago
+    const store = new MemoryStore([
+      {
+        userId: "u1",
+        subject: subject("a", "u1"),
+        exposures: [],
+        threats: [],
+        cases: [
+          { id: "c-old", subjectId: "a", type: "breach_response", title: "Stale critical case", summary: "", status: "open", riskLevel: "critical", assignedAgent: "security", relatedExposureIds: [], createdAt: old, updatedAt: old },
+        ],
+      },
+    ]);
+    const summary = await runScheduledCycle(store, {
+      sources: [],
+      provider: new MockProvider(),
+      reputationSource: cleanRepSource,
+      domainClient: domClient,
+    });
+    // Critical SLA is 24h; a 3-day-old open case is breached → auto-escalated, alerted, sealed.
+    expect(summary.slaBreachesEscalated).toBe(1);
+    expect(store.escalatedCaseIds).toContain("c-old");
+    expect(store.notifications.flat().some((n) => /SLA breach escalated: Stale critical case/.test(n.title))).toBe(true);
+    expect(store.evidence.some((e) => /Escalated SLA breach/.test(e.title))).toBe(true);
+  });
+
+  it("auto-pulls credit on live alerts only when opted in + due — and records the pull", async () => {
+    const store = new MemoryStore([
+      { userId: "u1", subject: subject("a", "u1"), exposures: [], threats: [], creditEnabled: true, creditAuto: true, creditDue: true },
+    ]);
+    const summary = await runScheduledCycle(store, {
+      sources: [], provider: new MockProvider(), reputationSource: cleanRepSource, domainClient: domClient,
+      creditSource: liveCreditSource,
+    });
+    expect(summary.creditCasesOpened).toBe(1);
+    expect(store.createdCases.some((c) => c.type === "breach_response" && /Credit-file identity-theft review/.test(c.title))).toBe(true);
+    expect(store.evidence.some((e) => /Credit-file identity-theft review/.test(e.title))).toBe(true);
+    expect(store.creditCheckedIds).toContain("a"); // the pull was throttle-recorded
+  });
+
+  it("never pulls credit when manual (default), not due, not entitled, or on demo data", async () => {
+    const opts = (creditSource: CreditSource) => ({ sources: [], provider: new MockProvider(), reputationSource: cleanRepSource, domainClient: domClient, creditSource });
+    const demoSource: CreditSource = {
+      async fetch() {
+        return { live: false, profile: { score: 700, scoreDelta: 0, alerts: [{ id: "d", kind: "new_account", bureau: "experian", detail: "", riskLevel: "high", detectedAt: new Date().toISOString() }] } };
+      },
+    };
+    const fp = (over: Record<string, unknown>) => new MemoryStore([
+      { userId: "u1", subject: subject("a", "u1"), exposures: [], threats: [], creditEnabled: true, creditAuto: true, creditDue: true, ...over },
+    ]);
+
+    // Manual (the default) — opted out of auto → never pulled.
+    const manual = fp({ creditAuto: false });
+    expect((await runScheduledCycle(manual, opts(liveCreditSource))).creditCasesOpened).toBe(0);
+    expect(manual.creditCheckedIds).toHaveLength(0);
+
+    // Not due yet (cadence cap) → not pulled.
+    expect((await runScheduledCycle(fp({ creditDue: false }), opts(liveCreditSource))).creditCasesOpened).toBe(0);
+
+    // Not entitled → not pulled even when opted in.
+    expect((await runScheduledCycle(fp({ creditEnabled: false }), opts(liveCreditSource))).creditCasesOpened).toBe(0);
+
+    // Entitled + auto + due, but a demo (non-live) feed → no fake fraud case.
+    expect((await runScheduledCycle(fp({}), opts(demoSource))).creditCasesOpened).toBe(0);
   });
 
   it("escalates the principal to critical executive risk on critical physical threats", async () => {

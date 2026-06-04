@@ -4,6 +4,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Card, PageHeader, SectionTitle } from "@/components/ui";
+import { AutomationTabs } from "@/components/automation-tabs";
 import { getDataSource } from "@/lib/data";
 import { exposureToFinding, runPlaybooks, threatToFinding } from "@/lib/agents/playbooks";
 import { buildWorkflows, workflowMetrics, type WorkflowStatus } from "@/lib/agents/workflows";
@@ -29,6 +30,7 @@ export default async function WorkflowsPage() {
 
   return (
     <div className="space-y-5">
+      <AutomationTabs />
       <PageHeader
         icon={GitBranch}
         title="Workflow Command Center"

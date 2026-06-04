@@ -11,11 +11,10 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "stripe:setup": "node scripts/stripe-setup.ts"
+    "stripe:setup": "node scripts/stripe-setup.ts",
+    "globe:gen": "node scripts/gen-globe-dots.mjs"
   },
   "dependencies": {
-    "@react-three/drei": "^10.7.7",
-    "@react-three/fiber": "^9.6.1",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.45.4",
     "clsx": "^2.1.1",
@@ -26,10 +25,6 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwind-merge": "^2.5.4",
-    "three": "^0.171.0",
-    "three-globe": "^2.45.2",
-    "topojson-client": "^3.1.0",
-    "world-atlas": "^2.0.2",
     "zod": "^3.23.8"
   },
   "devDependencies": {
@@ -39,14 +34,15 @@
     "@types/node": "^22.9.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "@types/three": "^0.171.0",
     "@types/topojson-client": "^3.1.5",
     "autoprefixer": "^10.4.20",
     "happy-dom": "^20.9.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.14",
+    "topojson-client": "^3.1.0",
     "typescript": "^5.6.3",
-    "vitest": "^2.1.5"
+    "vitest": "^2.1.5",
+    "world-atlas": "^2.0.2"
   },
   "engines": {
     "node": ">=20"

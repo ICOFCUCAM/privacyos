@@ -55,7 +55,7 @@ export default async function ThreatsPage() {
       />
 
       {/* Threat overview */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <Card className="p-4">
           <span className="text-[11px] font-medium uppercase tracking-wide text-slate-400">Active threats</span>
           <p className="mt-1 text-2xl font-bold text-white">{summary.active}</p>

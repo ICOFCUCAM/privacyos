@@ -110,6 +110,51 @@ export function buildEvidence(exposures: Exposure[], threats: Threat[], cases: C
   return items.sort((a, b) => b.collectedAt.localeCompare(a.collectedAt));
 }
 
+/* ── Autonomous-action evidence ──────────────────────────────────────────── */
+
+export interface ActionEvidenceInput {
+  /** The subject this artifact belongs to (for the seal + scoping). */
+  subjectId: string;
+  /** What was done — becomes the artifact title and first custody step. */
+  action: string;
+  /** Extra canonical content folded into the seal (kept off the title). */
+  detail: string;
+  /** Human-readable origin, e.g. a broker name or "ReputationOS". */
+  source: string;
+  riskLevel: RiskLevel;
+  /** The agent that performed the action. */
+  collectedBy: Custodian;
+  collectedAt: string;
+  /** The case this artifact supports, linked by title (cases are deduped by title). */
+  caseTitle?: string;
+}
+
+/**
+ * Seal one autonomous action the engine actually performed into a tamper-evident
+ * `case_artifact`. This is what turns the vault from a derived view into a real
+ * ledger: the scheduler calls this for every removal filed, case opened, takedown
+ * routed and playbook executed, then persists the result. Deterministic — the id
+ * is derived from the seal, so re-sealing identical content yields the same row.
+ */
+export function actionEvidence(input: ActionEvidenceInput): EvidenceItem {
+  const hash = sealHash(["action", input.subjectId, input.action, input.detail, input.source, input.collectedAt]);
+  return {
+    id: `ev-act-${hash.slice(0, 16)}`,
+    kind: "case_artifact",
+    title: input.action,
+    source: input.source,
+    hash,
+    riskLevel: input.riskLevel,
+    collectedBy: input.collectedBy,
+    collectedAt: input.collectedAt,
+    caseTitle: input.caseTitle,
+    custody: [
+      { at: input.collectedAt, actor: input.collectedBy, action: input.action },
+      { at: input.collectedAt, actor: "system", action: "Sealed (SHA-256) into Evidence Vault" },
+    ],
+  };
+}
+
 /* ── Summary + filtering ─────────────────────────────────────────────────── */
 
 export interface EvidenceStats {

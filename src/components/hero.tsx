@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ShieldCheck, PlayCircle, Check } from "lucide-react";
 import { HeroStage } from "@/components/hero/hero-stage";
+import { HeroStarfield } from "@/components/hero/starfield";
 import { demoHeroMetrics } from "@/components/hero/metrics";
 
 const trust = [
@@ -13,6 +14,8 @@ const trust = [
 export function Hero() {
   return (
     <section className="relative overflow-hidden">
+      {/* Backmost depth layer — twinkling starfield */}
+      <HeroStarfield />
       {/* Ambient top light for depth */}
       <div
         aria-hidden
@@ -24,20 +27,20 @@ export function Hero() {
         <div className="relative z-10 lg:col-span-5">
           <span className="inline-flex items-center gap-2 rounded-full border border-border bg-bg-elevated/70 px-3 py-1 text-xs font-medium text-brand-fg backdrop-blur">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand" />
-            Autonomous protection for your digital life
+            One platform · every layer of digital risk
           </span>
 
           <h1 className="mt-6 text-4xl font-bold leading-[1.06] tracking-tight text-white sm:text-5xl xl:text-[3.75rem]">
-            Protect Your Entire{" "}
+            The Digital Risk{" "}
             <span className="bg-gradient-to-r from-brand-fg via-brand to-brand-fg bg-clip-text text-transparent">
-              Digital Life.
+              Operating System.
             </span>
           </h1>
 
           <p className="mt-5 max-w-xl text-lg leading-relaxed text-slate-400">
-            We find what&rsquo;s exposed about you across data brokers, breaches, the dark web,
-            search and social — then remove it and keep watching, automatically. You get peace
-            of mind; we do the work.
+            Protect individuals, families, executives, politicians, brands and businesses from
+            online exposure, reputation attacks, identity threats, doxxing and digital risk —
+            discovered, removed and monitored automatically.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -74,33 +77,8 @@ export function Hero() {
         </div>
       </div>
 
-      {/* Soft transition into the social-proof bar */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-[88px] h-32 bg-gradient-to-b from-transparent to-bg"
-      />
-
-      {/* Gradient section divider */}
+      {/* Gradient section divider into the page */}
       <div aria-hidden className="h-px w-full bg-gradient-to-r from-transparent via-brand/45 to-transparent" />
-
-      {/* Social proof bar */}
-      <div className="relative border-b border-border bg-bg-subtle/40">
-        <div className="mx-auto grid max-w-6xl grid-cols-2 gap-6 px-6 py-8 sm:grid-cols-4">
-          {[
-            { v: "8", l: "Autonomous AI Agents" },
-            { v: "29", l: "Security Data Models" },
-            { v: "24/7", l: "Continuous Monitoring" },
-            { v: "Multi-Layer", l: "Risk Intelligence" },
-          ].map((s) => (
-            <div key={s.l} className="text-center">
-              <p className="bg-gradient-to-b from-white to-slate-400 bg-clip-text text-2xl font-bold text-transparent sm:text-3xl">
-                {s.v}
-              </p>
-              <p className="mt-1 text-xs text-slate-400 sm:text-sm">{s.l}</p>
-            </div>
-          ))}
-        </div>
-      </div>
     </section>
   );
 }
