@@ -20,11 +20,25 @@ import type { Feature } from "@/lib/billing/entitlements";
 export type NavItem = { href: string; label: string; icon: LucideIcon };
 export type NavGroup = { group: string; items: NavItem[]; feature?: Feature; operator?: boolean };
 
+// Information architecture organized around the protection lifecycle, not the
+// org chart of features. Home = the two front doors; Command = the operator
+// dashboards (to be merged into one Command Center); the OS groups own
+// Discover→Act per domain; Governance owns Verify+Report. Item count is reduced
+// in follow-up work by merging sibling pages into tabs — this step regroups and
+// relabels without removing any route, so nothing breaks.
 export const navGroups: NavGroup[] = [
   {
     group: "",
     items: [
       { href: "/dashboard/home", label: "Protection", icon: ShieldCheck },
+      { href: "/dashboard/assistant", label: "AI Assistant", icon: MessageSquareHeart },
+    ],
+  },
+  {
+    // The operator dashboards — three views of the same posture. Slated to merge
+    // into one role-adaptive Command Center.
+    group: "Command",
+    items: [
       { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
       { href: "/dashboard/suite", label: "Protection Suite", icon: LayoutGrid },
       { href: "/dashboard/mission-control", label: "Mission Control", icon: Gauge },
@@ -33,14 +47,12 @@ export const navGroups: NavGroup[] = [
   {
     group: "PrivacyOS",
     items: [
-      { href: "/dashboard/assistant", label: "AI Assistant", icon: MessageSquareHeart },
       { href: "/dashboard/exposures", label: "Exposure Inventory", icon: Radar },
       { href: "/dashboard/identity", label: "Digital Identity", icon: Fingerprint },
       { href: "/dashboard/financial", label: "Financial Exposure", icon: Banknote },
       { href: "/dashboard/removals", label: "Broker Removals", icon: Trash2 },
       { href: "/dashboard/threats", label: "Threat Feed", icon: ShieldAlert },
       { href: "/dashboard/cases", label: "Active Cases", icon: FolderKanban },
-      { href: "/dashboard/evidence", label: "Evidence Vault", icon: FileLock2 },
       { href: "/dashboard/recommendations", label: "AI Recommendations", icon: Sparkles },
     ],
   },
@@ -62,15 +74,18 @@ export const navGroups: NavGroup[] = [
     group: "ExecutiveOS",
     feature: "executive",
     items: [
+      // Protection cluster
       { href: "/dashboard/executive", label: "Executive Protection", icon: Crown },
       { href: "/dashboard/executive/attack-paths", label: "Attack Paths", icon: Target },
       { href: "/dashboard/executive/residence", label: "Residence", icon: Home },
       { href: "/dashboard/executive/doxxing", label: "Doxxing Protection", icon: UserX },
       { href: "/dashboard/executive/impersonation", label: "Impersonation", icon: VenetianMask },
+      // Threat cluster (slated to merge with the global Threat Feed into "Threats")
       { href: "/dashboard/executive/dark-web", label: "Dark Web", icon: EyeOff },
       { href: "/dashboard/executive/threat-actors", label: "Threat Actors", icon: Crosshair },
-      { href: "/dashboard/executive/command", label: "Command", icon: LayoutGrid },
       { href: "/dashboard/incidents", label: "Incidents", icon: Siren },
+      { href: "/dashboard/executive/command", label: "Command", icon: LayoutGrid },
+      // Household
       { href: "/dashboard/family", label: "Family Protection", icon: Users },
       { href: "/dashboard/travel", label: "Travel Risk", icon: Plane },
     ],
@@ -89,23 +104,28 @@ export const navGroups: NavGroup[] = [
   {
     // Automation is an operator/power-user surface — gated behind the
     // `automation` capability. Standard plans get it auto-configured; they
-    // never need to build workflows themselves.
+    // never need to build workflows themselves. Slated to merge into one
+    // Automation page with tabs (the autonomy dial is the real UI).
     group: "Automation",
     feature: "automation",
     items: [
       { href: "/dashboard/agents", label: "AI Agents", icon: Bot },
+      { href: "/dashboard/playbooks", label: "Response Playbooks", icon: Workflow },
       { href: "/dashboard/workflows", label: "Workflow Command", icon: GitBranch },
       { href: "/dashboard/workflow-builder", label: "Workflow Builder", icon: Blocks },
       { href: "/dashboard/automation-templates", label: "Automation Templates", icon: LayoutTemplate },
-      { href: "/dashboard/playbooks", label: "Response Playbooks", icon: Workflow },
     ],
   },
   {
-    group: "Account",
+    // Verify + Report — the governance loop. Reports sits beside Compliance (its
+    // SLA/control view); Evidence Vault beside the Audit Log (together the
+    // append-only "Ledger" they're slated to merge into).
+    group: "Governance",
     items: [
-      { href: "/dashboard/legal", label: "Legal Automation", icon: Scale },
       { href: "/dashboard/reports", label: "Reports", icon: FileText },
       { href: "/dashboard/compliance", label: "Compliance & SLAs", icon: BadgeCheck },
+      { href: "/dashboard/legal", label: "Legal Automation", icon: Scale },
+      { href: "/dashboard/evidence", label: "Evidence Vault", icon: FileLock2 },
       { href: "/dashboard/audit", label: "Audit Log", icon: ScrollText },
       { href: "/dashboard/notifications", label: "Notifications", icon: Bell },
       { href: "/dashboard/settings", label: "Settings", icon: Settings },
