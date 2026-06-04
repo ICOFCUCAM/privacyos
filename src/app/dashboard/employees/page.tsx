@@ -46,7 +46,7 @@ export default async function EmployeesPage() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <Kpi label="Employees affected" value={String(posture.employeesAffected)} icon={UserCog} tone="text-white" />
         <Kpi label="Critical" value={String(posture.critical)} icon={AlertTriangle} tone={posture.critical > 0 ? "text-risk-high" : "text-risk-low"} />
         <Kpi label="Credential leaks" value={String(posture.credentialLeaks)} icon={KeyRound} tone={posture.credentialLeaks > 0 ? "text-risk-high" : "text-risk-low"} />

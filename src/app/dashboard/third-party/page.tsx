@@ -50,7 +50,7 @@ export default async function ThirdPartyPage() {
       />
 
       {/* Portfolio summary */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <Kpi label="Vendors" value={String(portfolio.total)} icon={Network} tone="text-white" />
         <Kpi label="High risk" value={String(portfolio.highRisk)} icon={AlertTriangle} tone={portfolio.highRisk > 0 ? "text-risk-high" : "text-risk-low"} />
         <Kpi label="Reviews overdue" value={String(portfolio.overdueReviews)} icon={CalendarClock} tone={portfolio.overdueReviews > 0 ? "text-risk-high" : "text-risk-low"} />

@@ -38,7 +38,7 @@ export default async function DomainsPage() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <Kpi label="Monitored domains" value={String(posture.monitoredDomains)} icon={Globe} tone="text-white" />
         <Kpi label="Open risks" value={String(posture.openRisks)} icon={AlertTriangle} tone={posture.openRisks > 0 ? "text-risk-high" : "text-risk-low"} />
         <Kpi label="Critical / High" value={String(posture.critical)} icon={AlertTriangle} tone={posture.critical > 0 ? "text-risk-high" : "text-risk-low"} />

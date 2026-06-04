@@ -220,7 +220,7 @@ export default async function OverviewPage() {
                 <RiskEvolution history={scoreHistory} current={scores.overall} compact />
               </div>
             </div>
-            <div className="mt-2 grid grid-cols-5 gap-2 border-t border-border pt-2">
+            <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-5 border-t border-border pt-2">
               <AxisStat label="Identity" value={score.identity} />
               <AxisStat label="Reputation" value={score.reputation} />
               <AxisStat label="Financial" value={score.financial} />

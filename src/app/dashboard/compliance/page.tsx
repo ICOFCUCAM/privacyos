@@ -135,7 +135,7 @@ export default async function CompliancePage() {
           subtitle="GDPR · CCPA · SOC 2 · ISO 27001 · HIPAA · PCI-DSS — monitored continuously by the Compliance Agent"
           action={<span className="text-sm font-bold text-risk-low">{overallCoverage}% blended</span>}
         />
-        <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 lg:grid-cols-6">
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
           {frameworks.map((f) => (
             <div key={f.id} className="rounded-lg border border-border bg-bg-subtle/40 p-3 text-center">
               <p className={cn("text-xl font-bold", f.coverage >= 90 ? "text-risk-low" : f.coverage >= 70 ? "text-risk-medium" : "text-risk-high")}>

@@ -41,7 +41,7 @@ export default async function AgentsPage() {
         subtitle={`${agents.length} specialized agents defend you continuously. You see outcomes, not complexity.`}
       />
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         <StatCard label="Agents online" value={`${agents.filter((a) => a.status === "running").length}/${agents.length}`} accent="text-risk-low" />
         <StatCard label="Discoveries" value={data.exposures.length + data.threats.length} />
         <StatCard label="Actions completed" value={completed} />

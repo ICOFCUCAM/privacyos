@@ -56,7 +56,7 @@ export default async function RemovalsPage({
       />
 
       {/* Coverage KPIs */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <Kpi label="Brokers covered" value={String(coverage.totalBrokers)} icon={<ShieldCheck className="h-4 w-4 text-brand-fg" />} />
         <Kpi label="Exposures found" value={String(removals.length)} accent={removals.length ? "text-risk-high" : undefined} />
         <Kpi label="In progress" value={String(coverage.active)} accent="text-risk-medium" />

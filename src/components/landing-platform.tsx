@@ -133,7 +133,7 @@ export function PlatformLayers() {
         </div>
         <div aria-hidden className="h-8 w-px bg-gradient-to-b from-brand/50 to-transparent" />
 
-        <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
           {layers.map((l) => (
             <div key={l.domain} className="rounded-2xl border border-border bg-bg-elevated/50 p-5">
               <div className="flex items-center gap-2.5">

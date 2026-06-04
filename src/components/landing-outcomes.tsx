@@ -118,7 +118,7 @@ export function HowProtectionWorks() {
             Tell us who to protect. From there, PrivacyOS runs a continuous protection cycle on your behalf — every day, automatically.
           </p>
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
           {lifecycle.map((s, i) => (
             <div key={s.step} className="relative rounded-2xl border border-border bg-bg-elevated/50 p-5">
               <div className="flex items-center justify-between">
@@ -213,7 +213,7 @@ export function WhyDifferent() {
           so protection is something that happens to you, not another task on your list.
         </p>
       </div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         {differentiators.map((d) => (
           <div key={d.title} className="rounded-2xl border border-border bg-bg-elevated/50 p-5">
             <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand/10 text-brand ring-1 ring-brand/20">
@@ -255,7 +255,7 @@ export function ProtectionPlansTeaser() {
           Start free. Upgrade to continuous, automatic protection whenever you&rsquo;re ready.
         </p>
       </div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         {planTiers.map((p) => (
           <Link key={p.name} href="/pricing" className="group flex flex-col rounded-2xl border border-border bg-bg-elevated/50 p-5 transition hover:-translate-y-1 hover:border-brand/40 hover:bg-bg-elevated/80">
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand/10 text-brand ring-1 ring-brand/20">
