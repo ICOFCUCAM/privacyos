@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ShieldCheck, PlayCircle, Check } from "lucide-react";
 import { HeroStage } from "@/components/hero/hero-stage";
+import { HeroStarfield } from "@/components/hero/starfield";
 import { demoHeroMetrics } from "@/components/hero/metrics";
 
 const trust = [
@@ -13,6 +14,8 @@ const trust = [
 export function Hero() {
   return (
     <section className="relative overflow-hidden">
+      {/* Backmost depth layer — twinkling starfield */}
+      <HeroStarfield />
       {/* Ambient top light for depth */}
       <div
         aria-hidden
