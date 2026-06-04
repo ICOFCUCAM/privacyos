@@ -14,6 +14,7 @@ import {
   HighStakesBuyers,
   DetectionIsNotProtection,
   ThreatResponseFlow,
+  CapabilityMatrix,
 } from "@/components/landing-platform";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { Reveal } from "@/components/reveal";
@@ -78,7 +79,10 @@ export default async function LandingPage() {
       {/* 7 — PUBLIC FIGURES & POLITICAL PROTECTION (executive depth) */}
       <Reveal><PublicFigureProtection /></Reveal>
 
-      {/* 8 — REAL OUTCOMES (customer outcomes, not engineering metrics) */}
+      {/* 8 — HEAD-TO-HEAD CAPABILITY MATRIX (the category, proven row by row) */}
+      <Reveal><CapabilityMatrix /></Reveal>
+
+      {/* 9 — REAL OUTCOMES (customer outcomes, not engineering metrics) */}
       <Reveal><OutcomeMetricsBand /></Reveal>
 
       {/* 9 — FREE EXPOSURE SCAN (the conversion engine) */}

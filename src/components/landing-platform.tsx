@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { buttonClasses } from "@/components/ui";
+import { cn } from "@/lib/ui";
 
 const Eyebrow = ({ children }: { children: React.ReactNode }) => (
   <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-brand-fg">
@@ -290,6 +291,82 @@ export function ThreatResponseFlow() {
           </Link>
         </div>
       </div>
+    </section>
+  );
+}
+
+/* ── Head-to-head capability matrix ───────────────────────────────────────────
+   Brand-neutral: each point-tool CATEGORY owns one column; only PrivacyOS owns
+   every row — and the last rows (the cascade + evidence) are PrivacyOS-only. */
+
+const MATRIX_COLS = ["Broker-removal service", "Identity-protection service", "Reputation agency", "Executive-protection firm"];
+
+const MATRIX_ROWS: { cap: string; covered: [boolean, boolean, boolean, boolean] }[] = [
+  { cap: "Data-broker & people-search removal", covered: [true, false, false, false] },
+  { cap: "Identity & account-takeover monitoring", covered: [false, true, false, false] },
+  { cap: "Credit-bureau monitoring", covered: [false, true, false, false] },
+  { cap: "Dark-web monitoring", covered: [false, true, false, false] },
+  { cap: "Search & reputation defense", covered: [false, false, true, false] },
+  { cap: "Impersonation & deepfake takedown", covered: [false, false, true, false] },
+  { cap: "Doxxing & physical-threat protection", covered: [false, false, false, true] },
+  { cap: "Threat-actor intelligence", covered: [false, false, false, true] },
+  { cap: "Family & household protection", covered: [false, false, false, false] },
+  { cap: "Autonomous response: case → removal → evidence → legal", covered: [false, false, false, false] },
+  { cap: "Tamper-evident evidence & compliance reporting", covered: [false, false, false, false] },
+];
+
+function MatrixCell({ on }: { on: boolean }) {
+  return on
+    ? <CheckCircle2 className="mx-auto h-4 w-4 text-risk-low" />
+    : <span className="mx-auto block h-1 w-3 rounded-full bg-slate-700" aria-label="not included" />;
+}
+
+export function CapabilityMatrix() {
+  return (
+    <section className="mx-auto max-w-6xl px-6 py-24">
+      <div className="mx-auto max-w-2xl text-center">
+        <Eyebrow>The category, in one table</Eyebrow>
+        <h2 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+          Every other tool owns a column. PrivacyOS owns the row.
+        </h2>
+        <p className="mt-4 text-lg text-slate-400">
+          Point tools each cover one slice of digital risk. PrivacyOS covers all of them — plus the
+          part none of them do: turning a finding into action, with proof.
+        </p>
+      </div>
+
+      <div className="mt-12 overflow-x-auto rounded-2xl border border-border bg-bg-elevated/30">
+        <table className="w-full min-w-[680px] border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-border">
+              <th className="px-4 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Capability</th>
+              {MATRIX_COLS.map((c) => (
+                <th key={c} className="px-3 py-4 text-center align-bottom text-[11px] font-medium leading-tight text-slate-500">{c}</th>
+              ))}
+              <th className="px-3 py-4 text-center align-bottom text-xs font-bold text-brand-fg">
+                <span className="inline-flex items-center gap-1.5"><Cpu className="h-4 w-4" /> PrivacyOS</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {MATRIX_ROWS.map((r, i) => {
+              const moat = r.covered.every((c) => !c);
+              return (
+                <tr key={r.cap} className={cn("border-b border-border/60", i % 2 ? "bg-bg-subtle/20" : "")}>
+                  <td className={cn("px-4 py-3 text-left", moat ? "font-semibold text-white" : "text-slate-300")}>{r.cap}</td>
+                  {r.covered.map((on, j) => (
+                    <td key={j} className="px-3 py-3 text-center"><MatrixCell on={on} /></td>
+                  ))}
+                  <td className="bg-brand/[0.07] px-3 py-3 text-center ring-1 ring-inset ring-brand/15"><CheckCircle2 className="mx-auto h-4 w-4 text-brand-fg" /></td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <p className="mt-4 text-center text-xs text-slate-500">
+        The bottom two rows are what no point tool can do — they require owning every layer at once.
+      </p>
     </section>
   );
 }
