@@ -25,6 +25,8 @@ import { LEGAL_TYPE_LABELS } from "@/lib/legal/engine";
 import { assessTrips } from "@/lib/intelligence/travel-risk";
 import { familyOverview, memberRisks, sharedExposures, childSafety } from "@/lib/family/os/family-os";
 import { caseSlaReport } from "@/lib/compliance/case-sla";
+import { creditCasesFromAlerts, isFraudIndicator } from "@/lib/credit/credit-os";
+import { resolveCreditSource, type CreditSource } from "@/lib/credit/source";
 import { casesForNewThreats } from "@/lib/agents/threat-cases";
 import type { NewCaseFields } from "@/lib/agents/recommendation-routing";
 import { reputationCasesFromMentions } from "@/lib/reputation/os/reputation-cases";
@@ -56,6 +58,8 @@ export interface SchedulerDeps {
   reputationSource?: MentionSource;
   /** Override the DNS client for domain scans (tests inject deterministic ones). */
   domainClient?: DohClient;
+  /** Override the credit-monitoring source (tests inject a live one). */
+  creditSource?: CreditSource;
 }
 
 export async function runScheduledCycle(
@@ -86,6 +90,7 @@ export async function runScheduledCycle(
   let employeeCasesOpened = 0;
   let impersonationCasesOpened = 0;
   let slaBreachesEscalated = 0;
+  let creditCasesOpened = 0;
   let mentionsCollected = 0;
   let domainRisksFound = 0;
 
@@ -708,6 +713,44 @@ export async function runScheduledCycle(
       console.error("[privacyos] domain scan failed:", err);
     }
 
+    // 6e-iv-b. Credit-file monitoring (paid `credit` feature). Only for entitled
+    // subjects, and only on LIVE bureau data — we never open identity-theft cases
+    // from the demo profile. Fraud-indicative alerts open a case that cascades
+    // into the Legal + Evidence pipeline like any other detection.
+    if (fp.creditEnabled) {
+      try {
+        const { profile, live } = await (deps.creditSource ?? resolveCreditSource()).fetch(fp.subject.id);
+        if (live) {
+          const creditOpen = await store.listOpenCaseTitlesForSubject(fp.subject.id);
+          const creditCases = creditCasesFromAlerts(profile.alerts, creditOpen);
+          if (creditCases.length > 0) {
+            const fraudCount = profile.alerts.filter((a) => isFraudIndicator(a.kind)).length;
+            await store.createCases(fp.userId, fp.subject.id, creditCases);
+            openedCases.push(...creditCases);
+            await store.recordActions(fp.userId, fp.subject.id, [
+              { agent: "security", kind: "escalate", summary: `Opened a credit-file identity-theft case from ${fraudCount} fraud-indicative bureau alert(s).`, status: "completed" },
+            ]);
+            for (const c of creditCases) {
+              evidence.push(actionEvidence({
+                subjectId: fp.subject.id,
+                action: `Opened case: ${c.title}`,
+                detail: c.summary,
+                source: "Security Agent",
+                riskLevel: c.riskLevel,
+                collectedBy: "security",
+                collectedAt: now0,
+                caseTitle: c.title,
+              }));
+            }
+            creditCasesOpened += creditCases.length;
+          }
+        }
+      } catch (err) {
+        // Credit monitoring is best-effort; never fail the whole cycle.
+        console.error("[privacyos] credit monitoring failed:", err);
+      }
+    }
+
     // 6e-v. Response-SLA clock. Watch every open case against its risk-based
     // response deadline; when one breaches, auto-escalate it (status → escalated),
     // alert the owner and seal the breach — turning Compliance into a live
@@ -832,6 +875,7 @@ export async function runScheduledCycle(
     employeeCasesOpened,
     impersonationCasesOpened,
     slaBreachesEscalated,
+    creditCasesOpened,
     mentionsCollected,
     domainRisksFound,
     ranAt: new Date().toISOString(),

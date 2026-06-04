@@ -8,6 +8,8 @@ import { getModuleData } from "@/lib/data/modules";
 import { financialOverview, type FinancialFinding } from "@/lib/financial/os/financial-os";
 import { creditOverview, CREDIT_ALERT_LABEL, isFraudIndicator, type CreditBand } from "@/lib/credit/credit-os";
 import { resolveCreditSource } from "@/lib/credit/source";
+import { getEntitlements } from "@/lib/billing/subscription";
+import Link from "next/link";
 import { cn, timeAgo, titleCase } from "@/lib/ui";
 import type { RiskLevel } from "@/lib/types";
 
@@ -34,8 +36,11 @@ export default async function FinancialPage() {
   const { credentialLeaks } = await getModuleData();
   const fin = financialOverview({ exposures, credentialLeaks, threats });
 
-  // Credit monitoring — connector-driven (live behind a bureau/aggregator key,
-  // deterministic demo otherwise; never claims live data it does not have).
+  // Credit monitoring — a paid feature (Premium/Family · Executive · Business).
+  // Connector-driven (live behind a bureau/aggregator key, deterministic demo
+  // otherwise; never claims live data it does not have).
+  const entitlements = await getEntitlements();
+  const creditEntitled = entitlements.features.credit;
   const { profile, live: creditLive } = await resolveCreditSource().fetch(data.subject.id);
   const credit = creditOverview(profile, { live: creditLive });
 
@@ -76,7 +81,19 @@ export default async function FinancialPage() {
         </div>
       )}
 
-      {/* Credit monitoring — across the three bureaus */}
+      {/* Credit monitoring — across the three bureaus (paid feature) */}
+      {!creditEntitled ? (
+        <Card className="flex flex-wrap items-center gap-3 p-4">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand/15 text-brand"><CreditCard className="h-4 w-4" /></span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-white">Credit monitoring</p>
+            <p className="text-[11px] text-slate-400">Continuous credit-file monitoring across all three bureaus — new accounts, inquiries, derogatory marks and score changes. Included with Premium, Family, Executive and Business plans.</p>
+          </div>
+          <Link href="/pricing" className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-brand px-3.5 py-2 text-xs font-semibold text-white hover:bg-brand/90">
+            Upgrade to enable <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </Card>
+      ) : (
       <Card className="p-4">
         <SectionTitle
           title="Credit monitoring"
@@ -132,6 +149,7 @@ export default async function FinancialPage() {
           </p>
         )}
       </Card>
+      )}
 
       {/* What we found */}
       <Card className="p-4">

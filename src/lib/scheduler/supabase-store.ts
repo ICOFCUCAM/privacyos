@@ -11,6 +11,7 @@ import type { NewCaseFields } from "@/lib/agents/recommendation-routing";
 import type { EvidenceItem } from "@/lib/intelligence/evidence-vault";
 import { mapCase, mapExposure, mapRemoval, mapSubject, mapThreat } from "@/lib/data/mappers";
 import { mapCredentialLeak, mapDomainRisk, mapEmployeeExposure, mapFamilyMember, mapIncident, mapTravelAlert } from "@/lib/data/module-mappers";
+import { entitlementsFor } from "@/lib/billing/entitlements";
 import { isRemovalDue } from "@/lib/brokers/removal";
 import type {
   DomainScanData,
@@ -31,7 +32,7 @@ export class SupabaseSchedulerStore implements SchedulerStore {
     const [
       { data: subjects }, { data: exposures }, { data: threats }, { data: family }, { data: travel },
       { data: credentials }, { data: incidents }, { data: employees }, { data: domains }, { data: domainRisks },
-      { data: cases },
+      { data: cases }, { data: subscriptions },
     ] = await Promise.all([
       this.db.from("subjects").select("*"),
       this.db.from("exposures").select("*"),
@@ -44,6 +45,7 @@ export class SupabaseSchedulerStore implements SchedulerStore {
       this.db.from("domains").select("*"),
       this.db.from("domain_risks").select("*"),
       this.db.from("cases").select("*").neq("status", "resolved"),
+      this.db.from("subscriptions").select("user_id,plan_id,status"),
     ]);
 
     const expBySubject = new Map<string, Exposure[]>();
@@ -112,6 +114,13 @@ export class SupabaseSchedulerStore implements SchedulerStore {
       list.push(mapCase(row));
       casesBySubject.set(row.subject_id, list);
     }
+    // Resolve per-user plan entitlements, so paid features (credit monitoring)
+    // run only for subjects whose plan includes them.
+    const creditByUser = new Map<string, boolean>();
+    for (const row of subscriptions ?? []) {
+      const ent = entitlementsFor({ planId: row.plan_id, status: row.status });
+      creditByUser.set(row.user_id, ent.features.credit);
+    }
 
     return (subjects ?? []).map((row) => ({
       userId: row.user_id,
@@ -125,6 +134,7 @@ export class SupabaseSchedulerStore implements SchedulerStore {
       employeeExposures: empByUser.get(row.user_id) ?? [],
       domainRisks: domByUser.get(row.user_id) ?? [],
       cases: casesBySubject.get(row.id) ?? [],
+      creditEnabled: creditByUser.get(row.user_id) ?? false,
     }));
   }
 

@@ -22,6 +22,7 @@ import type { Exposure, Recommendation, Subject, Threat } from "@/lib/types";
 import type { ProtectOutcome } from "@/lib/agents/orchestrator";
 import type { NewCaseFields } from "@/lib/agents/recommendation-routing";
 import type { EvidenceItem } from "@/lib/intelligence/evidence-vault";
+import type { CreditSource } from "@/lib/credit/source";
 
 function subject(id: string, userId: string): Subject {
   return {
@@ -192,6 +193,19 @@ const brokerSource: DiscoverySource = {
       ],
       threats: [],
       log: ["found broker listing"],
+    };
+  },
+};
+
+// A live credit source carrying a fraud-indicative alert (the real-partner path).
+const liveCreditSource: CreditSource = {
+  async fetch() {
+    return {
+      live: true,
+      profile: {
+        score: 640, scoreDelta: -40,
+        alerts: [{ id: "x1", kind: "new_account", bureau: "transunion", detail: "card you may not recognize", riskLevel: "high", detectedAt: new Date().toISOString() }],
+      },
     };
   },
 };
@@ -435,6 +449,40 @@ describe("runScheduledCycle", () => {
     expect(store.escalatedCaseIds).toContain("c-old");
     expect(store.notifications.flat().some((n) => /SLA breach escalated: Stale critical case/.test(n.title))).toBe(true);
     expect(store.evidence.some((e) => /Escalated SLA breach/.test(e.title))).toBe(true);
+  });
+
+  it("opens a credit-file identity-theft case from live bureau alerts — only for entitled subjects", async () => {
+    const store = new MemoryStore([
+      { userId: "u1", subject: subject("a", "u1"), exposures: [], threats: [], creditEnabled: true },
+    ]);
+    const summary = await runScheduledCycle(store, {
+      sources: [], provider: new MockProvider(), reputationSource: cleanRepSource, domainClient: domClient,
+      creditSource: liveCreditSource,
+    });
+    expect(summary.creditCasesOpened).toBe(1);
+    expect(store.createdCases.some((c) => c.type === "breach_response" && /Credit-file identity-theft review/.test(c.title))).toBe(true);
+    expect(store.evidence.some((e) => /Credit-file identity-theft review/.test(e.title))).toBe(true);
+  });
+
+  it("never runs credit monitoring without entitlement, or on demo (non-live) data", async () => {
+    // Entitled subject, but a demo (live:false) source → no case, no fake fraud.
+    const demoSource: CreditSource = {
+      async fetch() {
+        return { live: false, profile: { score: 700, scoreDelta: 0, alerts: [{ id: "d", kind: "new_account", bureau: "experian", detail: "", riskLevel: "high", detectedAt: new Date().toISOString() }] } };
+      },
+    };
+    const entitledDemo = new MemoryStore([
+      { userId: "u1", subject: subject("a", "u1"), exposures: [], threats: [], creditEnabled: true },
+    ]);
+    const s1 = await runScheduledCycle(entitledDemo, { sources: [], provider: new MockProvider(), reputationSource: cleanRepSource, domainClient: domClient, creditSource: demoSource });
+    expect(s1.creditCasesOpened).toBe(0);
+
+    // Live source, but the subject's plan does not include credit → never fetched.
+    const notEntitled = new MemoryStore([
+      { userId: "u1", subject: subject("a", "u1"), exposures: [], threats: [], creditEnabled: false },
+    ]);
+    const s2 = await runScheduledCycle(notEntitled, { sources: [], provider: new MockProvider(), reputationSource: cleanRepSource, domainClient: domClient, creditSource: liveCreditSource });
+    expect(s2.creditCasesOpened).toBe(0);
   });
 
   it("escalates the principal to critical executive risk on critical physical threats", async () => {

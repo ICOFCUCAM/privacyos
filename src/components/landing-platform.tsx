@@ -3,7 +3,7 @@ import {
   Cpu, Fingerprint, ShieldCheck, Banknote, Users, Crown, VenetianMask, Crosshair,
   Star, Search, Share2, Newspaper, Building2, Globe, UserCog, Baby,
   Radar, Activity, FolderKanban, Trash2, FileLock2, Scale, ArrowRight, CheckCircle2,
-  Landmark, Rocket, Mic, BellRing, Eye, Megaphone,
+  Landmark, Rocket, Mic, BellRing, Eye, Megaphone, CreditCard,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { buttonClasses } from "@/components/ui";
@@ -20,7 +20,8 @@ const Eyebrow = ({ children }: { children: React.ReactNode }) => (
 
 const pointTools: { category: string; examples: string; does: string; icon: LucideIcon }[] = [
   { category: "Data-broker removal", examples: "Opt-out subscriptions", does: "Files opt-outs with people-search sites", icon: Trash2 },
-  { category: "Identity protection", examples: "Credit-monitoring services", does: "Credit & identity-theft monitoring", icon: Fingerprint },
+  { category: "Identity protection", examples: "Identity-theft services", does: "Identity-theft & account-takeover monitoring", icon: Fingerprint },
+  { category: "Credit monitoring", examples: "Bureau-alert services", does: "Watches your credit file across the three bureaus", icon: CreditCard },
   { category: "Dark-web monitoring", examples: "Breach-alert tools", does: "Pings you when a credential leaks", icon: Eye },
   { category: "Reputation management", examples: "PR & SEO agencies", does: "Cleans search results by hand, per retainer", icon: Star },
   { category: "Executive protection", examples: "Risk & security firms", does: "Doxxing & physical-threat response", icon: Crown },

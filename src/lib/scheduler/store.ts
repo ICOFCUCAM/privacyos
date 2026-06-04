@@ -56,6 +56,8 @@ export interface Footprint {
   domainRisks?: DomainRisk[];
   /** The subject's currently-open cases — drives the response-SLA clock. */
   cases?: Case[];
+  /** Whether the owning plan includes credit monitoring (the `credit` feature). */
+  creditEnabled?: boolean;
 }
 
 export interface NewAgentAction {
@@ -130,6 +132,8 @@ export interface ScheduledRunSummary {
   impersonationCasesOpened: number;
   /** Open cases that breached their response SLA and were auto-escalated. */
   slaBreachesEscalated: number;
+  /** Credit-file identity-theft cases opened from live bureau alerts this cycle. */
+  creditCasesOpened: number;
   mentionsCollected: number;
   domainRisksFound: number;
   ranAt: string;
