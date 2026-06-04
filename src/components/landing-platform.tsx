@@ -158,13 +158,13 @@ export function PlatformLayers() {
 
 /* ── Built For People Who Cannot Afford Exposure ──────────────────────────── */
 
-const highStakes: { role: string; icon: LucideIcon }[] = [
-  { role: "Politicians", icon: Landmark },
-  { role: "Public officials", icon: Scale },
-  { role: "Executives", icon: Crown },
-  { role: "Founders", icon: Rocket },
-  { role: "Journalists", icon: Mic },
-  { role: "Public figures", icon: Star },
+const highStakes: { role: string; icon: LucideIcon; plan: string }[] = [
+  { role: "Politicians", icon: Landmark, plan: "exec-pro" },
+  { role: "Public officials", icon: Scale, plan: "exec-essential" },
+  { role: "Executives", icon: Crown, plan: "exec-essential" },
+  { role: "Founders", icon: Rocket, plan: "biz-startup" },
+  { role: "Journalists", icon: Mic, plan: "rep-public-figure" },
+  { role: "Public figures", icon: Star, plan: "rep-public-figure" },
 ];
 
 export function HighStakesBuyers() {
@@ -185,12 +185,13 @@ export function HighStakesBuyers() {
         </div>
         <div className="mx-auto mt-12 grid max-w-4xl grid-cols-2 gap-3 sm:grid-cols-3">
           {highStakes.map((h) => (
-            <div key={h.role} className="flex items-center gap-3 rounded-xl border border-border bg-bg-elevated/60 px-4 py-3.5 transition hover:border-brand/40">
+            <Link key={h.role} href={`/pricing?plan=${h.plan}`} className="group flex items-center gap-3 rounded-xl border border-border bg-bg-elevated/60 px-4 py-3.5 transition hover:border-brand/40 hover:bg-bg-elevated/80">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-brand/25 to-brand/5 ring-1 ring-brand/20">
                 <h.icon className="h-4 w-4 text-brand-fg" />
               </span>
-              <span className="text-sm font-semibold text-white">{h.role}</span>
-            </div>
+              <span className="flex-1 text-sm font-semibold text-white">{h.role}</span>
+              <ArrowRight className="h-4 w-4 shrink-0 text-slate-600 transition group-hover:translate-x-0.5 group-hover:text-brand-fg" />
+            </Link>
           ))}
         </div>
       </div>

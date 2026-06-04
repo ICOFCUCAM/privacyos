@@ -256,14 +256,14 @@ export function EnterpriseSection() {
   );
 }
 
-/* ── Who we protect (risk-focused — no products, no plans) ───────────────── */
-const protectedGroups: { icon: LucideIcon; who: string; risk: string }[] = [
-  { icon: ShieldCheck, who: "Individuals", risk: "Your home address, phone, identity and accounts are being sold and leaked. We find what's exposed about you and take it down." },
-  { icon: Users, who: "Families", risk: "Your spouse, parents and children are listed on the same broker sites you are. We protect everyone under one roof — including kids' information." },
-  { icon: Crown, who: "Executives", risk: "Leadership is targeted for doxxing, impersonation and home-address exposure. We shield you and your family from threats that follow real power." },
-  { icon: Star, who: "Public figures", risk: "Visibility invites harassment, fake profiles and deepfakes. We monitor your name everywhere and remove the impersonations and attacks." },
-  { icon: Landmark, who: "Politicians & candidates", risk: "Campaigns and office attract coordinated doxxing, disinformation and threats against you and your family. We defend your exposure in real time." },
-  { icon: Building2, who: "Businesses", risk: "Your people, brand and domains are attack surface. We protect employees, executives and reputation across the whole organization." },
+/* ── Who we protect (risk-focused — each links to the matching plan) ──────── */
+const protectedGroups: { icon: LucideIcon; who: string; risk: string; plan: string }[] = [
+  { icon: ShieldCheck, who: "Individuals", risk: "Your home address, phone, identity and accounts are being sold and leaked. We find what's exposed about you and take it down.", plan: "plus" },
+  { icon: Users, who: "Families", risk: "Your spouse, parents and children are listed on the same broker sites you are. We protect everyone under one roof — including kids' information.", plan: "family" },
+  { icon: Crown, who: "Executives", risk: "Leadership is targeted for doxxing, impersonation and home-address exposure. We shield you and your family from threats that follow real power.", plan: "exec-essential" },
+  { icon: Star, who: "Public figures", risk: "Visibility invites harassment, fake profiles and deepfakes. We monitor your name everywhere and remove the impersonations and attacks.", plan: "rep-public-figure" },
+  { icon: Landmark, who: "Politicians & candidates", risk: "Campaigns and office attract coordinated doxxing, disinformation and threats against you and your family. We defend your exposure in real time.", plan: "exec-pro" },
+  { icon: Building2, who: "Businesses", risk: "Your people, brand and domains are attack surface. We protect employees, executives and reputation across the whole organization.", plan: "biz-startup" },
 ];
 
 export function PersonaBand() {
@@ -282,17 +282,21 @@ export function PersonaBand() {
       </div>
       <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {protectedGroups.map((p) => (
-          <div
+          <Link
             key={p.who}
-            className="group relative overflow-hidden rounded-2xl border border-border bg-bg-elevated/50 p-6 transition duration-300 hover:-translate-y-1 hover:border-brand/40 hover:bg-bg-elevated/80"
+            href={`/pricing?plan=${p.plan}`}
+            className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-bg-elevated/50 p-6 transition duration-300 hover:-translate-y-1 hover:border-brand/40 hover:bg-bg-elevated/80"
           >
             <div aria-hidden className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-brand/15 opacity-0 blur-2xl transition duration-300 group-hover:opacity-100" />
             <span className="relative flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-brand/25 to-brand/5 ring-1 ring-brand/20">
               <p.icon className="h-5 w-5 text-brand-fg" />
             </span>
             <h3 className="relative mt-4 text-lg font-semibold text-white">{p.who}</h3>
-            <p className="relative mt-2 text-sm leading-relaxed text-slate-400">{p.risk}</p>
-          </div>
+            <p className="relative mt-2 flex-1 text-sm leading-relaxed text-slate-400">{p.risk}</p>
+            <span className="relative mt-4 inline-flex items-center gap-1 text-xs font-semibold text-brand-fg opacity-80 transition group-hover:opacity-100">
+              See {p.who.toLowerCase()} plans <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
+            </span>
+          </Link>
         ))}
       </div>
     </section>
