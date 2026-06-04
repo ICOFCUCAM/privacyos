@@ -10,6 +10,7 @@ import {
 } from "@/components/ui";
 import { ActivityStream } from "@/components/activity-stream";
 import { AgentRoster } from "@/components/agent-roster";
+import { CommandTabs } from "@/components/command-tabs";
 import { LiveRefresh } from "@/components/live-refresh";
 import { CorrelationGraphView, CorrelationLegend } from "@/components/correlation-graph";
 import {
@@ -125,6 +126,7 @@ export default async function OverviewPage() {
 
   return (
     <div className="space-y-2.5">
+      <CommandTabs />
       {/* ── Command bar — title + live posture in one dense line ───────────── */}
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
         <div className="flex items-center gap-3">

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { LayoutGrid, ArrowRight, ShieldCheck, AlertTriangle } from "lucide-react";
 import { Card, PageHeader, SectionTitle } from "@/components/ui";
+import { CommandTabs } from "@/components/command-tabs";
 import { Sparkline } from "@/components/viz";
 import { getDataSource } from "@/lib/data";
 import { getModuleData } from "@/lib/data/modules";
@@ -43,6 +44,7 @@ export default async function SuitePage() {
 
   return (
     <div className="space-y-5">
+      <CommandTabs />
       <PageHeader
         icon={LayoutGrid}
         title="Protection Suite"

@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Card, PageHeader, SectionTitle } from "@/components/ui";
+import { CommandTabs } from "@/components/command-tabs";
 import { LiveRefresh } from "@/components/live-refresh";
 import { getDataSource } from "@/lib/data";
 import { exposureToFinding, runPlaybooks, threatToFinding } from "@/lib/agents/playbooks";
@@ -137,6 +138,7 @@ export default async function MissionControlPage() {
 
   return (
     <div className="space-y-5">
+      <CommandTabs />
       <PageHeader
         icon={Gauge}
         title="Mission Control"

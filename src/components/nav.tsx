@@ -4,12 +4,12 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard, Radar, ShieldAlert, Star, FolderKanban,
+  Radar, ShieldAlert, Star, FolderKanban,
   Bot, Building2, Users, Crown, FileText, Sparkles,
   Globe, Plane, UserCog, Network, Scale, Bell, Siren, MessageSquareHeart,
   Trash2, Settings, Lock, Users2, TrendingUp,
   Gauge, FileLock2,
-  LayoutGrid, Fingerprint, ShieldCheck,
+  Fingerprint, ShieldCheck,
   SlidersHorizontal, ChevronDown, Banknote,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -34,13 +34,12 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
-    // The operator dashboards — three views of the same posture. Slated to merge
-    // into one role-adaptive Command Center.
+    // The three operator dashboards (Overview, Protection Suite, Mission Control)
+    // behind one entry; CommandTabs moves between them. A future role-adaptive
+    // console can replace the tabs with a single view that adapts to tier.
     group: "Command",
     items: [
-      { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
-      { href: "/dashboard/suite", label: "Protection Suite", icon: LayoutGrid },
-      { href: "/dashboard/mission-control", label: "Mission Control", icon: Gauge },
+      { href: "/dashboard", label: "Command Center", icon: Gauge },
     ],
   },
   {
