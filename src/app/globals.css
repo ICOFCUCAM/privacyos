@@ -141,6 +141,20 @@ body::after {
 }
 .sim-check { animation: simCheck 5.6s ease-in-out infinite both; }
 
+/* Mission Control: a live operations stream that scrolls endlessly (the list is
+   duplicated, so -50% loops seamlessly), plus a shimmer on metric accent bars. */
+@keyframes streamUp { from { transform: translateY(0); } to { transform: translateY(-50%); } }
+.ops-stream { animation: streamUp 26s linear infinite; }
+.ops-stream:hover { animation-play-state: paused; }
+@keyframes accentShimmer { 0% { background-position: -150% 0; } 100% { background-position: 250% 0; } }
+.accent-shimmer {
+  background: linear-gradient(90deg, rgba(99,102,241,0.25) 0%, rgba(129,140,248,0.9) 50%, rgba(99,102,241,0.25) 100%);
+  background-size: 200% 100%;
+  animation: accentShimmer 3.2s linear infinite;
+}
+@keyframes livePing { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+.live-ping { animation: livePing 1.8s ease-in-out infinite; }
+
 @media (prefers-reduced-motion: reduce) {
   .hero-float, .callout-float, .animate-spin-slow, .animate-spin-slow-rev, .animate-pulse-glow { animation: none; }
 }

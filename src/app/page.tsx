@@ -14,7 +14,7 @@ import {
   DetectionIsNotProtection,
   CapabilityMatrix,
 } from "@/components/landing-platform";
-import { ArchitectureEngine, ThreatSimulation } from "@/components/landing-cinematic";
+import { ArchitectureEngine, ThreatSimulation, MissionControlShowcase } from "@/components/landing-cinematic";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { Reveal } from "@/components/reveal";
 import { getT } from "@/lib/i18n/server";
@@ -81,7 +81,10 @@ export default async function LandingPage() {
       {/* 8 — HEAD-TO-HEAD CAPABILITY MATRIX (the category, proven row by row) */}
       <Reveal><CapabilityMatrix /></Reveal>
 
-      {/* 9 — REAL OUTCOMES (customer outcomes, not engineering metrics) */}
+      {/* 9 — MISSION CONTROL (cinematic: the living command center, in action) */}
+      <MissionControlShowcase />
+
+      {/* 10 — REAL OUTCOMES (customer outcomes, not engineering metrics) */}
       <Reveal><OutcomeMetricsBand /></Reveal>
 
       {/* 9 — FREE EXPOSURE SCAN (the conversion engine) */}

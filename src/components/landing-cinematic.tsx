@@ -151,3 +151,108 @@ export function ThreatSimulation() {
     </section>
   );
 }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Section 3 — Mission Control
+   A living command center: six operational counters with shimmering accents and
+   an endlessly-scrolling operations stream — the platform visibly at work, not a
+   screenshot. CSS-only motion (deterministic), reduced-motion safe.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+const MC_METRICS: { label: string; value: string; sub: string; icon: LucideIcon }[] = [
+  { label: "Cases opened", value: "Continuous", sub: "auto-raised from live detections", icon: FolderKanban },
+  { label: "Removals filed", value: "Always-on", sub: "broker opt-outs + 30/60/90 re-checks", icon: Trash2 },
+  { label: "Threats neutralized", value: "24/7", sub: "across every monitored layer", icon: Radar },
+  { label: "Executives protected", value: "Principal-grade", sub: "doxxing · impersonation · threat actors", icon: Fingerprint },
+  { label: "Families protected", value: "Whole-household", sub: "relatives, minors & shared exposure", icon: BellRing },
+  { label: "Domains monitored", value: "Org-wide", sub: "lookalikes, email security & vendors", icon: Scale },
+];
+
+const MC_STREAM: { dot: string; text: string; src: string }[] = [
+  { dot: "bg-risk-high", text: "Credential leak detected on the dark web", src: "Security Agent" },
+  { dot: "bg-risk-low", text: "Broker opt-out filed at Spokeo", src: "Privacy Agent" },
+  { dot: "bg-brand", text: "Case opened: executive-protection escalation", src: "Executive Agent" },
+  { dot: "bg-risk-low", text: "Evidence sealed (SHA-256) into the vault", src: "System" },
+  { dot: "bg-risk-medium", text: "Defamatory coverage flagged — recovery case raised", src: "Reputation Agent" },
+  { dot: "bg-brand", text: "GDPR erasure request drafted for review", src: "Legal Agent" },
+  { dot: "bg-risk-high", text: "Lookalike domain found — takedown routed", src: "Executive Agent" },
+  { dot: "bg-risk-low", text: "Removal confirmed — listing taken down", src: "Privacy Agent" },
+  { dot: "bg-risk-medium", text: "SLA breach auto-escalated for sign-off", src: "Compliance" },
+  { dot: "bg-brand", text: "Family risk: minor exposure → protective case", src: "Executive Agent" },
+];
+
+function StreamRows() {
+  return (
+    <>
+      {MC_STREAM.map((r, i) => (
+        <li key={i} className="flex items-center gap-2.5 px-4 py-2.5">
+          <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${r.dot}`} />
+          <span className="min-w-0 flex-1 truncate text-[12px] text-slate-300">{r.text}</span>
+          <span className="shrink-0 text-[10px] text-slate-600">{r.src}</span>
+        </li>
+      ))}
+    </>
+  );
+}
+
+export function MissionControlShowcase() {
+  return (
+    <section className="relative overflow-hidden border-y border-border bg-[#070810] py-28">
+      <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(70%_60%_at_50%_-10%,rgba(99,102,241,0.14),transparent_70%)]" />
+      <div className="relative mx-auto max-w-6xl px-6">
+        <div className="mx-auto max-w-2xl text-center">
+          <Eyebrow>Mission control</Eyebrow>
+          <h2 className="mt-4 text-4xl font-bold tracking-tight text-white sm:text-5xl">
+            A living command center.
+          </h2>
+          <p className="mt-4 text-lg text-slate-400">
+            Not a screenshot — the engine at work. Continuous discovery, removal, escalation and
+            response across every layer, with a tamper-evident record of each action.
+          </p>
+        </div>
+
+        <div className="mt-14 overflow-hidden rounded-3xl border border-border bg-bg-elevated/30 shadow-2xl shadow-brand/10">
+          {/* status bar */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border px-5 py-3">
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-risk-low">
+              <span className="live-ping h-2 w-2 rounded-full bg-risk-low" /> Live
+            </span>
+            <span className="text-xs text-slate-400">Autonomous operations · all tenants</span>
+            <span className="ml-auto text-[11px] text-slate-600">24/7 · pg-cron / edge</span>
+          </div>
+
+          <div className="grid gap-px bg-border lg:grid-cols-3">
+            {/* metric tiles */}
+            <div className="grid grid-cols-2 gap-px bg-border sm:grid-cols-3 lg:col-span-2">
+              {MC_METRICS.map((m) => (
+                <div key={m.label} className="bg-[#0b0d15] p-4">
+                  <div className="flex items-center gap-2 text-slate-400">
+                    <m.icon className="h-4 w-4 text-brand-fg" />
+                    <span className="text-[11px] font-medium uppercase tracking-wide">{m.label}</span>
+                  </div>
+                  <p className="mt-2 text-lg font-bold text-white">{m.value}</p>
+                  <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-bg-subtle">
+                    <div className="accent-shimmer h-full w-full rounded-full" />
+                  </div>
+                  <p className="mt-2 text-[11px] leading-snug text-slate-500">{m.sub}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* live operations stream */}
+            <div className="bg-[#0b0d15]">
+              <p className="border-b border-border px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">Operations stream</p>
+              <div className="relative h-[280px] overflow-hidden">
+                <ul className="ops-stream divide-y divide-border/50">
+                  <StreamRows />
+                  <StreamRows />
+                </ul>
+                <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#0b0d15] to-transparent" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
