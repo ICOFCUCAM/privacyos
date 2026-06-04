@@ -3,6 +3,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Card, PageHeader, SectionTitle } from "@/components/ui";
+import { ReportsTabs } from "@/components/reports-tabs";
 import { getDataSource } from "@/lib/data";
 import { getModuleData } from "@/lib/data/modules";
 import { getAuditLog } from "@/lib/audit/audit";
@@ -78,6 +79,7 @@ export default async function CompliancePage() {
 
   return (
     <div className="space-y-4">
+      <ReportsTabs />
       <PageHeader
         icon={BadgeCheck}
         title="Compliance & SLAs"

@@ -1,5 +1,6 @@
 import { FileText, ExternalLink, Download } from "lucide-react";
 import { buttonClasses, Card, PageHeader, Pill } from "@/components/ui";
+import { ReportsTabs } from "@/components/reports-tabs";
 import { REPORT_TITLES } from "@/lib/reports/engine";
 import type { ReportType } from "@/lib/suite-types";
 
@@ -21,6 +22,7 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6">
+      <ReportsTabs />
       <PageHeader
         icon={FileText}
         title="Reports"
