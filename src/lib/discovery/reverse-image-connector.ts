@@ -149,7 +149,7 @@ export class ReverseImageConnector implements DiscoverySource {
     private fetchImpl: typeof fetch = fetch,
   ) {}
 
-  async scan({ subject }: DiscoveryInput): Promise<DiscoveryFinding> {
+  async scan({ subject, meter }: DiscoveryInput): Promise<DiscoveryFinding> {
     // Demo mode: no key → deterministic simulator, so the pipeline stays exercisable.
     if (!this.apiKey) return simulateReverseImage(subject);
 
@@ -157,6 +157,10 @@ export class ReverseImageConnector implements DiscoverySource {
     if (photos.length === 0) {
       // Keyed but nothing to search — never fabricate findings for a real customer.
       return { exposures: [], threats: [], log: ["No subject photo on file; skipping reverse-image scan."] };
+    }
+    // Internal budget backstop — reserve one search per photo before scanning.
+    if (meter && !(await meter.consume(photos.length))) {
+      return { exposures: [], threats: [], log: ["budget ceiling reached; reverse-image scan skipped."] };
     }
 
     const exposures: Exposure[] = [];

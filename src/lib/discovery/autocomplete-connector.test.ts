@@ -65,6 +65,14 @@ describe("AutocompleteConnector", () => {
     expect(f.threats[0].title).toContain("scam");
   });
 
+  it("skips the call when the budget meter denies", async () => {
+    const fetchImpl = vi.fn();
+    const f = await new AutocompleteConnector("key", fetchImpl as unknown as typeof fetch)
+      .scan({ subject, existing: [], meter: { consume: async () => false } });
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(f.threats).toEqual([]);
+  });
+
   it("degrades silently on network error", async () => {
     const bad = new AutocompleteConnector("key", vi.fn(async () => { throw new Error("net"); }) as unknown as typeof fetch);
     const f = await bad.scan({ subject, existing: [] });

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDataSource } from "@/lib/data";
 import { runDiscovery, defaultDiscoverySources } from "@/lib/discovery/pipeline";
+import { interactiveSerpMeter } from "@/lib/discovery/serp-meter";
 import { getEntitlements } from "@/lib/billing/subscription";
 import { canRescan } from "@/lib/billing/entitlements";
 
@@ -34,6 +35,8 @@ export async function POST() {
       subject: data.subject,
       existing: data.exposures,
       existingThreats: data.threats,
+      // Internal SerpApi budget backstop for this account.
+      meter: await interactiveSerpMeter(ent.serpBudget),
     },
     // Gate + cache the paid SerpApi connectors by the user's plan.
     defaultDiscoverySources(ent),

@@ -48,6 +48,14 @@ describe("MultiEngineSerpConnector", () => {
     expect(f.exposures).toHaveLength(1);
   });
 
+  it("skips the sweep (no network) when the budget meter denies", async () => {
+    const fetchImpl = vi.fn();
+    const c = new MultiEngineSerpConnector("key", fetchImpl as unknown as typeof fetch);
+    const f = await c.scan({ subject, existing: [], meter: { consume: async () => false } });
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(f.exposures).toEqual([]);
+  });
+
   it("degrades per-engine on error without throwing", async () => {
     const bad = new MultiEngineSerpConnector("key", vi.fn(async () => { throw new Error("net"); }) as unknown as typeof fetch);
     const f = await bad.scan({ subject, existing: [] });

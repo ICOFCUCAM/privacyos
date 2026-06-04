@@ -117,9 +117,15 @@ export async function runScheduledCycle(
 
     // 1. Discover — only genuinely new findings come back (deduped). Tests inject
     //    a fixed roster; in production the roster is gated by this subject's plan
-    //    so the paid SerpApi connectors only run for entitled subjects.
+    //    so the paid SerpApi connectors only run for entitled subjects, capped by
+    //    the account's internal SerpApi budget.
     const finding = await runDiscovery(
-      { subject: fp.subject, existing: fp.exposures, existingThreats: fp.threats },
+      {
+        subject: fp.subject,
+        existing: fp.exposures,
+        existingThreats: fp.threats,
+        meter: store.serpMeterFor?.(fp.userId, fp.entitlements?.serpBudget ?? 0),
+      },
       deps.sources ?? defaultDiscoverySources(fp.entitlements),
     );
     if (finding.exposures.length || finding.threats.length) {

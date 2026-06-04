@@ -86,6 +86,14 @@ describe("ReverseImageConnector", () => {
     expect(f.threats[0].kind).toBe("impersonation");
   });
 
+  it("skips the scan when the budget meter denies", async () => {
+    const fetchImpl = vi.fn();
+    const f = await new ReverseImageConnector("key", fetchImpl as unknown as typeof fetch)
+      .scan({ subject, existing: [], meter: { consume: async () => false } });
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(f.exposures).toEqual([]);
+  });
+
   it("degrades silently on network error (never throws)", async () => {
     const bad = new ReverseImageConnector("key", vi.fn(async () => { throw new Error("net"); }) as unknown as typeof fetch);
     const f = await bad.scan({ subject, existing: [] });

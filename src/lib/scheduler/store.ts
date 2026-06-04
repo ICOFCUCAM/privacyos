@@ -35,6 +35,7 @@ import type { NewCaseFields } from "@/lib/agents/recommendation-routing";
 import type { AssessedRisk } from "@/lib/domains/dns";
 import type { EvidenceItem } from "@/lib/intelligence/evidence-vault";
 import type { Entitlements } from "@/lib/billing/entitlements";
+import type { SerpMeter } from "@/lib/discovery/source";
 
 export interface Footprint {
   userId: string;
@@ -169,6 +170,9 @@ export interface OwnedRemoval {
 export interface SchedulerStore {
   /** Every subject across all tenants, with its current footprint. */
   listFootprints(): Promise<Footprint[]>;
+  /** Build an internal SerpApi budget meter for a tenant (live store only).
+   *  Returns undefined to mean uncapped (in-memory/test stores omit it). */
+  serpMeterFor?(userId: string, budget: number): SerpMeter | undefined;
   /** Persist newly discovered exposures + threats for a tenant. */
   saveDiscovered(userId: string, exposures: Exposure[], threats: Threat[]): Promise<void>;
   /** Replace the subject's un-approved recommendations with a fresh set. */

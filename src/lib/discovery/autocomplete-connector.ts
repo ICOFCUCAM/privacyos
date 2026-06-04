@@ -118,8 +118,13 @@ export class AutocompleteConnector implements DiscoverySource {
     private fetchImpl: typeof fetch = fetch,
   ) {}
 
-  async scan({ subject }: DiscoveryInput): Promise<DiscoveryFinding> {
+  async scan({ subject, meter }: DiscoveryInput): Promise<DiscoveryFinding> {
     if (!this.apiKey) return simulateAutocomplete(subject);
+    // Internal budget backstop — skip the paid call (serve cache/keyless) if the
+    // account's ceiling is hit. Never surfaced to the user.
+    if (meter && !(await meter.consume(1))) {
+      return { exposures: [], threats: [], log: ["budget ceiling reached; autocomplete skipped."] };
+    }
 
     try {
       const data = await fetchJsonWithTimeout<{ suggestions?: AutocompleteSuggestion[] }>(

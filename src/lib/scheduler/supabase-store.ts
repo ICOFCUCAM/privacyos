@@ -12,6 +12,8 @@ import type { EvidenceItem } from "@/lib/intelligence/evidence-vault";
 import { mapCase, mapExposure, mapRemoval, mapSubject, mapThreat } from "@/lib/data/mappers";
 import { mapCredentialLeak, mapDomainRisk, mapEmployeeExposure, mapFamilyMember, mapIncident, mapTravelAlert } from "@/lib/data/module-mappers";
 import { entitlementsFor } from "@/lib/billing/entitlements";
+import { SupabaseSerpMeter } from "@/lib/discovery/serp-meter";
+import type { SerpMeter } from "@/lib/discovery/source";
 import { creditPlanFor, creditCheckDue } from "@/lib/credit/plans";
 import { isRemovalDue } from "@/lib/brokers/removal";
 import type {
@@ -28,6 +30,13 @@ import type {
 
 export class SupabaseSchedulerStore implements SchedulerStore {
   constructor(private db: SupabaseClient) {}
+
+  /** Internal SerpApi budget meter for a tenant (service-role; bypasses RLS).
+   *  Uncapped budgets need no meter. Trips log for ops (no user session here). */
+  serpMeterFor(userId: string, budget: number): SerpMeter | undefined {
+    if (!Number.isFinite(budget)) return undefined;
+    return new SupabaseSerpMeter(this.db, userId, budget);
+  }
 
   async listFootprints(): Promise<Footprint[]> {
     const [

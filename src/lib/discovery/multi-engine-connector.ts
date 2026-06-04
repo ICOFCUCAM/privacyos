@@ -117,10 +117,14 @@ export class MultiEngineSerpConnector implements DiscoverySource {
     private fetchImpl: typeof fetch = fetch,
   ) {}
 
-  async scan({ subject }: DiscoveryInput): Promise<DiscoveryFinding> {
+  async scan({ subject, meter }: DiscoveryInput): Promise<DiscoveryFinding> {
     // The deterministic SearchConnector already covers the demo search layer, so
     // without a key this connector stays silent rather than duplicating it.
     if (!this.apiKey) return { exposures: [], threats: [], log: ["No SerpApi key; multi-engine sweep skipped (demo search layer covers it)."] };
+    // Internal budget backstop — one reservation for the whole engine sweep.
+    if (meter && !(await meter.consume(ENGINES.length))) {
+      return { exposures: [], threats: [], log: ["budget ceiling reached; multi-engine sweep skipped."] };
+    }
 
     const byId = new Map<string, Exposure>(); // dedupe same domain across engines
     const log: string[] = [];

@@ -10,12 +10,24 @@
 
 import type { Exposure, Subject, Threat } from "@/lib/types";
 
+/**
+ * INTERNAL SerpApi cost/abuse backstop. A connector reserves the number of live
+ * searches it's about to make; `false` means the account's (invisible, generous)
+ * ceiling is hit, so the connector skips its paid calls and degrades to cache /
+ * keyless layers. Absent (demo / tests / keyless) = uncapped.
+ */
+export interface SerpMeter {
+  consume(cost: number): Promise<boolean>;
+}
+
 export interface DiscoveryInput {
   subject: Subject;
   /** The already-known footprint, so sources/pipeline can avoid duplicates. */
   existing: Exposure[];
   /** Already-known threats, so the pipeline doesn't re-emit them each run. */
   existingThreats?: Threat[];
+  /** Optional internal SerpApi budget meter (see SerpMeter). */
+  meter?: SerpMeter;
 }
 
 export interface DiscoveryFinding {

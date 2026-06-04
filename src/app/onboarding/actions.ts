@@ -6,6 +6,7 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getDataSource } from "@/lib/data";
 import { mapSubject } from "@/lib/data/mappers";
 import { runDiscovery, defaultDiscoverySources } from "@/lib/discovery/pipeline";
+import { interactiveSerpMeter } from "@/lib/discovery/serp-meter";
 import { recordAudit } from "@/lib/audit/audit";
 import { cookies } from "next/headers";
 import { getEntitlements } from "@/lib/billing/subscription";
@@ -78,7 +79,7 @@ export async function createSubject(
     try {
       const ds = await getDataSource();
       const finding = await runDiscovery(
-        { subject: mapSubject(row), existing: [] },
+        { subject: mapSubject(row), existing: [], meter: await interactiveSerpMeter(ent.serpBudget) },
         defaultDiscoverySources(ent),
       );
       if (finding.exposures.length || finding.threats.length) {
