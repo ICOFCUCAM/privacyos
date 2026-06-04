@@ -5,8 +5,6 @@ import { BrandMark } from "@/components/brand-mark";
 import { TrustStrip, PersonaBand } from "@/components/landing-sections";
 import {
   FreeAssessmentBand,
-  ExposureCategories,
-  HowProtectionWorks,
   PublicFigureProtection,
   OutcomeMetricsBand,
 } from "@/components/landing-outcomes";
@@ -58,34 +56,28 @@ export default async function LandingPage() {
       {/* 1 — HERO: the protection promise */}
       <Hero />
 
-      {/* 2 — WHO WE PROTECT (risk-focused groups, no products/plans) */}
+      {/* 2 — WHO WE PROTECT (buyer categories, not products) */}
       <Reveal><PersonaBand /></Reveal>
 
       {/* 3 — ONE PLATFORM, EVERY LAYER (the category architecture) */}
       <Reveal><PlatformLayers /></Reveal>
 
-      {/* 4 — DIGITAL EXPOSURE: everywhere your information is exposed */}
-      <Reveal><ExposureCategories /></Reveal>
-
-      {/* 5 — DETECTION IS NOT PROTECTION (we act, not just alert) */}
+      {/* 4 — DETECTION IS NOT PROTECTION (the outcome thesis: we act) */}
       <Reveal><DetectionIsNotProtection /></Reveal>
 
-      {/* 6 — WHAT PRIVACYOS DOES AUTOMATICALLY (Discover→Remove→Protect→Monitor→Respond) */}
-      <Reveal><HowProtectionWorks /></Reveal>
-
-      {/* 7 — BUILT FOR PEOPLE WHO CANNOT AFFORD EXPOSURE (high-stakes buyers) */}
-      <Reveal><HighStakesBuyers /></Reveal>
-
-      {/* 8 — PUBLIC FIGURES & POLITICAL PROTECTION (premium) */}
-      <Reveal><PublicFigureProtection /></Reveal>
-
-      {/* 9 — REAL OUTCOMES (customer outcomes, not engineering metrics) */}
-      <Reveal><OutcomeMetricsBand /></Reveal>
-
-      {/* 10 — WHAT HAPPENS WHEN A THREAT IS FOUND (the cascade, near conversion) */}
+      {/* 5 — WHAT HAPPENS WHEN A THREAT IS FOUND (the cascade — proof of the thesis) */}
       <Reveal><ThreatResponseFlow /></Reveal>
 
-      {/* 11 — FREE EXPOSURE SCAN (the conversion engine) */}
+      {/* 6 — BUILT FOR PEOPLE WHO CANNOT AFFORD EXPOSURE (high-stakes buyers) */}
+      <Reveal><HighStakesBuyers /></Reveal>
+
+      {/* 7 — PUBLIC FIGURES & POLITICAL PROTECTION (executive depth) */}
+      <Reveal><PublicFigureProtection /></Reveal>
+
+      {/* 8 — REAL OUTCOMES (customer outcomes, not engineering metrics) */}
+      <Reveal><OutcomeMetricsBand /></Reveal>
+
+      {/* 9 — FREE EXPOSURE SCAN (the conversion engine) */}
       <Reveal><FreeAssessmentBand /></Reveal>
 
       {/* 9 — TRUST: security, privacy, encryption, compliance */}
