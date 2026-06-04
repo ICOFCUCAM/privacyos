@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Card, PageHeader, SectionTitle, RiskBadge } from "@/components/ui";
+import { LedgerTabs } from "@/components/ledger-tabs";
 import { getDataSource } from "@/lib/data";
 import {
   buildEvidence, evidenceStats, filterEvidence, shortHash,
@@ -50,6 +51,7 @@ export default async function EvidencePage({
 
   return (
     <div className="space-y-5">
+      <LedgerTabs />
       <PageHeader
         icon={FileLock2}
         title="Evidence Vault"

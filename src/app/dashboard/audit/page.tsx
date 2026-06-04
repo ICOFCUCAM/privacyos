@@ -1,5 +1,6 @@
 import { ScrollText } from "lucide-react";
 import { Card, PageHeader, Pill, SectionTitle, StatCard } from "@/components/ui";
+import { LedgerTabs } from "@/components/ledger-tabs";
 import { getAuditLog, describeAudit } from "@/lib/audit/audit";
 import { timeAgo } from "@/lib/ui";
 
@@ -10,6 +11,7 @@ export default async function AuditPage() {
 
   return (
     <div className="space-y-6">
+      <LedgerTabs />
       <PageHeader
         icon={ScrollText}
         title="Compliance Center — Audit Log"

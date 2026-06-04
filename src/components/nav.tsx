@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Radar, ShieldAlert, Star, FolderKanban,
   Bot, Building2, Users, Crown, FileText, Sparkles,
   Globe, Plane, UserCog, Network, Scale, Bell, Siren, MessageSquareHeart,
-  Trash2, ScrollText, Settings, Lock, Users2, TrendingUp, BadgeCheck,
+  Trash2, Settings, Lock, Users2, TrendingUp, BadgeCheck,
   Gauge, FileLock2,
   LayoutGrid, Fingerprint, ShieldCheck,
   SlidersHorizontal, ChevronDown, Banknote,
@@ -111,8 +111,9 @@ export const navGroups: NavGroup[] = [
       { href: "/dashboard/reports", label: "Reports", icon: FileText },
       { href: "/dashboard/compliance", label: "Compliance & SLAs", icon: BadgeCheck },
       { href: "/dashboard/legal", label: "Legal Automation", icon: Scale },
-      { href: "/dashboard/evidence", label: "Evidence Vault", icon: FileLock2 },
-      { href: "/dashboard/audit", label: "Audit Log", icon: ScrollText },
+      // Ledger = the two append-only record streams (Sealed Evidence + Audit Log)
+      // behind one entry; LedgerTabs moves between them.
+      { href: "/dashboard/evidence", label: "Ledger", icon: FileLock2 },
       { href: "/dashboard/notifications", label: "Notifications", icon: Bell },
       { href: "/dashboard/settings", label: "Settings", icon: Settings },
     ],
