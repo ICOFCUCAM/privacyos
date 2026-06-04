@@ -24,6 +24,7 @@ import { planCaseActions } from "@/lib/cases/case-actions";
 import { LEGAL_TYPE_LABELS } from "@/lib/legal/engine";
 import { assessTrips } from "@/lib/intelligence/travel-risk";
 import { familyOverview, memberRisks, sharedExposures, childSafety } from "@/lib/family/os/family-os";
+import { caseSlaReport } from "@/lib/compliance/case-sla";
 import { casesForNewThreats } from "@/lib/agents/threat-cases";
 import type { NewCaseFields } from "@/lib/agents/recommendation-routing";
 import { reputationCasesFromMentions } from "@/lib/reputation/os/reputation-cases";
@@ -84,6 +85,7 @@ export async function runScheduledCycle(
   let credentialCasesOpened = 0;
   let employeeCasesOpened = 0;
   let impersonationCasesOpened = 0;
+  let slaBreachesEscalated = 0;
   let mentionsCollected = 0;
   let domainRisksFound = 0;
 
@@ -706,6 +708,35 @@ export async function runScheduledCycle(
       console.error("[privacyos] domain scan failed:", err);
     }
 
+    // 6e-v. Response-SLA clock. Watch every open case against its risk-based
+    // response deadline; when one breaches, auto-escalate it (status → escalated),
+    // alert the owner and seal the breach — turning Compliance into a live
+    // governance loop. Idempotent: escalating removes the case from the clock.
+    const openCases = fp.cases ?? [];
+    if (openCases.length > 0) {
+      const breached = caseSlaReport(openCases, Date.now()).items.filter((i) => i.status === "breached");
+      for (const item of breached) {
+        await store.markCaseEscalated(item.id);
+        await store.recordActions(fp.userId, fp.subject.id, [
+          { agent: item.assignedAgent, kind: "escalate", summary: `SLA breach: "${item.title}" exceeded its ${item.riskLevel} response deadline — auto-escalated.`, status: "completed" },
+        ]);
+        await store.addNotifications(fp.userId, [
+          { kind: "incident", title: `SLA breach escalated: ${item.title}`, body: `The ${item.riskLevel} response deadline (due ${item.dueAt.slice(0, 10)}) has passed. The case has been escalated for immediate attention.`, riskLevel: item.riskLevel },
+        ]);
+        evidence.push(actionEvidence({
+          subjectId: fp.subject.id,
+          action: `Escalated SLA breach: ${item.title}`,
+          detail: `${item.riskLevel} response deadline missed (due ${item.dueAt}).`,
+          source: "Compliance",
+          riskLevel: item.riskLevel,
+          collectedBy: item.assignedAgent,
+          collectedAt: now0,
+          caseTitle: item.title,
+        }));
+        slaBreachesEscalated += 1;
+      }
+    }
+
     // 6g. Case → Legal cascade. Each newly-opened case with a legal dimension
     // auto-drafts its instrument from real case facts (a reputation-recovery
     // case → a defamation/takedown demand; an executive-protection case → a
@@ -800,6 +831,7 @@ export async function runScheduledCycle(
     credentialCasesOpened,
     employeeCasesOpened,
     impersonationCasesOpened,
+    slaBreachesEscalated,
     mentionsCollected,
     domainRisksFound,
     ranAt: new Date().toISOString(),

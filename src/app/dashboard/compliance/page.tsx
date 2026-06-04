@@ -9,6 +9,7 @@ import { getAuditLog } from "@/lib/audit/audit";
 import {
   CONTROLS, postureByCriterion, readiness, slaReport, type ControlStatus, type TrustCriterion,
 } from "@/lib/compliance/posture";
+import { caseSlaReport } from "@/lib/compliance/case-sla";
 import { liveDetectorAccuracy } from "@/lib/detection/live-accuracy";
 import { exposureToFinding, runPlaybooks, summarizeRuns, threatToFinding } from "@/lib/agents/playbooks";
 import { allFrameworkCoverage, overallFrameworkCoverage, COMPLIANCE_TASKS } from "@/lib/compliance/frameworks";
@@ -70,6 +71,10 @@ export default async function CompliancePage() {
 
   const frameworks = allFrameworkCoverage();
   const overallCoverage = overallFrameworkCoverage();
+
+  // Live response-SLA clock: every open case against its risk-based deadline.
+  // The scheduler auto-escalates breaches; this renders the same truth.
+  const slaClock = caseSlaReport(data.cases);
 
   return (
     <div className="space-y-4">
@@ -147,6 +152,51 @@ export default async function CompliancePage() {
           The Compliance Agent runs {COMPLIANCE_TASKS.length} continuous-monitoring tasks each cycle — DSAR turnaround,
           breach-notification clocks, audit-log integrity, ISMS drift and cardholder-data checks.
         </p>
+      </Card>
+
+      {/* Live response-SLA clock — per-case deadlines, auto-escalated on breach */}
+      <Card className="p-4">
+        <SectionTitle
+          title="Response-SLA clock"
+          subtitle="Every open case against its risk-based response deadline — breaches are auto-escalated"
+          action={
+            <span className={cn("text-sm font-bold", slaClock.breached > 0 ? "text-risk-high" : slaClock.atRisk > 0 ? "text-risk-medium" : "text-risk-low")}>
+              {slaClock.attainment}% on-time
+            </span>
+          }
+        />
+        <div className="mb-3 grid grid-cols-3 gap-2.5">
+          <div className="rounded-lg border border-border bg-bg-subtle/40 p-3 text-center">
+            <p className="text-xl font-bold text-risk-low">{slaClock.onTrack}</p>
+            <p className="text-[10px] uppercase tracking-wide text-slate-500">On track</p>
+          </div>
+          <div className="rounded-lg border border-border bg-bg-subtle/40 p-3 text-center">
+            <p className="text-xl font-bold text-risk-medium">{slaClock.atRisk}</p>
+            <p className="text-[10px] uppercase tracking-wide text-slate-500">At risk</p>
+          </div>
+          <div className="rounded-lg border border-border bg-bg-subtle/40 p-3 text-center">
+            <p className="text-xl font-bold text-risk-high">{slaClock.breached}</p>
+            <p className="text-[10px] uppercase tracking-wide text-slate-500">Breached</p>
+          </div>
+        </div>
+        {slaClock.items.length === 0 ? (
+          <p className="text-sm text-slate-500">No open cases — every response clock is clear.</p>
+        ) : (
+          <ul className="space-y-1.5">
+            {slaClock.items.slice(0, 6).map((i) => (
+              <li key={i.id} className="flex items-center justify-between rounded-lg border border-border bg-bg-subtle/40 px-3 py-2">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-white">{i.title}</p>
+                  <p className="text-[11px] text-slate-500">{i.riskLevel} · due {i.dueAt.slice(0, 10)}</p>
+                </div>
+                <span className={cn("shrink-0 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ring-1",
+                  i.status === "breached" ? "text-risk-high ring-risk-high/30" : i.status === "at_risk" ? "text-risk-medium ring-risk-medium/30" : "text-risk-low ring-risk-low/30")}>
+                  {i.status === "breached" ? "Breached" : i.status === "at_risk" ? `${i.hoursRemaining}h left` : "On track"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </Card>
 
       {/* SLA targets */}

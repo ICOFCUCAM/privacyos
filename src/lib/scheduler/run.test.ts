@@ -55,6 +55,7 @@ class MemoryStore implements SchedulerStore {
   openCaseTitles: string[] = [];
   evidence: EvidenceItem[] = [];
   legalDrafts: NewLegalDraft[] = [];
+  escalatedCaseIds: string[] = [];
 
   async listFootprints() {
     return this.footprints;
@@ -111,6 +112,9 @@ class MemoryStore implements SchedulerStore {
   }
   async createLegalDrafts(_u: string, _s: string, drafts: NewLegalDraft[]) {
     this.legalDrafts.push(...drafts);
+  }
+  async markCaseEscalated(caseId: string) {
+    this.escalatedCaseIds.push(caseId);
   }
 }
 
@@ -405,6 +409,32 @@ describe("runScheduledCycle", () => {
     expect(summary.impersonationCasesOpened).toBe(1);
     expect(store.createdCases.some((c) => c.type === "impersonation_takedown")).toBe(true);
     expect(store.legalDrafts.some((d) => d.type === "platform_abuse")).toBe(true);
+  });
+
+  it("auto-escalates an open case that breached its response-SLA deadline", async () => {
+    const old = new Date(Date.now() - 3 * 86_400_000).toISOString(); // 3 days ago
+    const store = new MemoryStore([
+      {
+        userId: "u1",
+        subject: subject("a", "u1"),
+        exposures: [],
+        threats: [],
+        cases: [
+          { id: "c-old", subjectId: "a", type: "breach_response", title: "Stale critical case", summary: "", status: "open", riskLevel: "critical", assignedAgent: "security", relatedExposureIds: [], createdAt: old, updatedAt: old },
+        ],
+      },
+    ]);
+    const summary = await runScheduledCycle(store, {
+      sources: [],
+      provider: new MockProvider(),
+      reputationSource: cleanRepSource,
+      domainClient: domClient,
+    });
+    // Critical SLA is 24h; a 3-day-old open case is breached → auto-escalated, alerted, sealed.
+    expect(summary.slaBreachesEscalated).toBe(1);
+    expect(store.escalatedCaseIds).toContain("c-old");
+    expect(store.notifications.flat().some((n) => /SLA breach escalated: Stale critical case/.test(n.title))).toBe(true);
+    expect(store.evidence.some((e) => /Escalated SLA breach/.test(e.title))).toBe(true);
   });
 
   it("escalates the principal to critical executive risk on critical physical threats", async () => {

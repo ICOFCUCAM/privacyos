@@ -9,7 +9,7 @@ import type { Exposure, Recommendation, RemovalRequest, Threat } from "@/lib/typ
 import type { ProtectOutcome } from "@/lib/agents/orchestrator";
 import type { NewCaseFields } from "@/lib/agents/recommendation-routing";
 import type { EvidenceItem } from "@/lib/intelligence/evidence-vault";
-import { mapExposure, mapRemoval, mapSubject, mapThreat } from "@/lib/data/mappers";
+import { mapCase, mapExposure, mapRemoval, mapSubject, mapThreat } from "@/lib/data/mappers";
 import { mapCredentialLeak, mapDomainRisk, mapEmployeeExposure, mapFamilyMember, mapIncident, mapTravelAlert } from "@/lib/data/module-mappers";
 import { isRemovalDue } from "@/lib/brokers/removal";
 import type {
@@ -31,6 +31,7 @@ export class SupabaseSchedulerStore implements SchedulerStore {
     const [
       { data: subjects }, { data: exposures }, { data: threats }, { data: family }, { data: travel },
       { data: credentials }, { data: incidents }, { data: employees }, { data: domains }, { data: domainRisks },
+      { data: cases },
     ] = await Promise.all([
       this.db.from("subjects").select("*"),
       this.db.from("exposures").select("*"),
@@ -42,6 +43,7 @@ export class SupabaseSchedulerStore implements SchedulerStore {
       this.db.from("employee_exposures").select("*"),
       this.db.from("domains").select("*"),
       this.db.from("domain_risks").select("*"),
+      this.db.from("cases").select("*").neq("status", "resolved"),
     ]);
 
     const expBySubject = new Map<string, Exposure[]>();
@@ -104,6 +106,12 @@ export class SupabaseSchedulerStore implements SchedulerStore {
       list.push(mapDomainRisk(row, domainsById));
       domByUser.set(userId, list);
     }
+    const casesBySubject = new Map<string, ReturnType<typeof mapCase>[]>();
+    for (const row of cases ?? []) {
+      const list = casesBySubject.get(row.subject_id) ?? [];
+      list.push(mapCase(row));
+      casesBySubject.set(row.subject_id, list);
+    }
 
     return (subjects ?? []).map((row) => ({
       userId: row.user_id,
@@ -116,6 +124,7 @@ export class SupabaseSchedulerStore implements SchedulerStore {
       incidents: incBySubject.get(row.id) ?? [],
       employeeExposures: empByUser.get(row.user_id) ?? [],
       domainRisks: domByUser.get(row.user_id) ?? [],
+      cases: casesBySubject.get(row.id) ?? [],
     }));
   }
 
@@ -435,5 +444,9 @@ export class SupabaseSchedulerStore implements SchedulerStore {
         body: d.body,
       })),
     );
+  }
+
+  async markCaseEscalated(caseId: string): Promise<void> {
+    await this.db.from("cases").update({ status: "escalated" }).eq("id", caseId);
   }
 }

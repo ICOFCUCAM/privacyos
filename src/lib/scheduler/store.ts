@@ -22,6 +22,7 @@ import type {
   TravelAlert,
 } from "@/lib/suite-types";
 import type {
+  Case,
   Exposure,
   Recommendation,
   RemovalRequest,
@@ -53,6 +54,8 @@ export interface Footprint {
   incidents?: Incident[];
   /** Domain risks (org-scoped) — feeds lookalike/phishing impersonation signals. */
   domainRisks?: DomainRisk[];
+  /** The subject's currently-open cases — drives the response-SLA clock. */
+  cases?: Case[];
 }
 
 export interface NewAgentAction {
@@ -125,6 +128,8 @@ export interface ScheduledRunSummary {
   employeeCasesOpened: number;
   /** Impersonation/lookalike takedown cases auto-opened this cycle. */
   impersonationCasesOpened: number;
+  /** Open cases that breached their response SLA and were auto-escalated. */
+  slaBreachesEscalated: number;
   mentionsCollected: number;
   domainRisksFound: number;
   ranAt: string;
@@ -186,4 +191,6 @@ export interface SchedulerStore {
   recordEvidence(userId: string, subjectId: string, items: EvidenceItem[]): Promise<void>;
   /** Persist legal instruments auto-drafted from cases (left in 'draft' for review). */
   createLegalDrafts(userId: string, subjectId: string, drafts: NewLegalDraft[]): Promise<void>;
+  /** Escalate a case that breached its response SLA (idempotent: sets 'escalated'). */
+  markCaseEscalated(caseId: string): Promise<void>;
 }
