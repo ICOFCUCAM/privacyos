@@ -92,7 +92,9 @@ async function ensurePrice(opts: {
 }
 
 async function main() {
-  const paid = PLANS.filter((p) => p.monthly !== null);
+  // Paid, priced plans only. Free ($0, routes to the free scan) and custom
+  // (monthly === null, sales-assisted) plans are never Stripe Products.
+  const paid = PLANS.filter((p) => p.monthly !== null && p.monthly > 0);
   const lines: string[] = [];
 
   console.error(`Provisioning ${paid.length} paid plans${WANT_ANNUAL ? " (monthly + annual)" : " (monthly)"}…\n`);
