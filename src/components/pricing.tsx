@@ -10,6 +10,7 @@ import {
   plansByCategory,
   type Plan,
 } from "@/lib/billing/plans";
+import { cardInclusions } from "@/lib/billing/inclusions";
 import {
   CURRENCIES, DEFAULT_CURRENCY, formatMoney, resolveCurrency, type Currency,
 } from "@/lib/billing/currencies";
@@ -141,6 +142,22 @@ function PlanCard({
           </li>
         ))}
       </ul>
+
+      {/* Verified inclusions — derived from the real product gating, so pricing
+          and the dashboard never disagree (esp. the credit-monitoring tier). */}
+      {plan.category !== "ai_addon" && (
+        <div className="mt-4 space-y-1.5 rounded-xl border border-border/60 bg-bg-subtle/40 p-3">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Verified inclusions</p>
+          {cardInclusions(plan.id).map((i) => (
+            <div key={i.label} className="flex items-center justify-between gap-3 text-[11px]">
+              <span className="text-slate-400">{i.label}</span>
+              <span className={cn("shrink-0 font-medium", i.included ? "text-slate-100" : "text-slate-600")}>
+                {i.included ? i.detail : "—"}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <button
         onClick={choose}

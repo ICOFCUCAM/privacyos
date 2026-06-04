@@ -17,6 +17,10 @@ const faqs: { q: string; a: string }[] = [
     a: "PrivacyOS covers personal privacy & removals; ReputationOS handles search/news/sentiment; ExecutiveOS adds doxxing, deepfake and travel-risk protection; BusinessOS protects organizations. Most customers start with one and add suites as they grow.",
   },
   {
+    q: "Is credit monitoring included, and how does it work?",
+    a: "Credit monitoring is included from Premium and Family (single-bureau) and on every Executive and Business plan (tri-bureau). Checks are manual by default — a pull costs money, so we never run one until you opt into automated checks, which then run at a cost-efficient cadence (monthly on single-bureau, weekly on tri-bureau). Live bureau data activates with a connected, FCRA-compliant partner and your consent.",
+  },
+  {
     q: "Do the AI agents really run continuously?",
     a: "Yes — the autonomous agent fleet runs on a 24/7 schedule, continuously discovering exposures, filing removals, re-checking results and raising alerts. You review outcomes, not busywork.",
   },
@@ -54,13 +58,27 @@ export default async function PricingPage({
         </Link>
       </header>
 
-      <section className="mx-auto max-w-3xl px-6 pb-10 pt-12 text-center">
-        <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
-          Protection for everyone, at every scale
+      <section className="mx-auto max-w-3xl px-6 pb-8 pt-12 text-center">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-brand-fg">
+          Pricing for the Digital Risk Operating System
+        </span>
+        <h1 className="mt-4 text-4xl font-bold tracking-tight text-white sm:text-5xl">
+          One platform. Every layer of digital risk.
         </h1>
         <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-400">
-          From individuals to global enterprises — pick the protection tier that fits.
-          Every paid plan can add an autonomous AI Agent. Annual billing saves 20%.
+          From individuals and families to executives, public figures and enterprises.
+          Every paid plan runs the same autonomous engine; higher tiers add suites,
+          credit monitoring and seats. Annual billing saves 20%.
+        </p>
+      </section>
+
+      {/* The cascade + credit framing — every plan, one engine */}
+      <section className="mx-auto max-w-3xl px-6 pb-8 text-center">
+        <p className="text-sm text-slate-400">
+          Every paid plan runs the same engine — a finding becomes a{" "}
+          <span className="text-slate-200">case → removal → sealed evidence → legal action → monitoring</span>,
+          automatically. Credit monitoring is manual by default and tiered by plan: single-bureau on
+          Premium &amp; Family, tri-bureau on Executive &amp; Business.
         </p>
       </section>
 
