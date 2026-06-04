@@ -34,6 +34,7 @@ import type { ProtectOutcome } from "@/lib/agents/orchestrator";
 import type { NewCaseFields } from "@/lib/agents/recommendation-routing";
 import type { AssessedRisk } from "@/lib/domains/dns";
 import type { EvidenceItem } from "@/lib/intelligence/evidence-vault";
+import type { Entitlements } from "@/lib/billing/entitlements";
 
 export interface Footprint {
   userId: string;
@@ -56,6 +57,10 @@ export interface Footprint {
   domainRisks?: DomainRisk[];
   /** The subject's currently-open cases — drives the response-SLA clock. */
   cases?: Case[];
+  /** The owning plan's entitlements — gates the paid SerpApi discovery connectors
+   *  so the scheduled cycle only spends credits for subjects whose plan includes
+   *  the capability. Omitted (tests / other stores) → full roster. */
+  entitlements?: Entitlements;
   /** Whether the owning plan includes credit monitoring (the `credit` feature). */
   creditEnabled?: boolean;
   /** Whether the customer opted into automated credit checks (default false). */

@@ -119,10 +119,12 @@ export class SupabaseSchedulerStore implements SchedulerStore {
     // for subjects whose plan includes them, at the plan's cadence.
     const creditByUser = new Map<string, boolean>();
     const creditPlanByUser = new Map<string, ReturnType<typeof creditPlanFor>>();
+    const entByUser = new Map<string, ReturnType<typeof entitlementsFor>>();
     for (const row of subscriptions ?? []) {
       const ent = entitlementsFor({ planId: row.plan_id, status: row.status });
       creditByUser.set(row.user_id, ent.features.credit);
       creditPlanByUser.set(row.user_id, creditPlanFor(row.plan_id));
+      entByUser.set(row.user_id, ent);
     }
 
     return (subjects ?? []).map((row) => ({
@@ -137,6 +139,7 @@ export class SupabaseSchedulerStore implements SchedulerStore {
       employeeExposures: empByUser.get(row.user_id) ?? [],
       domainRisks: domByUser.get(row.user_id) ?? [],
       cases: casesBySubject.get(row.id) ?? [],
+      entitlements: entByUser.get(row.user_id),
       creditEnabled: creditByUser.get(row.user_id) ?? false,
       creditAuto: row.credit_auto ?? false,
       creditDue: creditCheckDue(creditPlanByUser.get(row.user_id) ?? creditPlanFor(null), row.credit_checked_at),
