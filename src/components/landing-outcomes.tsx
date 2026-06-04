@@ -20,14 +20,16 @@ const assessmentSteps: { label: string }[] = [
 export function FreeAssessmentBand() {
   return (
     <section className="mx-auto max-w-5xl px-6 py-20">
-      <div className="relative overflow-hidden rounded-[2rem] border border-brand/25 bg-gradient-to-b from-brand/10 via-bg-elevated/40 to-bg-elevated/20 p-8 text-center shadow-2xl shadow-brand/10 ring-1 ring-white/5 sm:p-12">
+      <div className="relative overflow-hidden rounded-[2rem] border border-brand/30 bg-gradient-to-b from-brand/10 via-bg-elevated/40 to-bg-elevated/20 p-8 text-center shadow-2xl shadow-brand/15 ring-1 ring-white/5 sm:p-12">
         <div aria-hidden className="pointer-events-none absolute inset-x-0 -top-28 h-56 bg-[radial-gradient(50%_100%_at_50%_0%,rgba(99,102,241,0.28),transparent_70%)]" />
+        <div aria-hidden className="grain-overlay" />
+        <span aria-hidden className="signal-line pointer-events-none absolute inset-x-[12%] top-0 h-px" />
         <div className="relative">
           <span className="icon-tile mx-auto h-14 w-14">
             <ScanLine className="h-7 w-7 text-brand-fg" />
           </span>
           <h2 className="mt-5 text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            See exactly what&rsquo;s exposed about you.
+            See exactly what&rsquo;s <span className="text-sheen">exposed</span> about you.
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-300">
             Run a free exposure assessment. In under a minute you&rsquo;ll see your protection score,
