@@ -25,14 +25,14 @@ export function Hero() {
       <div className="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-6 px-6 pb-10 pt-16 lg:grid-cols-12 lg:gap-x-10 lg:pb-20 lg:pt-28">
         {/* LEFT — copy */}
         <div className="relative z-10 lg:col-span-5">
-          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-bg-elevated/70 px-3 py-1 text-xs font-medium text-brand-fg backdrop-blur">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand" />
+          <span className="eyebrow backdrop-blur">
+            <span className="live-ping h-1.5 w-1.5 rounded-full bg-brand-fg shadow-[0_0_8px_1px_rgba(129,140,248,0.9)]" />
             One platform · every layer of digital risk
           </span>
 
           <h1 className="mt-6 text-4xl font-bold leading-[1.06] tracking-tight text-white sm:text-5xl xl:text-[3.75rem]">
             The Digital Risk{" "}
-            <span className="bg-gradient-to-r from-brand-fg via-brand to-brand-fg bg-clip-text text-transparent">
+            <span className="text-sheen">
               Operating System.
             </span>
           </h1>

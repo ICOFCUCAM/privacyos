@@ -3,8 +3,8 @@ import Link from "next/link";
 import { cn } from "@/lib/ui";
 
 /**
- * The canonical PrivacyOS brand lockup — the real logo mark (gradient shield +
- * keyhole + orbital ring) paired with a crisp white "PrivacyOS" wordmark. Used
+ * The canonical MyPrivacyOS brand lockup — the real logo mark (gradient shield +
+ * keyhole + orbital ring) paired with a crisp white "MyPrivacyOS" wordmark. Used
  * everywhere a brand mark appears so the identity is consistent across the whole
  * product. The wordmark is rendered in the UI (not baked into the image) so it
  * stays sharp white on the dark theme at any size.
@@ -27,7 +27,7 @@ export function BrandMark({
     <>
       <Image
         src="/PrivacyLogo.png"
-        alt="PrivacyOS"
+        alt="MyPrivacyOS"
         width={size}
         height={size}
         priority
@@ -36,7 +36,7 @@ export function BrandMark({
       />
       {wordmark && (
         <span className={cn("font-bold tracking-tight text-white", wordmarkClass)}>
-          Privacy<span className="bg-gradient-to-r from-brand-fg to-brand bg-clip-text text-transparent">OS</span>
+          MyPrivacy<span className="bg-gradient-to-r from-brand-fg to-brand bg-clip-text text-transparent">OS</span>
         </span>
       )}
     </>

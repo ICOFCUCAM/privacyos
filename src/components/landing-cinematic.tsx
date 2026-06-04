@@ -5,9 +5,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 
 const Eyebrow = ({ children }: { children: React.ReactNode }) => (
-  <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-brand-fg">
-    {children}
-  </span>
+  <span className="eyebrow">{children}</span>
 );
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -30,6 +28,7 @@ export function ArchitectureEngine() {
   return (
     <section className="relative overflow-hidden border-y border-border bg-[#070810] py-28">
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_60%_at_78%_50%,rgba(99,102,241,0.16),transparent_70%)]" />
+      <div aria-hidden className="grain-overlay" />
       <div className="relative mx-auto max-w-6xl px-6">
         <div className="mx-auto max-w-2xl text-center">
           <Eyebrow>The operating system</Eyebrow>
@@ -57,6 +56,9 @@ export function ArchitectureEngine() {
 
             {/* faint outer glow behind the core */}
             <circle cx={ENGINE.x} cy={ENGINE.y} r="150" fill="#6366f1" opacity="0.12" filter="url(#soft)" />
+            {/* slow rotating signal ring — ambient telemetry around the core */}
+            <circle cx={ENGINE.x} cy={ENGINE.y} r="124" fill="none" stroke="#818cf8" strokeOpacity="0.28" strokeWidth="1" strokeDasharray="2 11" className="animate-spin-slow" style={{ transformBox: "fill-box", transformOrigin: "center" }} />
+            <circle cx={ENGINE.x} cy={ENGINE.y} r="138" fill="none" stroke="#38bdf8" strokeOpacity="0.14" strokeWidth="1" strokeDasharray="1 16" className="animate-spin-slow-rev" style={{ transformBox: "fill-box", transformOrigin: "center" }} />
 
             {/* connectors: a static faint line + an animated light trail per domain */}
             {DOMAINS.map((d, i) => {
@@ -116,6 +118,7 @@ export function ThreatSimulation() {
   return (
     <section className="relative overflow-hidden py-28">
       <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(50%_100%_at_50%_0%,rgba(99,102,241,0.12),transparent_70%)]" />
+      <div aria-hidden className="grain-overlay" />
       <div className="relative mx-auto max-w-3xl px-6">
         <div className="mx-auto max-w-2xl text-center">
           <Eyebrow>Watch the platform work</Eyebrow>
@@ -200,6 +203,7 @@ export function MissionControlShowcase() {
   return (
     <section className="relative overflow-hidden border-y border-border bg-[#070810] py-28">
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(70%_60%_at_50%_-10%,rgba(99,102,241,0.14),transparent_70%)]" />
+      <div aria-hidden className="grain-overlay" />
       <div className="relative mx-auto max-w-6xl px-6">
         <div className="mx-auto max-w-2xl text-center">
           <Eyebrow>Mission control</Eyebrow>
@@ -274,6 +278,7 @@ export function OneEngineNotTenTools() {
   return (
     <section className="relative overflow-hidden py-28">
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(55%_55%_at_82%_45%,rgba(99,102,241,0.14),transparent_70%)]" />
+      <div aria-hidden className="grain-overlay" />
       <div className="relative mx-auto max-w-6xl px-6">
         <div className="mx-auto max-w-2xl text-center">
           <Eyebrow>Why nobody else can do this</Eyebrow>

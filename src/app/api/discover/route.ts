@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDataSource } from "@/lib/data";
-import { runDiscovery } from "@/lib/discovery/pipeline";
+import { runDiscovery, defaultDiscoverySources } from "@/lib/discovery/pipeline";
+import { interactiveSerpMeter } from "@/lib/discovery/serp-meter";
 import { getEntitlements } from "@/lib/billing/subscription";
 import { canRescan } from "@/lib/billing/entitlements";
 
@@ -16,10 +17,11 @@ import { canRescan } from "@/lib/billing/entitlements";
  */
 export async function POST() {
   const ds = await getDataSource();
+  const ent = await getEntitlements();
 
   // Continuous scanning is a paid capability. The free tier gets its single
   // onboarding scan; rescans convert to a plan. (Demo stays fully explorable.)
-  if (ds.live && !canRescan(await getEntitlements())) {
+  if (ds.live && !canRescan(ent)) {
     return NextResponse.json(
       { error: "Continuous scanning is a paid feature — upgrade to keep watching.", upgrade: true },
       { status: 402 },
@@ -28,11 +30,17 @@ export async function POST() {
 
   const data = await ds.getDataset();
 
-  const finding = await runDiscovery({
-    subject: data.subject,
-    existing: data.exposures,
-    existingThreats: data.threats,
-  });
+  const finding = await runDiscovery(
+    {
+      subject: data.subject,
+      existing: data.exposures,
+      existingThreats: data.threats,
+      // Internal SerpApi budget backstop for this account.
+      meter: await interactiveSerpMeter(ent.serpBudget),
+    },
+    // Gate + cache the paid SerpApi connectors by the user's plan.
+    defaultDiscoverySources(ent),
+  );
 
   if (ds.live) {
     await ds.persistDiscovery(finding);

@@ -12,7 +12,7 @@
 
 import { protect } from "@/lib/agents/orchestrator";
 import type { LLMProvider } from "@/lib/agents/llm/provider";
-import { runDiscovery } from "@/lib/discovery/pipeline";
+import { runDiscovery, defaultDiscoverySources } from "@/lib/discovery/pipeline";
 import type { DiscoverySource } from "@/lib/discovery/source";
 import { computeRiskScore } from "@/lib/scoring/risk-score";
 import { advanceRemoval, shouldReappear } from "@/lib/brokers/removal";
@@ -115,10 +115,18 @@ export async function runScheduledCycle(
     const domainRisks = fp.domainRisks ?? [];
     const now0 = new Date().toISOString();
 
-    // 1. Discover — only genuinely new findings come back (deduped).
+    // 1. Discover — only genuinely new findings come back (deduped). Tests inject
+    //    a fixed roster; in production the roster is gated by this subject's plan
+    //    so the paid SerpApi connectors only run for entitled subjects, capped by
+    //    the account's internal SerpApi budget.
     const finding = await runDiscovery(
-      { subject: fp.subject, existing: fp.exposures, existingThreats: fp.threats },
-      deps.sources,
+      {
+        subject: fp.subject,
+        existing: fp.exposures,
+        existingThreats: fp.threats,
+        meter: store.serpMeterFor?.(fp.userId, fp.entitlements?.serpBudget ?? 0),
+      },
+      deps.sources ?? defaultDiscoverySources(fp.entitlements),
     );
     if (finding.exposures.length || finding.threats.length) {
       await store.saveDiscovered(fp.userId, finding.exposures, finding.threats);

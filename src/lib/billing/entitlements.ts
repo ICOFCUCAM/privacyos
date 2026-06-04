@@ -48,6 +48,27 @@ export interface Entitlements {
   brokerRemovalLimit: number;
   /** Family member seats. */
   familySeats: number;
+  /** INTERNAL cost/abuse backstop: max live SerpApi searches per billing period.
+   *  Never shown to users — it's a generous ceiling normal usage never reaches.
+   *  Infinity = uncapped (demo/admin); 0 = no paid SerpApi calls (free/starter). */
+  serpBudget: number;
+}
+
+/**
+ * INTERNAL SerpApi search ceilings per plan (monthly). Generous — set well above
+ * expected usage (cache + cadence are the real cost control); this only trips on
+ * bugs/abuse. Never surfaced in the UI. Tune freely without product impact.
+ */
+function serpBudgetFor(planId: string, category: PlanCategory): number {
+  if (category === "business") return 30_000;
+  if (category === "executive") return 15_000;
+  if (category === "reputation") return 4_000;
+  if (category === "ai_addon") return 4_000;
+  // personal tiers
+  if (planId === "family") return 6_000;
+  if (planId === "premium") return 4_000;
+  if (planId === "plus") return 1_500;
+  return 0; // free / starter — no paid SerpApi connectors run anyway
 }
 
 const NONE: Entitlements = {
@@ -60,6 +81,7 @@ const NONE: Entitlements = {
   },
   brokerRemovalLimit: 0,
   familySeats: 0,
+  serpBudget: 0,
 };
 
 /**
@@ -79,6 +101,7 @@ export const FREE_ENTITLEMENTS: Entitlements = {
   },
   brokerRemovalLimit: 10,
   familySeats: 0,
+  serpBudget: 0,
 };
 
 /** Continuous protection — rescans + ongoing monitoring — is a paid capability. */
@@ -110,6 +133,7 @@ export const DEMO_ENTITLEMENTS: Entitlements = {
   },
   brokerRemovalLimit: Infinity,
   familySeats: 6,
+  serpBudget: Infinity,
 };
 
 /**
@@ -127,6 +151,7 @@ export const ADMIN_ENTITLEMENTS: Entitlements = {
   },
   brokerRemovalLimit: Infinity,
   familySeats: 6,
+  serpBudget: Infinity,
 };
 
 /**
@@ -199,6 +224,7 @@ export function entitlementsFor(sub: Subscription | null): Entitlements {
     },
     brokerRemovalLimit: personalTier ? (BROKER_LIMITS[personalTier] ?? 0) : Infinity,
     familySeats: sub.planId === "family" ? 6 : 1,
+    serpBudget: serpBudgetFor(plan.id, cat),
   };
 }
 

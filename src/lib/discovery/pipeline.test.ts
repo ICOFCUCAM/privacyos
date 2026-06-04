@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { runDiscovery, defaultDiscoverySources } from "./pipeline";
+import { entitlementsFor, FREE_ENTITLEMENTS } from "@/lib/billing/entitlements";
 import type { DiscoverySource, DiscoveryInput, DiscoveryFinding } from "./source";
 import type { Subject, Exposure, Threat } from "@/lib/types";
 
@@ -46,5 +47,39 @@ describe("discovery pipeline", () => {
 
   it("ships a default source roster", () => {
     expect(defaultDiscoverySources().length).toBeGreaterThan(3);
+  });
+});
+
+describe("defaultDiscoverySources entitlement gating", () => {
+  const ids = (ent?: Parameters<typeof defaultDiscoverySources>[0]) =>
+    new Set(defaultDiscoverySources(ent).map((s) => s.id));
+
+  it("runs the full paid roster when no entitlements (demo / back-compat)", () => {
+    const s = ids();
+    expect(s.has("autocomplete")).toBe(true);
+    expect(s.has("multi_engine_serp")).toBe(true);
+    expect(s.has("reverse_image")).toBe(true);
+  });
+
+  it("excludes every paid SerpApi connector on the free tier (keyless layers stay)", () => {
+    const s = ids(FREE_ENTITLEMENTS);
+    expect(s.has("autocomplete")).toBe(false);
+    expect(s.has("multi_engine_serp")).toBe(false);
+    expect(s.has("reverse_image")).toBe(false);
+    expect(s.has("breach_db")).toBe(true); // keyless layer still runs
+  });
+
+  it("premium unlocks the reputation + deep-web connectors", () => {
+    const s = ids(entitlementsFor({ planId: "premium", status: "active" }));
+    expect(s.has("autocomplete")).toBe(true);      // reputation
+    expect(s.has("multi_engine_serp")).toBe(true); // deep_web
+    expect(s.has("reverse_image")).toBe(true);     // deep_web
+  });
+
+  it("a reputation plan gets autocomplete but not the deep-web sweeps", () => {
+    const s = ids(entitlementsFor({ planId: "rep-professional", status: "active" }));
+    expect(s.has("autocomplete")).toBe(true);
+    expect(s.has("multi_engine_serp")).toBe(false);
+    expect(s.has("reverse_image")).toBe(false);
   });
 });

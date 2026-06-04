@@ -17,6 +17,11 @@ import {
 import { dedupeExposures, removeKnownEntities } from "./entity-resolution";
 import { BreachConnector } from "./breach-connector";
 import { CertTransparencyConnector } from "./cert-transparency-connector";
+import { ReverseImageConnector } from "./reverse-image-connector";
+import { AutocompleteConnector } from "./autocomplete-connector";
+import { MultiEngineSerpConnector } from "./multi-engine-connector";
+import { CachedSource } from "./connector-cache";
+import type { Entitlements } from "@/lib/billing/entitlements";
 import {
   DarkWebConnector,
   DomainConnector,
@@ -25,9 +30,32 @@ import {
   SocialConnector,
 } from "./connectors";
 
-/** Default source roster — every discovery layer the platform runs. */
-export function defaultDiscoverySources(): DiscoverySource[] {
-  return [
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * How long a paid SerpApi finding stays cached, by plan — the cadence half of
+ * the cost control. Higher tiers refresh more often; lower tiers less, so spend
+ * tracks plan value. Unknown/demo defaults to daily.
+ */
+function serpCacheTtl(ent?: Entitlements): number {
+  if (!ent) return DAY_MS;
+  if (ent.category === "executive" || ent.category === "business") return DAY_MS;        // daily
+  if (ent.category === "reputation" || ent.planId === "premium" || ent.planId === "family") return 7 * DAY_MS; // weekly
+  return 30 * DAY_MS;                                                                     // monthly
+}
+
+/**
+ * Default source roster — every discovery layer the platform runs.
+ *
+ * The keyless layers (breach, search, news, social, domain, cert-transparency,
+ * dark-web) always run. The paid SerpApi-backed connectors are gated by plan
+ * entitlement AND wrapped in a TTL cache, so they only spend a credit for
+ * subjects whose plan includes the capability, and at most once per cache
+ * window. Passing no entitlements (demo / admin / tests) runs the full roster so
+ * the product stays fully explorable.
+ */
+export function defaultDiscoverySources(ent?: Entitlements): DiscoverySource[] {
+  const sources: DiscoverySource[] = [
     new BreachConnector(),
     new SearchConnector(),
     new NewsConnector(),
@@ -36,6 +64,23 @@ export function defaultDiscoverySources(): DiscoverySource[] {
     new CertTransparencyConnector(),
     new DarkWebConnector(),
   ];
+
+  // No entitlements supplied → full roster (demo/back-compat). Otherwise gate.
+  const has = (f: keyof Entitlements["features"]) => !ent || ent.features[f];
+  const ttl = serpCacheTtl(ent);
+
+  // Reputation defamation signal — ReputationOS + personal Plus/Premium/Family.
+  if (has("reputation")) sources.push(new CachedSource(new AutocompleteConnector(), ttl));
+  // Broad cross-engine exposure — the "deep" discovery tiers.
+  if (has("deep_web") || has("executive") || has("business")) {
+    sources.push(new CachedSource(new MultiEngineSerpConnector(), ttl));
+  }
+  // Reverse-image impersonation — Executive + personal deep-web (Premium/Family).
+  if (has("executive") || has("deep_web")) {
+    sources.push(new CachedSource(new ReverseImageConnector(), ttl));
+  }
+
+  return sources;
 }
 
 function threatKey(t: Pick<Threat, "kind" | "title">): string {

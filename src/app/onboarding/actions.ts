@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getDataSource } from "@/lib/data";
 import { mapSubject } from "@/lib/data/mappers";
-import { runDiscovery } from "@/lib/discovery/pipeline";
+import { runDiscovery, defaultDiscoverySources } from "@/lib/discovery/pipeline";
+import { interactiveSerpMeter } from "@/lib/discovery/serp-meter";
 import { recordAudit } from "@/lib/audit/audit";
 import { cookies } from "next/headers";
 import { getEntitlements } from "@/lib/billing/subscription";
@@ -59,6 +60,7 @@ export async function createSubject(
       emails: parseList(formData.get("emails")),
       phones: parseList(formData.get("phones")),
       usernames: parseList(formData.get("usernames")),
+      photos: parseList(formData.get("photos")),
       organization,
     })
     .select("*")
@@ -68,11 +70,18 @@ export async function createSubject(
 
   await recordAudit({ action: "subject.created", entity: "subject", entityId: row?.id, metadata: { name: displayName } });
 
+  // Resolve entitlements once — used to gate the paid SerpApi connectors in the
+  // first scan and to auto-provision the right protection packs below.
+  const ent = await getEntitlements();
+
   if (runScan && row) {
     // Best-effort first scan — never block onboarding on it.
     try {
       const ds = await getDataSource();
-      const finding = await runDiscovery({ subject: mapSubject(row), existing: [] });
+      const finding = await runDiscovery(
+        { subject: mapSubject(row), existing: [], meter: await interactiveSerpMeter(ent.serpBudget) },
+        defaultDiscoverySources(ent),
+      );
       if (finding.exposures.length || finding.threats.length) {
         await ds.persistDiscovery(finding);
       }
@@ -84,7 +93,6 @@ export async function createSubject(
   // Auto-provision protection: install + enable the right packs for the plan so
   // monitoring starts automatically. Standard customers never touch the builder.
   try {
-    const ent = await getEntitlements();
     const packs = protectionsForEntitlements(ent);
     const seen = new Set<string>();
     for (const id of packs) {

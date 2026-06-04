@@ -34,6 +34,8 @@ import type { ProtectOutcome } from "@/lib/agents/orchestrator";
 import type { NewCaseFields } from "@/lib/agents/recommendation-routing";
 import type { AssessedRisk } from "@/lib/domains/dns";
 import type { EvidenceItem } from "@/lib/intelligence/evidence-vault";
+import type { Entitlements } from "@/lib/billing/entitlements";
+import type { SerpMeter } from "@/lib/discovery/source";
 
 export interface Footprint {
   userId: string;
@@ -56,6 +58,10 @@ export interface Footprint {
   domainRisks?: DomainRisk[];
   /** The subject's currently-open cases — drives the response-SLA clock. */
   cases?: Case[];
+  /** The owning plan's entitlements — gates the paid SerpApi discovery connectors
+   *  so the scheduled cycle only spends credits for subjects whose plan includes
+   *  the capability. Omitted (tests / other stores) → full roster. */
+  entitlements?: Entitlements;
   /** Whether the owning plan includes credit monitoring (the `credit` feature). */
   creditEnabled?: boolean;
   /** Whether the customer opted into automated credit checks (default false). */
@@ -164,6 +170,9 @@ export interface OwnedRemoval {
 export interface SchedulerStore {
   /** Every subject across all tenants, with its current footprint. */
   listFootprints(): Promise<Footprint[]>;
+  /** Build an internal SerpApi budget meter for a tenant (live store only).
+   *  Returns undefined to mean uncapped (in-memory/test stores omit it). */
+  serpMeterFor?(userId: string, budget: number): SerpMeter | undefined;
   /** Persist newly discovered exposures + threats for a tenant. */
   saveDiscovered(userId: string, exposures: Exposure[], threats: Threat[]): Promise<void>;
   /** Replace the subject's un-approved recommendations with a fresh set. */

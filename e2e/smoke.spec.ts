@@ -7,15 +7,16 @@ import { test, expect } from "@playwright/test";
 
 test("landing page renders the hero and CTA", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /protect your entire/i })).toBeVisible();
-  await expect(page.getByRole("link", { name: /get protected/i }).first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: /take back control/i })).toBeVisible();
+  await expect(page.getByRole("link", { name: /run my free exposure scan/i }).first()).toBeVisible();
 });
 
 test("Command Center loads in demo mode", async ({ page }) => {
   await page.goto("/dashboard");
-  await expect(page.getByRole("heading", { name: "Command Center" })).toBeVisible();
+  // The command-bar title is role-adaptive ("… Command"); assert stable anchors.
+  await expect(page.getByRole("heading", { name: /Command$/ })).toBeVisible();
   await expect(page.getByText(/Exposure score/i).first()).toBeVisible();
-  await expect(page.getByText(/Operations stream/i)).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Operations stream/i })).toBeVisible();
 });
 
 test("product suites are navigable", async ({ page }) => {
@@ -43,5 +44,7 @@ test("operator consoles render", async ({ page }) => {
 test("AI assistant can run a protection cycle", async ({ page }) => {
   await page.goto("/dashboard/assistant");
   await page.getByRole("button", { name: /protect me/i }).click();
-  await expect(page.getByText(/Action plan/i)).toBeVisible({ timeout: 15_000 });
+  // Target the result heading specifically — "action plan" also appears in the
+  // page subtitle + panel copy, which would make a plain getByText ambiguous.
+  await expect(page.getByRole("heading", { name: /Action plan/i })).toBeVisible({ timeout: 15_000 });
 });

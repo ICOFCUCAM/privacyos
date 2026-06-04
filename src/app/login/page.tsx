@@ -70,7 +70,7 @@ export default async function LoginPage({
             <LoginForm next={next ?? "/dashboard/home"} configured={configured} oauthError={error} />
           </div>
           <p className="mt-6 text-center text-xs text-slate-500">
-            Protected by PrivacyOS · your data stays yours.
+            Protected by MyPrivacyOS · your data stays yours.
           </p>
         </div>
       </div>

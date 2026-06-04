@@ -10,9 +10,7 @@ import { buttonClasses } from "@/components/ui";
 import { cn } from "@/lib/ui";
 
 const Eyebrow = ({ children }: { children: React.ReactNode }) => (
-  <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-brand-fg">
-    {children}
-  </span>
+  <span className="eyebrow">{children}</span>
 );
 
 /* ── It takes a stack of vendors to do what PrivacyOS does in one ──────────────
@@ -186,8 +184,8 @@ export function HighStakesBuyers() {
         </div>
         <div className="mx-auto mt-12 grid max-w-4xl grid-cols-2 gap-3 sm:grid-cols-3">
           {highStakes.map((h) => (
-            <Link key={h.role} href={`/pricing?plan=${h.plan}`} className="group flex items-center gap-3 rounded-xl border border-border bg-bg-elevated/60 px-4 py-3.5 transition hover:border-brand/40 hover:bg-bg-elevated/80">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-brand/25 to-brand/5 ring-1 ring-brand/20">
+            <Link key={h.role} href={`/pricing?plan=${h.plan}`} className="premium-card group flex items-center gap-3 px-4 py-3.5">
+              <span className="icon-tile h-9 w-9 shrink-0">
                 <h.icon className="h-4 w-4 text-brand-fg" />
               </span>
               <span className="flex-1 text-sm font-semibold text-white">{h.role}</span>
@@ -221,11 +219,13 @@ export function DetectionIsNotProtection() {
             Most platforms stop at the alert. We run the whole response.
           </div>
         </div>
-        <div className="rounded-2xl border border-brand/25 bg-gradient-to-b from-brand/10 to-transparent p-6">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-brand-fg">PrivacyOS can</p>
-          <ul className="mt-4 space-y-2.5">
-            {protectionVerbs.map((v) => (
-              <li key={v} className="flex items-center gap-3 rounded-lg border border-border/60 bg-bg-subtle/40 px-3.5 py-2.5">
+        <div className="relative overflow-hidden rounded-2xl border border-brand/30 bg-gradient-to-b from-brand/10 to-transparent p-6 shadow-2xl shadow-brand/10 ring-1 ring-white/5">
+          <div aria-hidden className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-brand/20 blur-3xl" />
+          <p className="relative text-[11px] font-bold uppercase tracking-wider text-brand-fg">PrivacyOS can</p>
+          <ul className="relative mt-4 space-y-2.5">
+            {protectionVerbs.map((v, i) => (
+              <li key={v} className="relative flex items-center gap-3 overflow-hidden rounded-lg border border-brand/20 bg-bg-subtle/40 px-3.5 py-2.5">
+                <span aria-hidden className="absolute inset-y-0 left-0 w-0.5 accent-shimmer" style={{ animationDelay: `${i * 0.3}s` }} />
                 <CheckCircle2 className="h-4 w-4 shrink-0 text-risk-low" />
                 <span className="text-base font-semibold text-white">{v}</span>
               </li>
@@ -335,7 +335,7 @@ export function CapabilityMatrix() {
         </p>
       </div>
 
-      <div className="mt-12 overflow-x-auto rounded-2xl border border-border bg-bg-elevated/30">
+      <div className="mt-12 overflow-x-auto rounded-2xl border border-border bg-bg-elevated/30 shadow-2xl shadow-brand/[0.07] ring-1 ring-white/5">
         <table className="w-full min-w-[680px] border-collapse text-sm">
           <thead>
             <tr className="border-b border-border">
@@ -343,8 +343,8 @@ export function CapabilityMatrix() {
               {MATRIX_COLS.map((c) => (
                 <th key={c} className="px-3 py-4 text-center align-bottom text-[11px] font-medium leading-tight text-slate-500">{c}</th>
               ))}
-              <th className="px-3 py-4 text-center align-bottom text-xs font-bold text-brand-fg">
-                <span className="inline-flex items-center gap-1.5"><Cpu className="h-4 w-4" /> PrivacyOS</span>
+              <th className="bg-brand/[0.08] px-3 py-4 text-center align-bottom text-xs font-bold text-brand-fg ring-1 ring-inset ring-brand/20">
+                <span className="inline-flex items-center gap-1.5"><Cpu className="core-pulse h-4 w-4" /> PrivacyOS</span>
               </th>
             </tr>
           </thead>
@@ -352,7 +352,7 @@ export function CapabilityMatrix() {
             {MATRIX_ROWS.map((r, i) => {
               const moat = r.covered.every((c) => !c);
               return (
-                <tr key={r.cap} className={cn("border-b border-border/60", i % 2 ? "bg-bg-subtle/20" : "")}>
+                <tr key={r.cap} className={cn("border-b border-border/60 transition-colors hover:bg-white/[0.02]", i % 2 ? "bg-bg-subtle/20" : "")}>
                   <td className={cn("px-4 py-3 text-left", moat ? "font-semibold text-white" : "text-slate-300")}>{r.cap}</td>
                   {r.covered.map((on, j) => (
                     <td key={j} className="px-3 py-3 text-center"><MatrixCell on={on} /></td>

@@ -23,10 +23,10 @@ const trustItems: { icon: LucideIcon; label: string }[] = [
 
 export function TrustStrip() {
   return (
-    <section className="border-b border-border">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-8 gap-y-3 px-6 py-6">
+    <section className="border-y border-border bg-bg-subtle/20">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-7 gap-y-3 px-6 py-7">
         {trustItems.map((t) => (
-          <span key={t.label} className="inline-flex items-center gap-2 text-sm text-slate-400">
+          <span key={t.label} className="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-slate-400">
             <t.icon className="h-4 w-4 text-brand-fg" />
             {t.label}
           </span>
@@ -273,9 +273,7 @@ export function PersonaBand() {
   return (
     <section className="mx-auto max-w-6xl px-6 py-24">
       <div className="mx-auto max-w-2xl text-center">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-brand-fg">
-          Who we protect
-        </span>
+        <span className="eyebrow">Who we protect</span>
         <h2 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">
           Built for everyone with something to lose.
         </h2>
@@ -288,10 +286,10 @@ export function PersonaBand() {
           <Link
             key={p.who}
             href={`/pricing?plan=${p.plan}`}
-            className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-bg-elevated/50 p-6 transition duration-300 hover:-translate-y-1 hover:border-brand/40 hover:bg-bg-elevated/80"
+            className="premium-card group relative flex flex-col overflow-hidden p-6"
           >
             <div aria-hidden className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-brand/15 opacity-0 blur-2xl transition duration-300 group-hover:opacity-100" />
-            <span className="relative flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-brand/25 to-brand/5 ring-1 ring-brand/20">
+            <span className="icon-tile relative h-11 w-11">
               <p.icon className="h-5 w-5 text-brand-fg" />
             </span>
             <h3 className="relative mt-4 text-lg font-semibold text-white">{p.who}</h3>

@@ -26,6 +26,8 @@ export function mapSubject(row: any): Subject {
     emails: row.emails ?? [],
     phones: row.phones ?? [],
     usernames: row.usernames ?? [],
+    // Defensive: tolerate the column not existing yet (pre-migration).
+    photos: row.photos ?? undefined,
     organization: row.organization ?? undefined,
     createdAt: row.created_at,
     // Defensive: tolerate the column not existing yet (pre-migration) → autopilot.
