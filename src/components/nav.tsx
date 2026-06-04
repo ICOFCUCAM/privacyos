@@ -9,7 +9,6 @@ import {
   Globe, Plane, UserCog, Network, Scale, Bell, Siren, MessageSquareHeart,
   Trash2, ScrollText, Settings, Lock, Users2, TrendingUp, BadgeCheck,
   Gauge, FileLock2,
-  Search, Newspaper, LifeBuoy, Share2, Rocket,
   LayoutGrid, Fingerprint, ShieldCheck,
   SlidersHorizontal, ChevronDown, Banknote,
 } from "lucide-react";
@@ -57,17 +56,13 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
+    // ReputationOS pages already share one tab bar (ReputationTabs), so the
+    // sidebar needs only the section entry — Growth, SEO, Media, Recovery,
+    // Social, Intelligence and Campaigns are reached via those tabs (no nav lost).
     group: "ReputationOS",
     feature: "reputation",
     items: [
-      { href: "/dashboard/reputation", label: "Overview", icon: Star },
-      { href: "/dashboard/reputation/growth", label: "Growth & Brand", icon: TrendingUp },
-      { href: "/dashboard/reputation/seo", label: "Search & SEO", icon: Search },
-      { href: "/dashboard/reputation/media", label: "Earned Media", icon: Newspaper },
-      { href: "/dashboard/reputation/recovery", label: "Recovery", icon: LifeBuoy },
-      { href: "/dashboard/reputation/social", label: "Social Strategy", icon: Share2 },
-      { href: "/dashboard/reputation/intelligence", label: "Intelligence", icon: Sparkles },
-      { href: "/dashboard/reputation/campaigns", label: "Campaigns", icon: Rocket },
+      { href: "/dashboard/reputation", label: "Reputation", icon: Star },
     ],
   },
   {
