@@ -24,20 +24,20 @@ export function Hero() {
         <div className="relative z-10 lg:col-span-5">
           <span className="inline-flex items-center gap-2 rounded-full border border-border bg-bg-elevated/70 px-3 py-1 text-xs font-medium text-brand-fg backdrop-blur">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand" />
-            Autonomous protection for your digital life
+            One platform · every layer of digital risk
           </span>
 
           <h1 className="mt-6 text-4xl font-bold leading-[1.06] tracking-tight text-white sm:text-5xl xl:text-[3.75rem]">
-            Protect Your Entire{" "}
+            The Digital Risk{" "}
             <span className="bg-gradient-to-r from-brand-fg via-brand to-brand-fg bg-clip-text text-transparent">
-              Digital Life.
+              Operating System.
             </span>
           </h1>
 
           <p className="mt-5 max-w-xl text-lg leading-relaxed text-slate-400">
-            We find what&rsquo;s exposed about you across data brokers, breaches, the dark web,
-            search and social — then remove it and keep watching, automatically. You get peace
-            of mind; we do the work.
+            Protect individuals, families, executives, politicians, brands and businesses from
+            online exposure, reputation attacks, identity threats, doxxing and digital risk —
+            discovered, removed and monitored automatically.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-3">

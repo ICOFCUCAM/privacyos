@@ -8,9 +8,14 @@ import {
   ExposureCategories,
   HowProtectionWorks,
   PublicFigureProtection,
-  WhyDifferent,
   OutcomeMetricsBand,
 } from "@/components/landing-outcomes";
+import {
+  PlatformLayers,
+  HighStakesBuyers,
+  DetectionIsNotProtection,
+  ThreatResponseFlow,
+} from "@/components/landing-platform";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { Reveal } from "@/components/reveal";
 import { getT } from "@/lib/i18n/server";
@@ -56,22 +61,31 @@ export default async function LandingPage() {
       {/* 2 — WHO WE PROTECT (risk-focused groups, no products/plans) */}
       <Reveal><PersonaBand /></Reveal>
 
-      {/* 3 — DIGITAL EXPOSURE: everywhere your information is exposed */}
+      {/* 3 — ONE PLATFORM, EVERY LAYER (the category architecture) */}
+      <Reveal><PlatformLayers /></Reveal>
+
+      {/* 4 — DIGITAL EXPOSURE: everywhere your information is exposed */}
       <Reveal><ExposureCategories /></Reveal>
 
-      {/* 4 — WHAT PRIVACYOS DOES AUTOMATICALLY (Discover→Remove→Protect→Monitor→Respond) */}
+      {/* 5 — DETECTION IS NOT PROTECTION (we act, not just alert) */}
+      <Reveal><DetectionIsNotProtection /></Reveal>
+
+      {/* 6 — WHAT PRIVACYOS DOES AUTOMATICALLY (Discover→Remove→Protect→Monitor→Respond) */}
       <Reveal><HowProtectionWorks /></Reveal>
 
-      {/* 5 — PUBLIC FIGURES & POLITICAL PROTECTION (premium) */}
+      {/* 7 — BUILT FOR PEOPLE WHO CANNOT AFFORD EXPOSURE (high-stakes buyers) */}
+      <Reveal><HighStakesBuyers /></Reveal>
+
+      {/* 8 — PUBLIC FIGURES & POLITICAL PROTECTION (premium) */}
       <Reveal><PublicFigureProtection /></Reveal>
 
-      {/* 6 — REAL OUTCOMES (customer outcomes, not engineering metrics) */}
+      {/* 9 — REAL OUTCOMES (customer outcomes, not engineering metrics) */}
       <Reveal><OutcomeMetricsBand /></Reveal>
 
-      {/* 7 — WHY PRIVACYOS IS DIFFERENT (we act, not just report) */}
-      <Reveal><WhyDifferent /></Reveal>
+      {/* 10 — WHAT HAPPENS WHEN A THREAT IS FOUND (the cascade, near conversion) */}
+      <Reveal><ThreatResponseFlow /></Reveal>
 
-      {/* 8 — FREE EXPOSURE SCAN (the conversion engine) */}
+      {/* 11 — FREE EXPOSURE SCAN (the conversion engine) */}
       <Reveal><FreeAssessmentBand /></Reveal>
 
       {/* 9 — TRUST: security, privacy, encryption, compliance */}
