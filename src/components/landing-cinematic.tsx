@@ -1,5 +1,6 @@
 import {
   Radar, Fingerprint, FolderKanban, Trash2, FileLock2, Scale, BellRing, CheckCircle2,
+  Cpu, Boxes, Unplug,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -249,6 +250,84 @@ export function MissionControlShowcase() {
                 </ul>
                 <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#0b0d15] to-transparent" />
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   One Engine. Not Ten Tools. — the "why nobody else can do this" section.
+   Left: the fragmented stack — isolated, dashed, STATIC silos (dead). Right: one
+   PrivacyOS engine where the same categories are unified and ALIVE (motion). The
+   motion contrast (static vs flowing) is the argument. Brand-neutral categories.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+const ENGINE_CATEGORIES = [
+  "Data-broker removal", "Identity protection", "Credit monitoring",
+  "Dark-web monitoring", "Reputation defense", "Executive protection",
+];
+
+export function OneEngineNotTenTools() {
+  return (
+    <section className="relative overflow-hidden py-28">
+      <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(55%_55%_at_82%_45%,rgba(99,102,241,0.14),transparent_70%)]" />
+      <div className="relative mx-auto max-w-6xl px-6">
+        <div className="mx-auto max-w-2xl text-center">
+          <Eyebrow>Why nobody else can do this</Eyebrow>
+          <h2 className="mt-4 text-4xl font-bold tracking-tight text-white sm:text-5xl">
+            One engine. Not ten tools.
+          </h2>
+          <p className="mt-4 text-lg text-slate-400">
+            Competitors each own one slice and never talk to each other — so your risk falls through
+            the gaps between them. PrivacyOS runs every layer through a single engine, so a finding
+            anywhere becomes action everywhere.
+          </p>
+        </div>
+
+        <div className="mt-14 grid items-stretch gap-5 lg:grid-cols-2">
+          {/* LEFT — the fragmented stack (isolated, dashed, static = dead) */}
+          <div className="rounded-3xl border border-border bg-bg-elevated/20 p-6">
+            <div className="flex items-center gap-2 text-slate-500">
+              <Unplug className="h-4 w-4" />
+              <p className="text-[11px] font-bold uppercase tracking-wider">The stack you have today</p>
+            </div>
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              {ENGINE_CATEGORIES.map((c) => (
+                <div key={c} className="flex items-center gap-2.5 rounded-xl border border-dashed border-slate-700/70 bg-bg-subtle/20 px-3 py-3">
+                  <Boxes className="h-4 w-4 shrink-0 text-slate-600" />
+                  <span className="text-[13px] font-medium text-slate-400">{c}</span>
+                </div>
+              ))}
+            </div>
+            <p className="mt-5 text-xs text-slate-600">Six vendors · six logins · six bills · nothing shared. Your risk lives in the gaps.</p>
+          </div>
+
+          {/* RIGHT — one engine (unified, glowing, alive) */}
+          <div className="relative overflow-hidden rounded-3xl border border-brand/30 bg-gradient-to-b from-brand/10 to-transparent p-6 shadow-2xl shadow-brand/10">
+            <div aria-hidden className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-brand/20 blur-3xl" />
+            <div className="relative flex items-center gap-2.5">
+              <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand/20 ring-1 ring-brand/40">
+                <Cpu className="h-5 w-5 text-brand-fg core-pulse" />
+              </span>
+              <div>
+                <p className="text-sm font-bold text-white">PrivacyOS · one engine</p>
+                <p className="text-[11px] text-brand-fg">every layer correlated &amp; acting</p>
+              </div>
+            </div>
+            <div className="relative mt-5 grid grid-cols-2 gap-3">
+              {ENGINE_CATEGORIES.map((c) => (
+                <div key={c} className="relative flex items-center gap-2.5 overflow-hidden rounded-xl border border-brand/20 bg-bg-subtle/40 px-3 py-3">
+                  <span aria-hidden className="absolute inset-y-0 left-0 w-0.5 accent-shimmer" />
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-risk-low" />
+                  <span className="text-[13px] font-semibold text-white">{c}</span>
+                </div>
+              ))}
+            </div>
+            <div className="relative mt-5 rounded-xl border border-brand/25 bg-bg-subtle/40 px-4 py-3 text-xs leading-relaxed text-slate-200">
+              + the part no point tool can replicate: one finding → case → removal → sealed evidence → legal → monitoring, automatically.
             </div>
           </div>
         </div>

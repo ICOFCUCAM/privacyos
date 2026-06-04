@@ -9,12 +9,13 @@ import {
   OutcomeMetricsBand,
 } from "@/components/landing-outcomes";
 import {
-  OnePlatformReplacesStack,
   HighStakesBuyers,
   DetectionIsNotProtection,
   CapabilityMatrix,
 } from "@/components/landing-platform";
-import { ArchitectureEngine, ThreatSimulation, MissionControlShowcase } from "@/components/landing-cinematic";
+import {
+  ArchitectureEngine, ThreatSimulation, MissionControlShowcase, OneEngineNotTenTools,
+} from "@/components/landing-cinematic";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { Reveal } from "@/components/reveal";
 import { getT } from "@/lib/i18n/server";
@@ -57,8 +58,8 @@ export default async function LandingPage() {
       {/* 1 — HERO: the protection promise */}
       <Hero />
 
-      {/* 2 — THE CATEGORY STORY (why we're bigger than any point tool — first 30s) */}
-      <Reveal><OnePlatformReplacesStack /></Reveal>
+      {/* 2 — ONE ENGINE, NOT TEN TOOLS (cinematic: fragmented silos vs one engine) */}
+      <Reveal><OneEngineNotTenTools /></Reveal>
 
       {/* 3 — WHO WE PROTECT (buyer categories, not products) */}
       <Reveal><PersonaBand /></Reveal>

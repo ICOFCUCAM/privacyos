@@ -256,15 +256,18 @@ export function EnterpriseSection() {
   );
 }
 
-/* ── Who we protect (risk-focused — each links to the matching plan) ──────── */
-const protectedGroups: { icon: LucideIcon; who: string; risk: string; plan: string }[] = [
-  { icon: ShieldCheck, who: "Individuals", risk: "Your home address, phone, identity and accounts are being sold and leaked. We find what's exposed about you and take it down.", plan: "plus" },
-  { icon: Users, who: "Families", risk: "Your spouse, parents and children are listed on the same broker sites you are. We protect everyone under one roof — including kids' information.", plan: "family" },
-  { icon: Crown, who: "Executives", risk: "Leadership is targeted for doxxing, impersonation and home-address exposure. We shield you and your family from threats that follow real power.", plan: "exec-essential" },
-  { icon: Star, who: "Public figures", risk: "Visibility invites harassment, fake profiles and deepfakes. We monitor your name everywhere and remove the impersonations and attacks.", plan: "rep-public-figure" },
-  { icon: Landmark, who: "Politicians & candidates", risk: "Campaigns and office attract coordinated doxxing, disinformation and threats against you and your family. We defend your exposure in real time.", plan: "exec-pro" },
-  { icon: Building2, who: "Businesses", risk: "Your people, brand and domains are attack surface. We protect employees, executives and reputation across the whole organization.", plan: "biz-startup" },
+/* ── Who we protect — each card is a mini product: the live risk "signals" we
+   watch for that audience, linking to the matching plan. ──────────────────── */
+const protectedGroups: { icon: LucideIcon; who: string; risk: string; plan: string; signals: string[] }[] = [
+  { icon: ShieldCheck, who: "Individuals", risk: "Your home address, phone, identity and accounts are being sold and leaked — found and taken down.", plan: "plus", signals: ["Identity theft", "Data brokers", "Dark web", "Account takeover"] },
+  { icon: Users, who: "Families", risk: "Everyone under one roof — spouse, parents and children — protected from the same broker sites and leaks.", plan: "family", signals: ["Children's data", "Household exposure", "Relatives", "Location"] },
+  { icon: Crown, who: "Executives", risk: "Leadership is targeted for doxxing, impersonation and home-address exposure — shielded at principal grade.", plan: "exec-essential", signals: ["Doxxing", "Impersonation", "Threat actors", "Residence"] },
+  { icon: Star, who: "Public figures", risk: "Visibility invites harassment, fake profiles and deepfakes — monitored everywhere and removed.", plan: "rep-public-figure", signals: ["Fake profiles", "Deepfakes", "Reputation", "Harassment"] },
+  { icon: Landmark, who: "Politicians & candidates", risk: "Office attracts coordinated doxxing, disinformation and threats to you and your family — defended in real time.", plan: "exec-pro", signals: ["Threat network", "Public exposure", "Disinformation", "Family risk"] },
+  { icon: Building2, who: "Businesses", risk: "Your people, brand and domains are attack surface — protected across the whole organization.", plan: "biz-startup", signals: ["Employees", "Domains", "Vendors", "Brand abuse"] },
 ];
+
+const SIGNAL_DOT = ["bg-risk-high", "bg-risk-medium", "bg-brand", "bg-risk-low"];
 
 export function PersonaBand() {
   return (
@@ -292,7 +295,19 @@ export function PersonaBand() {
               <p.icon className="h-5 w-5 text-brand-fg" />
             </span>
             <h3 className="relative mt-4 text-lg font-semibold text-white">{p.who}</h3>
-            <p className="relative mt-2 flex-1 text-sm leading-relaxed text-slate-400">{p.risk}</p>
+            <p className="relative mt-2 text-sm leading-relaxed text-slate-400">{p.risk}</p>
+            {/* live risk "signals" we watch for this audience — the product preview */}
+            <div className="relative mt-4 flex-1">
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Signals monitored</p>
+              <div className="grid grid-cols-2 gap-1.5">
+                {p.signals.map((s, i) => (
+                  <span key={s} className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-bg-subtle/40 px-2 py-1.5 text-[11px] font-medium text-slate-300">
+                    <span className={cn("live-ping h-1.5 w-1.5 shrink-0 rounded-full", SIGNAL_DOT[i % SIGNAL_DOT.length])} style={{ animationDelay: `${i * 0.4}s` }} />
+                    <span className="truncate">{s}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
             <span className="relative mt-4 inline-flex items-center gap-1 text-xs font-semibold text-brand-fg opacity-80 transition group-hover:opacity-100">
               See {p.who.toLowerCase()} plans <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
             </span>
