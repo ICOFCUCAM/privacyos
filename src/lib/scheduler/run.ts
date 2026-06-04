@@ -81,6 +81,9 @@ export async function runScheduledCycle(
   let legalDrafted = 0;
   let familyCasesOpened = 0;
   let travelRisksFlagged = 0;
+  let credentialCasesOpened = 0;
+  let employeeCasesOpened = 0;
+  let impersonationCasesOpened = 0;
   let mentionsCollected = 0;
   let domainRisksFound = 0;
 
@@ -96,6 +99,13 @@ export async function runScheduledCycle(
     // their own protective cascades (steps 6h/6i) — no longer hardcoded empty.
     const family = fp.family ?? [];
     const travel = fp.travel ?? [];
+    // Feeds that were previously passed to the engine as []: now wired through so
+    // their menu surfaces (Digital Identity, Employee Exposure, Incidents,
+    // Domains) actually drive the cycle.
+    const credentialLeaks = fp.credentialLeaks ?? [];
+    const employees = fp.employeeExposures ?? [];
+    const incidents = fp.incidents ?? [];
+    const domainRisks = fp.domainRisks ?? [];
     const now0 = new Date().toISOString();
 
     // 1. Discover — only genuinely new findings come back (deduped).
@@ -264,7 +274,7 @@ export async function runScheduledCycle(
     // refreshed footprint; if it's critical AND new critical findings landed this
     // cycle, the Executive Agent escalates (record + alert). Gating to new
     // criticals keeps it from re-firing every cron tick.
-    const execRisk = executiveRiskIndices({ exposures, threats, family, travel });
+    const execRisk = executiveRiskIndices({ exposures, threats, family, travel, credentialLeaks });
     await store.recordScores(fp.userId, fp.subject.id, [{ kind: "executive", value: execRisk.overall }]);
     await store.recordActions(fp.userId, fp.subject.id, [
       {
@@ -324,7 +334,7 @@ export async function runScheduledCycle(
     // each to its remediation channel, so the Executive Agent has a concrete
     // takedown plan. Broker-routable leaks are filed by the removal pipeline
     // below; this records the routed plan and surfaces it on the Doxxing tab.
-    const doxxing = doxxingReport({ exposures, threats, family, employees: [] });
+    const doxxing = doxxingReport({ exposures, threats, family, employees });
     const takedowns = takedownPlan(doxxing);
     if (takedowns.length > 0) {
       const routes = Object.entries(summarizeTakedowns(takedowns).byMethod)
@@ -346,19 +356,45 @@ export async function runScheduledCycle(
       doxxingTakedownsRouted += takedowns.length;
     }
 
-    // 6d. Impersonation & dark-web monitoring. Read the footprint for the
-    // remaining ExecutiveOS pillars (incidents/domain-risks/credential feeds
-    // aren't in the footprint, so this catches the threat/exposure-driven
-    // signals) and record the sweep. Takedown/breach cases for these are opened
-    // by the threat-case pipeline above; this is observability, not escalation.
-    const impersonation = impersonationReport({ threats, incidents: [], domainRisks: [], exposures });
+    // 6d. Impersonation & dark-web monitoring — now reading the real incident,
+    // domain-risk and credential feeds (previously passed empty). When active
+    // impersonation/lookalike signals reach high severity, open a takedown case
+    // (deduped) so it cascades into the platform-abuse legal draft + evidence.
+    const impersonation = impersonationReport({ threats, incidents, domainRisks, exposures });
     if (impersonation.active > 0) {
       await store.recordActions(fp.userId, fp.subject.id, [
         { agent: "executive", kind: "monitor", summary: `Tracking ${impersonation.active} impersonation/deepfake signal(s).`, status: "completed" },
       ]);
       impersonationSignals += impersonation.active;
+
+      if (impersonation.highest === "high" || impersonation.highest === "critical") {
+        const impTitle = "Impersonation & lookalike takedown";
+        const impOpen = await store.listOpenCaseTitlesForSubject(fp.subject.id);
+        if (!impOpen.includes(impTitle)) {
+          const impCase: NewCaseFields = {
+            type: "impersonation_takedown",
+            title: impTitle,
+            summary: `${impersonation.active} active impersonation/lookalike signal(s) (highest: ${impersonation.highest}). Pursue platform/registrar takedowns and preserve evidence.`,
+            riskLevel: impersonation.highest,
+            assignedAgent: "deepfake",
+          };
+          await store.createCases(fp.userId, fp.subject.id, [impCase]);
+          openedCases.push(impCase);
+          evidence.push(actionEvidence({
+            subjectId: fp.subject.id,
+            action: "Opened impersonation takedown case",
+            detail: impTitle,
+            source: "Executive Agent",
+            riskLevel: impCase.riskLevel,
+            collectedBy: "deepfake",
+            collectedAt: now0,
+            caseTitle: impTitle,
+          }));
+          impersonationCasesOpened += 1;
+        }
+      }
     }
-    const darkweb = darkWebReport({ credentialLeaks: [], threats, exposures });
+    const darkweb = darkWebReport({ credentialLeaks, threats, exposures });
     if (darkweb.active > 0) {
       await store.recordActions(fp.userId, fp.subject.id, [
         { agent: "security", kind: "monitor", summary: `Monitoring ${darkweb.active} dark-web signal(s).`, status: "completed" },
@@ -369,7 +405,7 @@ export async function runScheduledCycle(
     // 6e. Attack-path analysis. Model how the footprint chains into real-world
     // harm and surface the highest-leverage fix (the chokepoint) so the cycle
     // autonomously prioritizes the single removal that collapses the most paths.
-    const surface = analyzeAttackSurface({ exposures, threats });
+    const surface = analyzeAttackSurface({ exposures, threats, credentialLeaks });
     if (surface.chokepoint) {
       await store.recordActions(fp.userId, fp.subject.id, [
         {
@@ -380,6 +416,90 @@ export async function runScheduledCycle(
         },
       ]);
       attackPathsLive += surface.enabledPaths;
+    }
+
+    // 6e-iii. Credential-breach response. Leaked credentials (the Digital Identity
+    // feed) now open an account-takeover breach case per distinct breach (deduped)
+    // and alert on critical — the single highest-value individual risk that was
+    // previously invisible to the engine. Cascades to evidence.
+    const credHigh = credentialLeaks.filter((l) => l.riskLevel === "high" || l.riskLevel === "critical");
+    if (credHigh.length > 0) {
+      const credOpen = await store.listOpenCaseTitlesForSubject(fp.subject.id);
+      const credCases: NewCaseFields[] = [];
+      for (const l of credHigh) {
+        const title = `Credential breach: ${l.breachName}`;
+        if (credOpen.includes(title) || credCases.some((c) => c.title === title)) continue;
+        credCases.push({
+          type: "breach_response",
+          title,
+          summary: `${l.account} exposed in ${l.breachName} (${(l.pwnCount || 0).toLocaleString()} records${l.dataClasses.length ? `, ${l.dataClasses.join(", ")}` : ""}). Rotate credentials, enable MFA and lock down reuse.`,
+          riskLevel: l.riskLevel,
+          assignedAgent: "security",
+        });
+      }
+      if (credCases.length > 0) {
+        await store.createCases(fp.userId, fp.subject.id, credCases);
+        openedCases.push(...credCases);
+        await store.recordActions(fp.userId, fp.subject.id, [
+          { agent: "security", kind: "escalate", summary: `Opened ${credCases.length} account-takeover breach case(s) from leaked credentials.`, status: "completed" },
+        ]);
+        for (const c of credCases) {
+          evidence.push(actionEvidence({
+            subjectId: fp.subject.id,
+            action: `Opened breach case: ${c.title}`,
+            detail: c.summary,
+            source: "Security Agent",
+            riskLevel: c.riskLevel,
+            collectedBy: "security",
+            collectedAt: now0,
+            caseTitle: c.title,
+          }));
+        }
+        const criticalCreds = credCases.filter((c) => c.riskLevel === "critical");
+        if (criticalCreds.length > 0) {
+          await store.addNotifications(fp.userId, criticalCreds.map((c) => ({
+            kind: "incident" as const,
+            title: `Critical credential breach: ${c.title.replace("Credential breach: ", "")}`,
+            body: c.summary,
+            riskLevel: "critical" as const,
+          })));
+        }
+        credentialCasesOpened += credCases.length;
+      }
+    }
+
+    // 6e-iv. Workforce exposure. High-risk employee/workforce exposure (the
+    // Employee Exposure feed) opens a single org breach-review case (stable title,
+    // deduped) so the SMB/enterprise promise — "watch my team" — actually runs.
+    const empHigh = employees.filter((e) => e.riskLevel === "high" || e.riskLevel === "critical");
+    if (empHigh.length > 0) {
+      const empTitle = "Employee exposure review";
+      const empOpen = await store.listOpenCaseTitlesForSubject(fp.subject.id);
+      if (!empOpen.includes(empTitle)) {
+        const empCase: NewCaseFields = {
+          type: "breach_response",
+          title: empTitle,
+          summary: `${empHigh.length} employee account(s) at high/critical exposure (e.g. ${empHigh.slice(0, 3).map((e) => e.employeeEmail).join(", ")}). Force resets, notify staff, and monitor for reuse.`,
+          riskLevel: empHigh.some((e) => e.riskLevel === "critical") ? "critical" : "high",
+          assignedAgent: "business",
+        };
+        await store.createCases(fp.userId, fp.subject.id, [empCase]);
+        openedCases.push(empCase);
+        await store.recordActions(fp.userId, fp.subject.id, [
+          { agent: "business", kind: "escalate", summary: `Opened employee-exposure review case for ${empHigh.length} high-risk account(s).`, status: "completed" },
+        ]);
+        evidence.push(actionEvidence({
+          subjectId: fp.subject.id,
+          action: "Opened employee-exposure review case",
+          detail: empCase.summary,
+          source: "Business Agent",
+          riskLevel: empCase.riskLevel,
+          collectedBy: "business",
+          collectedAt: now0,
+          caseTitle: empTitle,
+        }));
+        employeeCasesOpened += 1;
+      }
     }
 
     // 6e-i. Travel risk. Score the principal's itinerary against their live
@@ -677,6 +797,9 @@ export async function runScheduledCycle(
     legalDrafted,
     familyCasesOpened,
     travelRisksFlagged,
+    credentialCasesOpened,
+    employeeCasesOpened,
+    impersonationCasesOpened,
     mentionsCollected,
     domainRisksFound,
     ranAt: new Date().toISOString(),

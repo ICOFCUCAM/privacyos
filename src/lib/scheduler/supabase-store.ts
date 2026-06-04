@@ -10,7 +10,7 @@ import type { ProtectOutcome } from "@/lib/agents/orchestrator";
 import type { NewCaseFields } from "@/lib/agents/recommendation-routing";
 import type { EvidenceItem } from "@/lib/intelligence/evidence-vault";
 import { mapExposure, mapRemoval, mapSubject, mapThreat } from "@/lib/data/mappers";
-import { mapFamilyMember, mapTravelAlert } from "@/lib/data/module-mappers";
+import { mapCredentialLeak, mapDomainRisk, mapEmployeeExposure, mapFamilyMember, mapIncident, mapTravelAlert } from "@/lib/data/module-mappers";
 import { isRemovalDue } from "@/lib/brokers/removal";
 import type {
   DomainScanData,
@@ -28,12 +28,20 @@ export class SupabaseSchedulerStore implements SchedulerStore {
   constructor(private db: SupabaseClient) {}
 
   async listFootprints(): Promise<Footprint[]> {
-    const [{ data: subjects }, { data: exposures }, { data: threats }, { data: family }, { data: travel }] = await Promise.all([
+    const [
+      { data: subjects }, { data: exposures }, { data: threats }, { data: family }, { data: travel },
+      { data: credentials }, { data: incidents }, { data: employees }, { data: domains }, { data: domainRisks },
+    ] = await Promise.all([
       this.db.from("subjects").select("*"),
       this.db.from("exposures").select("*"),
       this.db.from("threats").select("*"),
       this.db.from("family_profiles").select("*"),
       this.db.from("travel_alerts").select("*"),
+      this.db.from("credential_leaks").select("*"),
+      this.db.from("incidents").select("*"),
+      this.db.from("employee_exposures").select("*"),
+      this.db.from("domains").select("*"),
+      this.db.from("domain_risks").select("*"),
     ]);
 
     const expBySubject = new Map<string, Exposure[]>();
@@ -62,6 +70,40 @@ export class SupabaseSchedulerStore implements SchedulerStore {
       list.push(mapTravelAlert(row));
       travelBySubject.set(row.subject_id, list);
     }
+    // Subject-scoped feeds: credential leaks + incidents.
+    const credBySubject = new Map<string, ReturnType<typeof mapCredentialLeak>[]>();
+    for (const row of credentials ?? []) {
+      if (!row.subject_id) continue;
+      const list = credBySubject.get(row.subject_id) ?? [];
+      list.push(mapCredentialLeak(row));
+      credBySubject.set(row.subject_id, list);
+    }
+    const incBySubject = new Map<string, ReturnType<typeof mapIncident>[]>();
+    for (const row of incidents ?? []) {
+      if (!row.subject_id) continue;
+      const list = incBySubject.get(row.subject_id) ?? [];
+      list.push(mapIncident(row));
+      incBySubject.set(row.subject_id, list);
+    }
+    // Org-scoped feeds (no subject_id): employee exposure + domain risk. Keyed by
+    // user, attached to each of that user's subjects — org risk applies to every
+    // principal in the org.
+    const empByUser = new Map<string, ReturnType<typeof mapEmployeeExposure>[]>();
+    for (const row of employees ?? []) {
+      const list = empByUser.get(row.user_id) ?? [];
+      list.push(mapEmployeeExposure(row));
+      empByUser.set(row.user_id, list);
+    }
+    const domainsById = new Map<string, string>((domains ?? []).map((d) => [d.id, d.domain as string]));
+    const domainUserById = new Map<string, string>((domains ?? []).map((d) => [d.id, d.user_id as string]));
+    const domByUser = new Map<string, ReturnType<typeof mapDomainRisk>[]>();
+    for (const row of domainRisks ?? []) {
+      const userId = domainUserById.get(row.domain_id);
+      if (!userId) continue;
+      const list = domByUser.get(userId) ?? [];
+      list.push(mapDomainRisk(row, domainsById));
+      domByUser.set(userId, list);
+    }
 
     return (subjects ?? []).map((row) => ({
       userId: row.user_id,
@@ -70,6 +112,10 @@ export class SupabaseSchedulerStore implements SchedulerStore {
       threats: thrBySubject.get(row.id) ?? [],
       family: famBySubject.get(row.id) ?? [],
       travel: travelBySubject.get(row.id) ?? [],
+      credentialLeaks: credBySubject.get(row.id) ?? [],
+      incidents: incBySubject.get(row.id) ?? [],
+      employeeExposures: empByUser.get(row.user_id) ?? [],
+      domainRisks: domByUser.get(row.user_id) ?? [],
     }));
   }
 

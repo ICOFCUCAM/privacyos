@@ -365,6 +365,48 @@ describe("runScheduledCycle", () => {
     expect(store.evidence.some((e) => /elevated-risk trip/i.test(e.title))).toBe(true);
   });
 
+  it("wires credential, employee and impersonation feeds into cases, legal drafts and evidence", async () => {
+    const ts = new Date().toISOString();
+    const store = new MemoryStore([
+      {
+        userId: "u1",
+        subject: subject("a", "u1"),
+        exposures: [],
+        threats: [],
+        credentialLeaks: [
+          { id: "cl1", account: "ceo@acme.com", breachName: "MegaBreach", dataClasses: ["passwords"], pwnCount: 50000, riskLevel: "critical" },
+        ],
+        employeeExposures: [
+          { id: "ee1", employeeEmail: "staff@acme.com", exposureType: "credential", riskLevel: "high", source: "breach", detectedAt: ts },
+        ],
+        incidents: [
+          { id: "in1", subjectId: "a", kind: "impersonation", title: "Fake CEO profile", detail: "lookalike account", riskLevel: "high", status: "open", evidenceCount: 1, detectedAt: ts, updatedAt: ts },
+        ],
+      },
+    ]);
+    const summary = await runScheduledCycle(store, {
+      sources: [],
+      provider: new MockProvider(),
+      reputationSource: cleanRepSource,
+      domainClient: domClient,
+    });
+
+    // Credential leak → account-takeover breach case + sealed evidence + critical alert.
+    expect(summary.credentialCasesOpened).toBe(1);
+    expect(store.createdCases.some((c) => c.type === "breach_response" && /Credential breach: MegaBreach/.test(c.title))).toBe(true);
+    expect(store.evidence.some((e) => /Credential breach: MegaBreach/.test(e.title))).toBe(true);
+    expect(store.notifications.flat().some((n) => /Critical credential breach/.test(n.title))).toBe(true);
+
+    // Employee exposure → org breach-review case.
+    expect(summary.employeeCasesOpened).toBe(1);
+    expect(store.createdCases.some((c) => c.title === "Employee exposure review")).toBe(true);
+
+    // Impersonation incident → takedown case → platform-abuse legal draft + evidence.
+    expect(summary.impersonationCasesOpened).toBe(1);
+    expect(store.createdCases.some((c) => c.type === "impersonation_takedown")).toBe(true);
+    expect(store.legalDrafts.some((d) => d.type === "platform_abuse")).toBe(true);
+  });
+
   it("escalates the principal to critical executive risk on critical physical threats", async () => {
     const physicalSource: DiscoverySource = {
       id: "phys", name: "Physical",

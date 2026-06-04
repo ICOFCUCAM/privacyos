@@ -9,7 +9,11 @@
 
 import type {
   AgentActionKind,
+  CredentialLeak,
+  DomainRisk,
+  EmployeeExposure,
   FamilyMember,
+  Incident,
   LegalRequestType,
   Mention,
   NotificationKind,
@@ -40,6 +44,15 @@ export interface Footprint {
   family?: FamilyMember[];
   /** The principal's travel itinerary — feeds executive travel risk. */
   travel?: TravelAlert[];
+  /** Leaked credentials (dark-web/breach feed) — drives ATO breach cases and the
+   *  digital/dark-web indices. */
+  credentialLeaks?: CredentialLeak[];
+  /** Workforce exposure (org-scoped) — drives doxxing + employee breach cases. */
+  employeeExposures?: EmployeeExposure[];
+  /** Open incidents — feeds the impersonation/deepfake correlation. */
+  incidents?: Incident[];
+  /** Domain risks (org-scoped) — feeds lookalike/phishing impersonation signals. */
+  domainRisks?: DomainRisk[];
 }
 
 export interface NewAgentAction {
@@ -106,6 +119,12 @@ export interface ScheduledRunSummary {
   familyCasesOpened: number;
   /** Elevated/high-posture upcoming trips flagged this cycle. */
   travelRisksFlagged: number;
+  /** Breach cases auto-opened from leaked credentials this cycle. */
+  credentialCasesOpened: number;
+  /** Cases auto-opened from high-risk employee/workforce exposure this cycle. */
+  employeeCasesOpened: number;
+  /** Impersonation/lookalike takedown cases auto-opened this cycle. */
+  impersonationCasesOpened: number;
   mentionsCollected: number;
   domainRisksFound: number;
   ranAt: string;
