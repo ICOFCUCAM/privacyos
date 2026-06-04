@@ -61,6 +61,8 @@ export default async function LandingPage() {
       {/* 2 — ONE ENGINE, NOT TEN TOOLS (cinematic: fragmented silos vs one engine) */}
       <Reveal><OneEngineNotTenTools /></Reveal>
 
+      <div aria-hidden className="section-seam" />
+
       {/* 3 — WHO WE PROTECT (buyer categories, not products) */}
       <Reveal><PersonaBand /></Reveal>
 
@@ -69,6 +71,8 @@ export default async function LandingPage() {
 
       {/* 5 — DETECTION IS NOT PROTECTION (the outcome thesis: we act) */}
       <Reveal><DetectionIsNotProtection /></Reveal>
+
+      <div aria-hidden className="section-seam" />
 
       {/* 6 — WATCH THE PLATFORM WORK (live, animated threat-response cascade) */}
       <ThreatSimulation />

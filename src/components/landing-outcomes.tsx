@@ -23,8 +23,8 @@ export function FreeAssessmentBand() {
       <div className="relative overflow-hidden rounded-[2rem] border border-brand/25 bg-gradient-to-b from-brand/10 via-bg-elevated/40 to-bg-elevated/20 p-8 text-center shadow-2xl shadow-brand/10 ring-1 ring-white/5 sm:p-12">
         <div aria-hidden className="pointer-events-none absolute inset-x-0 -top-28 h-56 bg-[radial-gradient(50%_100%_at_50%_0%,rgba(99,102,241,0.28),transparent_70%)]" />
         <div className="relative">
-          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand/15 text-brand ring-1 ring-brand/30">
-            <ScanLine className="h-7 w-7" />
+          <span className="icon-tile mx-auto h-14 w-14">
+            <ScanLine className="h-7 w-7 text-brand-fg" />
           </span>
           <h2 className="mt-5 text-3xl font-bold tracking-tight text-white sm:text-4xl">
             See exactly what&rsquo;s exposed about you.
@@ -155,7 +155,7 @@ export function PublicFigureProtection() {
       <div aria-hidden className="pointer-events-none absolute inset-x-0 -top-32 h-64 bg-[radial-gradient(50%_100%_at_50%_0%,rgba(99,102,241,0.18),transparent_70%)]" />
       <div className="relative mx-auto max-w-6xl px-6 py-24">
         <div className="mx-auto mb-12 max-w-2xl text-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/40 bg-brand/15 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-brand-fg">
+          <span className="eyebrow">
             <Crown className="h-3.5 w-3.5" /> Public figures &amp; political protection
           </span>
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">
@@ -169,8 +169,8 @@ export function PublicFigureProtection() {
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {figureThreats.map((c) => (
-            <div key={c.title} className="rounded-2xl border border-border bg-bg-elevated/60 p-5 backdrop-blur transition hover:border-brand/40">
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-brand/25 to-brand/5 ring-1 ring-brand/20">
+            <div key={c.title} className="premium-card p-5">
+              <span className="icon-tile h-11 w-11">
                 <c.icon className="h-5 w-5 text-brand-fg" />
               </span>
               <h3 className="mt-4 font-semibold text-white">{c.title}</h3>
@@ -292,9 +292,7 @@ export function OutcomeMetricsBand() {
     <section className="border-y border-border bg-bg-subtle/20">
       <div className="mx-auto max-w-6xl px-6 py-20">
         <div className="mx-auto mb-12 max-w-2xl text-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-brand-fg">
-            Real outcomes
-          </span>
+          <span className="eyebrow">Real outcomes</span>
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">
             Protection you can feel, not just a report.
           </h2>
@@ -304,8 +302,10 @@ export function OutcomeMetricsBand() {
         </div>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           {realOutcomes.map((o) => (
-            <div key={o.label} className="rounded-2xl border border-border bg-bg-elevated/50 p-5 text-center">
-              <o.icon className="mx-auto mb-3 h-6 w-6 text-brand-fg" />
+            <div key={o.label} className="premium-card p-6 text-center">
+              <span className="icon-tile mx-auto mb-3 h-11 w-11">
+                <o.icon className="h-5 w-5 text-brand-fg" />
+              </span>
               <p className="text-xl font-bold tracking-tight text-white sm:text-2xl">{o.value}</p>
               <p className="mt-1 text-sm leading-relaxed text-slate-400">{o.label}</p>
             </div>
