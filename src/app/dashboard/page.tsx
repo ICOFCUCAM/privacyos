@@ -22,7 +22,7 @@ import { getScoreHistory } from "@/lib/data/scores";
 import { getAuditLog } from "@/lib/audit/audit";
 import { getEntitlements } from "@/lib/billing/subscription";
 import { availableAgents } from "@/lib/billing/entitlements";
-import { buildFeed, activeSeverityCount } from "@/lib/events/feed";
+import { buildFeed } from "@/lib/events/feed";
 import { computeScoreSet } from "@/lib/scoring/scores";
 import { scoreToLevel } from "@/lib/scoring/risk-score";
 import {
@@ -33,8 +33,14 @@ import { buildCorrelationGraph, correlationStats } from "@/lib/intelligence/corr
 import { analyzeAttackSurface } from "@/lib/executive/os/attack-paths";
 import { exposureToFinding, runPlaybooks, summarizeRuns, threatToFinding } from "@/lib/agents/playbooks";
 import { synthesizeRecommendations } from "@/lib/agents/synthesis";
+import { protectionTier } from "@/lib/home/tiers";
+import { commandView, type MetricTone } from "@/lib/home/command-center";
 import { cn, timeAgo, titleCase } from "@/lib/ui";
 import type { RiskLevel } from "@/lib/types";
+
+const METRIC_TONE: Record<MetricTone, string | undefined> = {
+  good: "text-risk-low", warn: "text-risk-medium", bad: "text-risk-high", neutral: undefined,
+};
 
 const BANNER: Record<RiskLevel, { label: string; ring: string; text: string; dot: string }> = {
   low: { label: "LOW", ring: "border-risk-low/40 bg-risk-low/10", text: "text-risk-low", dot: "bg-risk-low" },
@@ -118,19 +124,35 @@ export default async function OverviewPage() {
     removals,
     playbookRuns: playbookFeed,
   });
-  const sev = activeSeverityCount(feed);
   const live = ds.live;
   const band = BANNER[scoreToLevel(score.overall)];
 
   const trendPoints = scoreHistory.find((s) => s.kind === "overall")?.points ?? [];
 
+  // Role-adaptive Command Center: the console reshapes to the customer's tier —
+  // the headline, the four KPIs and the primary focus all follow the buyer.
+  const atRisk = (level: RiskLevel) => level === "high" || level === "critical";
+  const view = commandView(protectionTier(entitlements.planId), {
+    protectionScore: Math.max(0, Math.min(100, Math.round(100 - score.overall))),
+    executiveRisk: scores.executive,
+    reputationRisk: scores.reputation,
+    businessRisk: scores.business,
+    activeThreats: activeThreats.length,
+    openCases: data.cases.filter((c) => c.status !== "resolved").length,
+    removalsInFlight: removals.filter((r) => r.status === "removal_requested" || r.status === "in_progress").length,
+    familyMembers: mod.familyMembers.length,
+    employeesAtRisk: mod.employeeExposures.filter((e) => atRisk(e.riskLevel)).length,
+    vendorsAtRisk: mod.thirdPartyRisks.filter((t) => atRisk(t.riskLevel)).length,
+    domainsAtRisk: mod.domainRisks.filter((d) => !d.resolved && atRisk(d.riskLevel)).length,
+  });
+
   return (
     <div className="space-y-2.5">
       <CommandTabs />
-      {/* ── Command bar — title + live posture in one dense line ───────────── */}
+      {/* ── Command bar — role-adaptive title + KPIs + live posture ────────── */}
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
         <div className="flex items-center gap-3">
-          <h1 className="text-xl font-bold text-white">Command Center</h1>
+          <h1 className="text-xl font-bold text-white">{view.title}</h1>
           <span className={cn("inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-bold tracking-wide", band.ring, band.text)}>
             <span className="relative flex h-2 w-2">
               <span className={cn("absolute inline-flex h-full w-full rounded-full opacity-75", band.dot, live && "animate-ping")} />
@@ -140,14 +162,19 @@ export default async function OverviewPage() {
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-          <Stat label="Exposure" value={String(score.overall)} />
-          <Stat label="Critical" value={String(sev.critical)} tone="text-risk-critical" />
-          <Stat label="High" value={String(sev.high)} tone="text-risk-high" />
-          <Stat label="Active threats" value={String(activeThreats.length)} />
-          <Stat label="Agents" value={`${onlineAgents}/${totalAgents}`} tone="text-risk-low" />
+          {view.metrics.map((m) => (
+            <Stat key={m.label} label={m.label} value={m.value} tone={METRIC_TONE[m.tone]} />
+          ))}
           <LiveRefresh intervalMs={30_000} />
         </div>
       </div>
+      {/* Tier orientation + the persona's primary deep-dive */}
+      <p className="flex flex-wrap items-center gap-x-2 text-xs text-slate-500">
+        <span>{view.subtitle}</span>
+        <Link href={view.focus.href} className="inline-flex items-center gap-1 font-medium text-brand-fg hover:underline">
+          {view.focus.label} <ArrowRight className="h-3 w-3" />
+        </Link>
+      </p>
 
       {/* ── Attack-path chokepoint — the single highest-leverage fix ──────── */}
       {killChain.chokepoint && killChain.chokepoint.breaks >= 2 && (
