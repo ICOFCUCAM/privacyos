@@ -12,32 +12,46 @@ body {
   color: #e2e8f0;
 }
 
-/* Premium dark canvas — a deep base lit by soft brand "aurora" glows. Fixed to
-   the viewport so it holds steady while content scrolls, giving cards real depth
-   to sit over. */
-body {
-  background-image:
+/* Premium dark canvas, rendered on two fixed, content-free layers BEHIND the page
+   (z-index:-1). Keeping the background on pseudo-elements — never on a content
+   element — means the masked grid fade can't touch real content (the earlier bug
+   where masking .bg-grid faded out the footer). */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
     radial-gradient(58% 48% at 12% -6%, rgba(99, 102, 241, 0.16), transparent 60%),
     radial-gradient(52% 44% at 102% 2%, rgba(56, 189, 248, 0.09), transparent 56%),
     radial-gradient(46% 50% at 92% 104%, rgba(139, 92, 246, 0.12), transparent 60%),
     linear-gradient(180deg, #0b0d17 0%, #08090f 52%, #06070d 100%);
-  background-attachment: fixed;
-  background-repeat: no-repeat;
+}
+/* A fine technical mesh, masked so it fades toward the edges — engineered but
+   subtle. Safe to mask here: this layer has no content. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, rgba(148, 163, 184, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+  background-size: 54px 54px;
+  -webkit-mask-image: radial-gradient(130% 90% at 50% -4%, #000 30%, transparent 82%);
+  mask-image: radial-gradient(130% 90% at 50% -4%, #000 30%, transparent 82%);
 }
 
 * {
   border-color: theme("colors.border.DEFAULT");
 }
 
-/* A fine technical mesh, masked so it fades out toward the edges/bottom — present
-   enough to feel engineered, subtle enough to never compete with the cards. */
+/* The background now lives on body — .bg-grid is kept as a no-op so existing
+   usages (homepage + dashboard mains) don't need touching and don't double up. */
 .bg-grid {
-  background-image:
-    linear-gradient(to right, rgba(148, 163, 184, 0.045) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(148, 163, 184, 0.045) 1px, transparent 1px);
-  background-size: 54px 54px;
-  -webkit-mask-image: radial-gradient(135% 92% at 50% -4%, #000 34%, transparent 86%);
-  mask-image: radial-gradient(135% 92% at 50% -4%, #000 34%, transparent 86%);
+  background-image: none;
 }
 
 ::-webkit-scrollbar {
