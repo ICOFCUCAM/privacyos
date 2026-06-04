@@ -30,6 +30,8 @@ export function mapSubject(row: any): Subject {
     createdAt: row.created_at,
     // Defensive: tolerate the column not existing yet (pre-migration) → autopilot.
     autonomyMode: row.autonomy_mode ?? undefined,
+    creditAuto: row.credit_auto ?? false,
+    creditCheckedAt: row.credit_checked_at ?? undefined,
   };
 }
 

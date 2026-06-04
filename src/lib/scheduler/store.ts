@@ -58,6 +58,10 @@ export interface Footprint {
   cases?: Case[];
   /** Whether the owning plan includes credit monitoring (the `credit` feature). */
   creditEnabled?: boolean;
+  /** Whether the customer opted into automated credit checks (default false). */
+  creditAuto?: boolean;
+  /** Whether an automated pull is due per the plan's cadence (cost throttle). */
+  creditDue?: boolean;
 }
 
 export interface NewAgentAction {
@@ -197,4 +201,6 @@ export interface SchedulerStore {
   createLegalDrafts(userId: string, subjectId: string, drafts: NewLegalDraft[]): Promise<void>;
   /** Escalate a case that breached its response SLA (idempotent: sets 'escalated'). */
   markCaseEscalated(caseId: string): Promise<void>;
+  /** Record a credit pull (sets credit_checked_at) so auto pulls stay throttled. */
+  markCreditChecked(subjectId: string): Promise<void>;
 }

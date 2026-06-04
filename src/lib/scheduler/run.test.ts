@@ -57,6 +57,7 @@ class MemoryStore implements SchedulerStore {
   evidence: EvidenceItem[] = [];
   legalDrafts: NewLegalDraft[] = [];
   escalatedCaseIds: string[] = [];
+  creditCheckedIds: string[] = [];
 
   async listFootprints() {
     return this.footprints;
@@ -116,6 +117,9 @@ class MemoryStore implements SchedulerStore {
   }
   async markCaseEscalated(caseId: string) {
     this.escalatedCaseIds.push(caseId);
+  }
+  async markCreditChecked(subjectId: string) {
+    this.creditCheckedIds.push(subjectId);
   }
 }
 
@@ -451,9 +455,9 @@ describe("runScheduledCycle", () => {
     expect(store.evidence.some((e) => /Escalated SLA breach/.test(e.title))).toBe(true);
   });
 
-  it("opens a credit-file identity-theft case from live bureau alerts — only for entitled subjects", async () => {
+  it("auto-pulls credit on live alerts only when opted in + due — and records the pull", async () => {
     const store = new MemoryStore([
-      { userId: "u1", subject: subject("a", "u1"), exposures: [], threats: [], creditEnabled: true },
+      { userId: "u1", subject: subject("a", "u1"), exposures: [], threats: [], creditEnabled: true, creditAuto: true, creditDue: true },
     ]);
     const summary = await runScheduledCycle(store, {
       sources: [], provider: new MockProvider(), reputationSource: cleanRepSource, domainClient: domClient,
@@ -462,27 +466,33 @@ describe("runScheduledCycle", () => {
     expect(summary.creditCasesOpened).toBe(1);
     expect(store.createdCases.some((c) => c.type === "breach_response" && /Credit-file identity-theft review/.test(c.title))).toBe(true);
     expect(store.evidence.some((e) => /Credit-file identity-theft review/.test(e.title))).toBe(true);
+    expect(store.creditCheckedIds).toContain("a"); // the pull was throttle-recorded
   });
 
-  it("never runs credit monitoring without entitlement, or on demo (non-live) data", async () => {
-    // Entitled subject, but a demo (live:false) source → no case, no fake fraud.
+  it("never pulls credit when manual (default), not due, not entitled, or on demo data", async () => {
+    const opts = (creditSource: CreditSource) => ({ sources: [], provider: new MockProvider(), reputationSource: cleanRepSource, domainClient: domClient, creditSource });
     const demoSource: CreditSource = {
       async fetch() {
         return { live: false, profile: { score: 700, scoreDelta: 0, alerts: [{ id: "d", kind: "new_account", bureau: "experian", detail: "", riskLevel: "high", detectedAt: new Date().toISOString() }] } };
       },
     };
-    const entitledDemo = new MemoryStore([
-      { userId: "u1", subject: subject("a", "u1"), exposures: [], threats: [], creditEnabled: true },
+    const fp = (over: Record<string, unknown>) => new MemoryStore([
+      { userId: "u1", subject: subject("a", "u1"), exposures: [], threats: [], creditEnabled: true, creditAuto: true, creditDue: true, ...over },
     ]);
-    const s1 = await runScheduledCycle(entitledDemo, { sources: [], provider: new MockProvider(), reputationSource: cleanRepSource, domainClient: domClient, creditSource: demoSource });
-    expect(s1.creditCasesOpened).toBe(0);
 
-    // Live source, but the subject's plan does not include credit → never fetched.
-    const notEntitled = new MemoryStore([
-      { userId: "u1", subject: subject("a", "u1"), exposures: [], threats: [], creditEnabled: false },
-    ]);
-    const s2 = await runScheduledCycle(notEntitled, { sources: [], provider: new MockProvider(), reputationSource: cleanRepSource, domainClient: domClient, creditSource: liveCreditSource });
-    expect(s2.creditCasesOpened).toBe(0);
+    // Manual (the default) — opted out of auto → never pulled.
+    const manual = fp({ creditAuto: false });
+    expect((await runScheduledCycle(manual, opts(liveCreditSource))).creditCasesOpened).toBe(0);
+    expect(manual.creditCheckedIds).toHaveLength(0);
+
+    // Not due yet (cadence cap) → not pulled.
+    expect((await runScheduledCycle(fp({ creditDue: false }), opts(liveCreditSource))).creditCasesOpened).toBe(0);
+
+    // Not entitled → not pulled even when opted in.
+    expect((await runScheduledCycle(fp({ creditEnabled: false }), opts(liveCreditSource))).creditCasesOpened).toBe(0);
+
+    // Entitled + auto + due, but a demo (non-live) feed → no fake fraud case.
+    expect((await runScheduledCycle(fp({}), opts(demoSource))).creditCasesOpened).toBe(0);
   });
 
   it("escalates the principal to critical executive risk on critical physical threats", async () => {

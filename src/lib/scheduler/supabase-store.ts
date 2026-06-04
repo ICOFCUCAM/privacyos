@@ -12,6 +12,7 @@ import type { EvidenceItem } from "@/lib/intelligence/evidence-vault";
 import { mapCase, mapExposure, mapRemoval, mapSubject, mapThreat } from "@/lib/data/mappers";
 import { mapCredentialLeak, mapDomainRisk, mapEmployeeExposure, mapFamilyMember, mapIncident, mapTravelAlert } from "@/lib/data/module-mappers";
 import { entitlementsFor } from "@/lib/billing/entitlements";
+import { creditPlanFor, creditCheckDue } from "@/lib/credit/plans";
 import { isRemovalDue } from "@/lib/brokers/removal";
 import type {
   DomainScanData,
@@ -114,12 +115,14 @@ export class SupabaseSchedulerStore implements SchedulerStore {
       list.push(mapCase(row));
       casesBySubject.set(row.subject_id, list);
     }
-    // Resolve per-user plan entitlements, so paid features (credit monitoring)
-    // run only for subjects whose plan includes them.
+    // Resolve per-user plan entitlements + credit tier, so paid features run only
+    // for subjects whose plan includes them, at the plan's cadence.
     const creditByUser = new Map<string, boolean>();
+    const creditPlanByUser = new Map<string, ReturnType<typeof creditPlanFor>>();
     for (const row of subscriptions ?? []) {
       const ent = entitlementsFor({ planId: row.plan_id, status: row.status });
       creditByUser.set(row.user_id, ent.features.credit);
+      creditPlanByUser.set(row.user_id, creditPlanFor(row.plan_id));
     }
 
     return (subjects ?? []).map((row) => ({
@@ -135,6 +138,8 @@ export class SupabaseSchedulerStore implements SchedulerStore {
       domainRisks: domByUser.get(row.user_id) ?? [],
       cases: casesBySubject.get(row.id) ?? [],
       creditEnabled: creditByUser.get(row.user_id) ?? false,
+      creditAuto: row.credit_auto ?? false,
+      creditDue: creditCheckDue(creditPlanByUser.get(row.user_id) ?? creditPlanFor(null), row.credit_checked_at),
     }));
   }
 
@@ -458,5 +463,9 @@ export class SupabaseSchedulerStore implements SchedulerStore {
 
   async markCaseEscalated(caseId: string): Promise<void> {
     await this.db.from("cases").update({ status: "escalated" }).eq("id", caseId);
+  }
+
+  async markCreditChecked(subjectId: string): Promise<void> {
+    await this.db.from("subjects").update({ credit_checked_at: new Date().toISOString() }).eq("id", subjectId);
   }
 }

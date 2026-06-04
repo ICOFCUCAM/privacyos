@@ -8,6 +8,8 @@ import { getModuleData } from "@/lib/data/modules";
 import { financialOverview, type FinancialFinding } from "@/lib/financial/os/financial-os";
 import { creditOverview, CREDIT_ALERT_LABEL, isFraudIndicator, type CreditBand } from "@/lib/credit/credit-os";
 import { resolveCreditSource } from "@/lib/credit/source";
+import { creditPlanFor } from "@/lib/credit/plans";
+import { setCreditAutoAction, runCreditCheckAction } from "./actions";
 import { getEntitlements } from "@/lib/billing/subscription";
 import Link from "next/link";
 import { cn, timeAgo, titleCase } from "@/lib/ui";
@@ -41,6 +43,9 @@ export default async function FinancialPage() {
   // otherwise; never claims live data it does not have).
   const entitlements = await getEntitlements();
   const creditEntitled = entitlements.features.credit;
+  const creditPlan = creditPlanFor(entitlements.planId);
+  const creditAuto = data.subject.creditAuto ?? false;
+  const creditCheckedAt = data.subject.creditCheckedAt;
   const { profile, live: creditLive } = await resolveCreditSource().fetch(data.subject.id);
   const credit = creditOverview(profile, { live: creditLive });
 
@@ -148,6 +153,39 @@ export default async function FinancialPage() {
             Demo data — bureau monitoring activates with a connected credit partner (FCRA-compliant feed, with your consent).
           </p>
         )}
+
+        {/* Tier + manual/auto controls. Checks default to manual; auto is opt-in
+            and throttled to the plan's cadence to stay cost-efficient. */}
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">
+          <p className="text-[11px] text-slate-500">
+            {creditPlan.label} · {creditPlan.bureaus} bureau{creditPlan.bureaus === 1 ? "" : "s"}
+            {" · "}
+            <span className={cn("font-semibold", creditAuto ? "text-risk-low" : "text-slate-400")}>
+              {creditAuto ? `Auto · every ${creditPlan.autoCadenceDays} days` : "Manual"}
+            </span>
+            {creditCheckedAt ? ` · last checked ${timeAgo(creditCheckedAt)}` : " · not checked yet"}
+          </p>
+          <div className="flex items-center gap-2">
+            <form action={runCreditCheckAction}>
+              <input type="hidden" name="subjectId" value={data.subject.id} />
+              <button type="submit" className="rounded-lg border border-border bg-bg-elevated px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:text-white">
+                Run a check now
+              </button>
+            </form>
+            {creditPlan.autoAvailable && (
+              <form action={setCreditAutoAction}>
+                <input type="hidden" name="subjectId" value={data.subject.id} />
+                <input type="hidden" name="auto" value={creditAuto ? "false" : "true"} />
+                <button type="submit" className={cn(
+                  "rounded-lg px-3 py-1.5 text-xs font-semibold transition",
+                  creditAuto ? "border border-border bg-bg-elevated text-slate-200 hover:text-white" : "bg-brand text-white hover:bg-brand/90",
+                )}>
+                  {creditAuto ? "Switch to manual" : "Enable auto-checks"}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
       </Card>
       )}
 

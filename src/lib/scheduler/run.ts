@@ -713,13 +713,16 @@ export async function runScheduledCycle(
       console.error("[privacyos] domain scan failed:", err);
     }
 
-    // 6e-iv-b. Credit-file monitoring (paid `credit` feature). Only for entitled
-    // subjects, and only on LIVE bureau data — we never open identity-theft cases
-    // from the demo profile. Fraud-indicative alerts open a case that cascades
-    // into the Legal + Evidence pipeline like any other detection.
-    if (fp.creditEnabled) {
+    // 6e-iv-b. Credit-file monitoring (paid `credit` feature). Checks are
+    // MANUAL by default — the scheduler pulls only when the customer opted into
+    // auto (creditAuto) AND a pull is due per the plan's cadence (creditDue),
+    // keeping it cost-efficient. We record every scheduled pull to throttle the
+    // next one, and open identity-theft cases only on LIVE bureau data (never
+    // from the demo profile) — those cascade into Legal + Evidence.
+    if (fp.creditEnabled && fp.creditAuto && fp.creditDue) {
       try {
         const { profile, live } = await (deps.creditSource ?? resolveCreditSource()).fetch(fp.subject.id);
+        await store.markCreditChecked(fp.subject.id);
         if (live) {
           const creditOpen = await store.listOpenCaseTitlesForSubject(fp.subject.id);
           const creditCases = creditCasesFromAlerts(profile.alerts, creditOpen);
