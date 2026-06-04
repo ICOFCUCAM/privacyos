@@ -18,6 +18,8 @@ import { dedupeExposures, removeKnownEntities } from "./entity-resolution";
 import { BreachConnector } from "./breach-connector";
 import { CertTransparencyConnector } from "./cert-transparency-connector";
 import { ReverseImageConnector } from "./reverse-image-connector";
+import { AutocompleteConnector } from "./autocomplete-connector";
+import { MultiEngineSerpConnector } from "./multi-engine-connector";
 import {
   DarkWebConnector,
   DomainConnector,
@@ -31,9 +33,11 @@ export function defaultDiscoverySources(): DiscoverySource[] {
   return [
     new BreachConnector(),
     new SearchConnector(),
+    new MultiEngineSerpConnector(),
     new NewsConnector(),
     new SocialConnector(),
     new ReverseImageConnector(),
+    new AutocompleteConnector(),
     new DomainConnector(),
     new CertTransparencyConnector(),
     new DarkWebConnector(),
