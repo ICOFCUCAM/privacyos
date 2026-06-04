@@ -17,7 +17,7 @@ export interface SerpResult {
   domain: string;
 }
 
-export type SerpProvider = "olostep" | "serper" | "none";
+export type SerpProvider = "olostep" | "serper" | "google_cse" | "none";
 
 export interface SerpResponse {
   results: SerpResult[];
@@ -148,6 +148,52 @@ export class OlostepSerpSource implements SerpSource {
   }
 }
 
+interface CseItem {
+  title?: string;
+  link?: string;
+}
+
+/** Map Google Custom Search `items` into ranked SerpResults (positions 1..N). */
+export function mapCseItems(items: CseItem[], limit = 10): SerpResult[] {
+  return items
+    .filter((i) => i.title && i.link)
+    .slice(0, limit)
+    .map((i, idx) => ({
+      position: idx + 1, // CSE returns items in rank order; no explicit position.
+      title: i.title!.trim(),
+      url: i.link!,
+      domain: domainOf(i.link!),
+    }));
+}
+
+/**
+ * Google Programmable Search (Custom Search JSON API) — a cheap/free organic
+ * Google source that doesn't depend on SerpApi or the scraping providers (100
+ * queries/day free, then ~$5/1k). Needs both a key and a Search Engine ID (cx).
+ * Used as the fallback after Olostep/Serper so the platform isn't locked to one
+ * vendor for organic Google results.
+ */
+export class GoogleCseSource implements SerpSource {
+  constructor(
+    private apiKey: string | undefined,
+    private cx: string | undefined,
+    private fetchImpl: typeof fetch = fetch,
+  ) {}
+
+  async search(query: string, limit = 10): Promise<SerpResponse> {
+    if (!this.apiKey || !this.cx) return { results: [], live: false, provider: "google_cse" };
+    try {
+      const data = await fetchJsonWithTimeout<{ items?: CseItem[] }>(
+        `https://www.googleapis.com/customsearch/v1?key=${this.apiKey}&cx=${this.cx}&q=${encodeURIComponent(query)}&num=${Math.min(limit, 10)}`,
+        { timeoutMs: 6000, fetchImpl: this.fetchImpl, label: "Google CSE" },
+      );
+      return { results: mapCseItems(data.items ?? [], limit), live: true, provider: "google_cse" };
+    } catch {
+      return { results: [], live: false, provider: "google_cse" };
+    }
+  }
+}
+
 /** A no-op source used when no SERP provider is configured. */
 export class NoSerpSource implements SerpSource {
   async search(): Promise<SerpResponse> {
@@ -157,8 +203,10 @@ export class NoSerpSource implements SerpSource {
 
 /**
  * Resolve the SERP source from the environment. Precedence: Olostep (real
- * Google SERP) → Serper.dev → the deterministic model. (Azure Bing Search was
- * retired by Microsoft on 2025-08-11 and is intentionally not supported.)
+ * Google SERP) → Serper.dev → Google Programmable Search (cheap/free fallback)
+ * → the deterministic model. Multiple providers keep the platform from being
+ * locked to one vendor. (Azure Bing Search was retired by Microsoft on
+ * 2025-08-11 and is intentionally not supported.)
  */
 export function resolveSerpSource(
   env: Record<string, string | undefined> = process.env,
@@ -166,5 +214,8 @@ export function resolveSerpSource(
 ): SerpSource {
   if (env.OLOSTEP_API_KEY) return new OlostepSerpSource(env.OLOSTEP_API_KEY, fetchImpl);
   if (env.SERPER_API_KEY) return new SerperSource(env.SERPER_API_KEY, fetchImpl);
+  if (env.GOOGLE_CSE_API_KEY && env.GOOGLE_CSE_CX) {
+    return new GoogleCseSource(env.GOOGLE_CSE_API_KEY, env.GOOGLE_CSE_CX, fetchImpl);
+  }
   return new NoSerpSource();
 }

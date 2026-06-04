@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { mapSerperOrganic, mapOlostepOrganic, parseOlostepOrganic, resolveSerpSource, SerperSource, OlostepSerpSource, NoSerpSource } from "./serp-connector";
+import { mapSerperOrganic, mapOlostepOrganic, parseOlostepOrganic, mapCseItems, resolveSerpSource, SerperSource, OlostepSerpSource, GoogleCseSource, NoSerpSource } from "./serp-connector";
 import { isFresh, SERP_TTL_MS } from "./serp-cache";
 import { mapItunesPodcasts, ItunesPodcastSource } from "./podcast-connector";
 import { classifyPageOne } from "./seo";
@@ -28,12 +28,30 @@ describe("SERP connector", () => {
     expect(r[1].position).toBe(2); // index fallback
   });
 
-  it("resolves the right source by env, preferring Olostep then Serper", () => {
+  it("resolves the right source by env, preferring Olostep then Serper then Google CSE", () => {
     expect(resolveSerpSource({})).toBeInstanceOf(NoSerpSource);
     expect(resolveSerpSource({ SERPER_API_KEY: "k" })).toBeInstanceOf(SerperSource);
     expect(resolveSerpSource({ OLOSTEP_API_KEY: "o" })).toBeInstanceOf(OlostepSerpSource);
     // Olostep wins when both are set
     expect(resolveSerpSource({ OLOSTEP_API_KEY: "o", SERPER_API_KEY: "k" })).toBeInstanceOf(OlostepSerpSource);
+    // Google CSE is the fallback — only when no Olostep/Serper, and needs both key + cx.
+    expect(resolveSerpSource({ GOOGLE_CSE_API_KEY: "k", GOOGLE_CSE_CX: "c" })).toBeInstanceOf(GoogleCseSource);
+    expect(resolveSerpSource({ GOOGLE_CSE_API_KEY: "k" })).toBeInstanceOf(NoSerpSource); // cx missing
+    expect(resolveSerpSource({ SERPER_API_KEY: "k", GOOGLE_CSE_API_KEY: "k", GOOGLE_CSE_CX: "c" })).toBeInstanceOf(SerperSource);
+  });
+
+  it("Google CSE maps items to ranked results and goes live, falls back on error", async () => {
+    expect(mapCseItems([{ title: "A", link: "https://www.linkedin.com/in/jv" }, { title: "no link" }])).toHaveLength(1);
+    const ok = new GoogleCseSource("k", "cx", vi.fn(async () => jsonResponse({ items: [{ title: "T", link: "https://x.com/a" }] })) as unknown as typeof fetch);
+    const a = await ok.search("q");
+    expect(a.live).toBe(true);
+    expect(a.provider).toBe("google_cse");
+    expect(a.results[0]).toMatchObject({ position: 1, domain: "x.com" });
+
+    const bad = new GoogleCseSource("k", "cx", vi.fn(async () => { throw new Error("net"); }) as unknown as typeof fetch);
+    expect((await bad.search("q")).live).toBe(false);
+    // Missing cx → never goes live (no wasted call).
+    expect((await new GoogleCseSource("k", undefined).search("q")).live).toBe(false);
   });
 
   it("isFresh respects the cache TTL", () => {
