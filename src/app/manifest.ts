@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "PrivacyOS — Digital Risk Operating System",
-    short_name: "PrivacyOS",
+    name: "MyPrivacyOS — Digital Risk Operating System",
+    short_name: "MyPrivacyOS",
     description:
       "AI-powered Privacy, Reputation, Identity Protection and Digital Risk Management.",
     start_url: "/dashboard",
