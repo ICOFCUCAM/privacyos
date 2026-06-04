@@ -4,6 +4,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Card, PageHeader, SectionTitle } from "@/components/ui";
+import { AutomationTabs } from "@/components/automation-tabs";
 import { getDataSource } from "@/lib/data";
 import {
   exposureToFinding, runPlaybooks, summarizeRuns, threatToFinding,
@@ -42,6 +43,7 @@ export default async function PlaybooksPage() {
 
   return (
     <div className="space-y-4">
+      <AutomationTabs />
       <PageHeader
         icon={Workflow}
         title="Autonomous Response Playbooks"

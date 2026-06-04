@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Workflow, CheckCircle2, LayoutTemplate, History, TrendingUp, Store, Sparkles, Network, Plug } from "lucide-react";
 import { PageHeader } from "@/components/ui";
+import { AutomationTabs } from "@/components/automation-tabs";
 import { listWorkflowDefinitions } from "@/lib/agents/workflow-store";
 import { ALL_AGENT_KINDS } from "@/lib/billing/entitlements";
 import { WorkflowBuilder } from "./builder";
@@ -16,6 +17,7 @@ export default async function WorkflowBuilderPage({
 
   return (
     <div className="space-y-5">
+      <AutomationTabs />
       <PageHeader
         icon={Workflow}
         title="Workflow Builder"

@@ -7,8 +7,8 @@ import {
   LayoutDashboard, Radar, ShieldAlert, Star, FolderKanban,
   Bot, Building2, Users, Crown, FileText, Sparkles,
   Globe, Plane, UserCog, Network, Scale, Bell, Siren, MessageSquareHeart,
-  Trash2, ScrollText, Settings, Lock, Users2, TrendingUp, Workflow, BadgeCheck, GitBranch, Blocks,
-  LayoutTemplate, Gauge, FileLock2,
+  Trash2, ScrollText, Settings, Lock, Users2, TrendingUp, BadgeCheck,
+  Gauge, FileLock2,
   Search, Newspaper, LifeBuoy, Share2, Rocket,
   Home, UserX, Crosshair, LayoutGrid, VenetianMask, EyeOff, Target, Fingerprint, ShieldCheck,
   SlidersHorizontal, ChevronDown, Banknote,
@@ -102,18 +102,14 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
-    // Automation is an operator/power-user surface — gated behind the
-    // `automation` capability. Standard plans get it auto-configured; they
-    // never need to build workflows themselves. Slated to merge into one
-    // Automation page with tabs (the autonomy dial is the real UI).
+    // Five surfaces — the agent fleet, playbooks, runtime command, builder and
+    // templates — are one capability behind a single entry; the Automation page's
+    // tab bar moves between them. Gated behind `automation`; standard plans get it
+    // auto-configured (the autonomy dial is the real UI).
     group: "Automation",
     feature: "automation",
     items: [
       { href: "/dashboard/agents", label: "AI Agents", icon: Bot },
-      { href: "/dashboard/playbooks", label: "Response Playbooks", icon: Workflow },
-      { href: "/dashboard/workflows", label: "Workflow Command", icon: GitBranch },
-      { href: "/dashboard/workflow-builder", label: "Workflow Builder", icon: Blocks },
-      { href: "/dashboard/automation-templates", label: "Automation Templates", icon: LayoutTemplate },
     ],
   },
   {

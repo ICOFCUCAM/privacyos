@@ -1,5 +1,6 @@
 import { Brain, Zap, Search } from "lucide-react";
 import { Card, PageHeader, Pill, SectionTitle, StatCard } from "@/components/ui";
+import { AutomationTabs } from "@/components/automation-tabs";
 import { getDataSource } from "@/lib/data";
 import { getModuleData } from "@/lib/data/modules";
 import { buildFleetTraces, summarizeTraces, type TraceVerdict } from "@/lib/agents/decision-trace";
@@ -34,6 +35,7 @@ export default async function AgentsPage() {
 
   return (
     <div className="space-y-6">
+      <AutomationTabs />
       <PageHeader
         title="Agent Dashboard"
         subtitle={`${agents.length} specialized agents defend you continuously. You see outcomes, not complexity.`}
