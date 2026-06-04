@@ -19,6 +19,9 @@ export interface Subject {
   emails: string[];
   phones: string[];
   usernames: string[];
+  /** Photo/avatar URLs we reverse-image search (SerpApi Google Lens) to detect
+   *  impersonation and unauthorized use of the subject's likeness. */
+  photos?: string[];
   organization?: string;
   createdAt: string;
   /** How hands-on the customer chose to be — persisted so the background cycle
