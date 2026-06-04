@@ -3,7 +3,7 @@ import {
   Cpu, Fingerprint, ShieldCheck, Banknote, Users, Crown, VenetianMask, Crosshair,
   Star, Search, Share2, Newspaper, Building2, Globe, UserCog, Baby,
   Radar, Activity, FolderKanban, Trash2, FileLock2, Scale, ArrowRight, CheckCircle2,
-  Landmark, Rocket, Mic, BellRing,
+  Landmark, Rocket, Mic, BellRing, Eye, Megaphone,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { buttonClasses } from "@/components/ui";
@@ -13,6 +13,80 @@ const Eyebrow = ({ children }: { children: React.ReactNode }) => (
     {children}
   </span>
 );
+
+/* ── It takes a stack of vendors to do what PrivacyOS does in one ──────────────
+   The category-creator story: every competitor owns one layer; PrivacyOS owns
+   all of them — and connects them. Designed to land in the first 30 seconds. */
+
+const pointTools: { category: string; examples: string; does: string; icon: LucideIcon }[] = [
+  { category: "Data-broker removal", examples: "DeleteMe · Incogni", does: "Files opt-outs with people-search sites", icon: Trash2 },
+  { category: "Identity protection", examples: "Aura · LifeLock", does: "Credit & identity-theft monitoring", icon: Fingerprint },
+  { category: "Dark-web monitoring", examples: "Breach-alert tools", does: "Pings you when a credential leaks", icon: Eye },
+  { category: "Reputation management", examples: "PR & SEO agencies", does: "Cleans search results by hand, per retainer", icon: Star },
+  { category: "Executive protection", examples: "Risk & security firms", does: "Doxxing & physical-threat response", icon: Crown },
+  { category: "Brand & social monitoring", examples: "Listening tools", does: "Tracks mentions across the web", icon: Megaphone },
+];
+
+export function OnePlatformReplacesStack() {
+  return (
+    <section className="mx-auto max-w-6xl px-6 py-24">
+      <div className="mx-auto max-w-2xl text-center">
+        <Eyebrow>A category, not a tool</Eyebrow>
+        <h2 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+          It takes a stack of vendors to do what PrivacyOS does in one.
+        </h2>
+        <p className="mt-4 text-lg text-slate-400">
+          Each of them owns a single slice — and none of them talk to each other. PrivacyOS is all
+          of those layers, run by one intelligence engine that turns a finding into action.
+        </p>
+      </div>
+
+      <div className="mt-12 grid items-start gap-5 lg:grid-cols-2">
+        {/* The fragmented stack */}
+        <div className="rounded-2xl border border-border bg-bg-elevated/30 p-6">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">The point-tool stack</p>
+          <ul className="mt-4 space-y-2.5">
+            {pointTools.map((t) => (
+              <li key={t.category} className="flex items-start gap-3 rounded-xl border border-border/60 bg-bg-subtle/30 px-3.5 py-2.5">
+                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-500/10 text-slate-500 ring-1 ring-slate-500/20">
+                  <t.icon className="h-4 w-4" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-300">{t.category} <span className="text-xs font-normal text-slate-500">· {t.examples}</span></p>
+                  <p className="text-xs text-slate-500">{t.does}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-4 text-xs text-slate-500">Six tools. Six bills. Six logins. Nothing connected.</p>
+        </div>
+
+        {/* PrivacyOS — one platform */}
+        <div className="relative overflow-hidden rounded-2xl border border-brand/30 bg-gradient-to-b from-brand/10 to-transparent p-6 shadow-lg shadow-brand/10">
+          <div aria-hidden className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-brand/20 blur-2xl" />
+          <div className="relative flex items-center gap-2.5">
+            <Cpu className="h-5 w-5 text-brand-fg" />
+            <p className="text-[11px] font-bold uppercase tracking-wider text-brand-fg">PrivacyOS · one platform</p>
+          </div>
+          <ul className="relative mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {pointTools.map((t) => (
+              <li key={t.category} className="flex items-center gap-2 rounded-lg border border-border/60 bg-bg-subtle/40 px-3 py-2 text-sm text-white">
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-risk-low" /> {t.category}
+              </li>
+            ))}
+          </ul>
+          <div className="relative mt-5 rounded-xl border border-brand/25 bg-bg-subtle/40 p-4">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-brand-fg">And the part none of them do</p>
+            <p className="mt-1.5 text-sm leading-relaxed text-slate-200">
+              One finding becomes a case → removal → sealed evidence → legal action → monitoring —
+              automatically, with a tamper-evident record at every step.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 /* ── One Platform. Every Layer. ─────────────────────────────────────────────
    The category visual: five domains of digital risk, all run by one engine. */

@@ -9,6 +9,7 @@ import {
   OutcomeMetricsBand,
 } from "@/components/landing-outcomes";
 import {
+  OnePlatformReplacesStack,
   PlatformLayers,
   HighStakesBuyers,
   DetectionIsNotProtection,
@@ -56,7 +57,10 @@ export default async function LandingPage() {
       {/* 1 — HERO: the protection promise */}
       <Hero />
 
-      {/* 2 — WHO WE PROTECT (buyer categories, not products) */}
+      {/* 2 — THE CATEGORY STORY (why we're bigger than any point tool — first 30s) */}
+      <Reveal><OnePlatformReplacesStack /></Reveal>
+
+      {/* 3 — WHO WE PROTECT (buyer categories, not products) */}
       <Reveal><PersonaBand /></Reveal>
 
       {/* 3 — ONE PLATFORM, EVERY LAYER (the category architecture) */}
