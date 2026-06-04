@@ -10,7 +10,7 @@ import {
   Trash2, ScrollText, Settings, Lock, Users2, TrendingUp, BadgeCheck,
   Gauge, FileLock2,
   Search, Newspaper, LifeBuoy, Share2, Rocket,
-  Home, UserX, Crosshair, LayoutGrid, VenetianMask, EyeOff, Target, Fingerprint, ShieldCheck,
+  LayoutGrid, Fingerprint, ShieldCheck,
   SlidersHorizontal, ChevronDown, Banknote,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -51,7 +51,7 @@ export const navGroups: NavGroup[] = [
       { href: "/dashboard/identity", label: "Digital Identity", icon: Fingerprint },
       { href: "/dashboard/financial", label: "Financial Exposure", icon: Banknote },
       { href: "/dashboard/removals", label: "Broker Removals", icon: Trash2 },
-      { href: "/dashboard/threats", label: "Threat Feed", icon: ShieldAlert },
+      { href: "/dashboard/threats", label: "Threats", icon: ShieldAlert },
       { href: "/dashboard/cases", label: "Active Cases", icon: FolderKanban },
       { href: "/dashboard/recommendations", label: "AI Recommendations", icon: Sparkles },
     ],
@@ -71,21 +71,16 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
+    // Every ExecutiveOS page already shares one tab bar (ExecutiveTabs), so the
+    // sidebar needs only the section entry: Attack Paths, Residence, Doxxing,
+    // Impersonation, Dark Web, Threat Actors and Command are reached via those
+    // tabs (no navigation lost). Incidents (standalone IR), Family and Travel
+    // keep direct entries since they serve their own personas.
     group: "ExecutiveOS",
     feature: "executive",
     items: [
-      // Protection cluster
       { href: "/dashboard/executive", label: "Executive Protection", icon: Crown },
-      { href: "/dashboard/executive/attack-paths", label: "Attack Paths", icon: Target },
-      { href: "/dashboard/executive/residence", label: "Residence", icon: Home },
-      { href: "/dashboard/executive/doxxing", label: "Doxxing Protection", icon: UserX },
-      { href: "/dashboard/executive/impersonation", label: "Impersonation", icon: VenetianMask },
-      // Threat cluster (slated to merge with the global Threat Feed into "Threats")
-      { href: "/dashboard/executive/dark-web", label: "Dark Web", icon: EyeOff },
-      { href: "/dashboard/executive/threat-actors", label: "Threat Actors", icon: Crosshair },
       { href: "/dashboard/incidents", label: "Incidents", icon: Siren },
-      { href: "/dashboard/executive/command", label: "Command", icon: LayoutGrid },
-      // Household
       { href: "/dashboard/family", label: "Family Protection", icon: Users },
       { href: "/dashboard/travel", label: "Travel Risk", icon: Plane },
     ],
