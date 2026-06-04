@@ -32,6 +32,11 @@ if (KEY.startsWith("sk_live_")) {
 
 const ENV_KEY = (planId: string) => `STRIPE_PRICE_${planId.toUpperCase().replace(/-/g, "_")}`;
 
+// Stripe rejects any Price whose unit_amount exceeds this many minor units.
+// Very high tiers (e.g. Enterprise annual) overflow it once converted into
+// high-rate currencies, so we skip just those currency_options (see below).
+const STRIPE_MAX_UNIT_AMOUNT = 99_999_999;
+
 async function stripe(method: "GET" | "POST", path: string, form?: Record<string, string>): Promise<any> {
   const res = await fetch(`https://api.stripe.com/v1/${path}`, {
     method,
@@ -82,10 +87,19 @@ async function ensurePrice(opts: {
     nickname: opts.nickname,
     "metadata[plan_id]": opts.planId,
   };
-  // Multi-currency: present the same plan in every supported currency.
+  // Multi-currency: present the same plan in every supported currency. Stripe
+  // caps unit_amount at 99,999,999 minor units per price; very high tiers (e.g.
+  // Enterprise annual) overflow that in high-rate currencies (SEK/NOK/DKK/INR),
+  // so we skip just those options instead of failing the whole price. The USD
+  // base always fits at our price points.
   for (const c of CURRENCIES) {
     if (c.code === "usd") continue;
-    form[`currency_options[${c.code}][unit_amount]`] = String(toStripeAmount(opts.usdDollars, c));
+    const amount = toStripeAmount(opts.usdDollars, c);
+    if (amount > STRIPE_MAX_UNIT_AMOUNT) {
+      console.error(`  ⚠ ${opts.nickname}: skipping ${c.code.toUpperCase()} (${amount} > Stripe max ${STRIPE_MAX_UNIT_AMOUNT})`);
+      continue;
+    }
+    form[`currency_options[${c.code}][unit_amount]`] = String(amount);
   }
   const created = await stripe("POST", "prices", form);
   return created.id;
