@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "stripe:setup": "node scripts/stripe-setup.ts",
+    "stripe:setup": "npx -y tsx scripts/stripe-setup.ts",
     "globe:gen": "node scripts/gen-globe-dots.mjs"
   },
   "dependencies": {

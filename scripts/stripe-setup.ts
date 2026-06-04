@@ -4,10 +4,11 @@
  *
  * Usage (run locally, NOT in CI; needs your Stripe secret key):
  *
- *   STRIPE_SECRET_KEY=sk_test_xxx node scripts/stripe-setup.ts            # monthly prices
- *   STRIPE_SECRET_KEY=sk_test_xxx node scripts/stripe-setup.ts --annual   # + annual prices
+ *   STRIPE_SECRET_KEY=sk_test_xxx npm run stripe:setup              # monthly prices
+ *   STRIPE_SECRET_KEY=sk_test_xxx npm run stripe:setup -- --annual  # + annual prices
  *
- * (Node 22.18+ runs .ts directly. On older Node use:  npx tsx scripts/stripe-setup.ts)
+ * The npm script runs this via `npx tsx`, so it works on any Node version
+ * (plain `node` cannot execute .ts before Node 22.18).
  *
  * Idempotent: re-running reuses existing Products (matched by metadata.plan_id)
  * and Prices (matched by lookup_key), so it never creates duplicates. Paste the
